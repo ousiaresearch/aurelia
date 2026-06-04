@@ -360,6 +360,7 @@ class CoordinatorState:
             "total_federation_events": db.execute("SELECT COUNT(*) FROM federation_events").fetchone()[0],
             "diplomatic_incidents": db.execute("SELECT COUNT(*) FROM diplomatic_incidents").fetchone()[0],
             "faction_counts": self._load_faction_counts(),
+            "conflict_state": self._load_conflict_state(),
         }
 
     def _load_faction_counts(self):
@@ -382,6 +383,39 @@ class CoordinatorState:
             except Exception:
                 counts[country] = {"active": 0, "total": 0}
         return counts
+
+    def _load_conflict_state(self):
+        """Query each world DB for conflict intensity."""
+        LADDER_INDEX = {"dormant": 0, "grievance": 1, "organization": 2, "ultimatum": 3, "skirmish": 4, "armed_conflict": 5, "war": 6}
+        state = {}
+        for country in ["solara", "valdris", "mirithane", "arkos", "verge"]:
+            db_path = AGENTS_HOME / country / "aurelia-world" / "world" / "world.db"
+            if not db_path.exists():
+                state[country] = {"active_conflicts": 0, "max_intensity": 0, "at_war": 0}
+                continue
+            try:
+                wdb = sqlite3.connect(str(db_path), timeout=2)
+                wdb.row_factory = sqlite3.Row
+                rows = wdb.execute(
+                    "SELECT status, member_count FROM factions WHERE status NOT IN ('dissolved', 'sovereign')"
+                ).fetchall()
+                active = len(rows)
+                at_war = sum(1 for r in rows if r["status"] == "war")
+                max_intensity = max(
+                    (LADDER_INDEX.get(r["status"], 0) / 6.0 for r in rows),
+                    default=0.0
+                )
+                total_members = sum(r["member_count"] or 0 for r in rows)
+                wdb.close()
+                state[country] = {
+                    "active_conflicts": active,
+                    "max_intensity": round(max_intensity, 3),
+                    "at_war": at_war,
+                    "total_faction_members": total_members,
+                }
+            except Exception:
+                state[country] = {"active_conflicts": 0, "max_intensity": 0, "at_war": 0, "total_faction_members": 0}
+        return state
 
     def get_diplomatic_relations(self):
         db = sqlite3.connect(str(COORDINATOR_DB), timeout=5)

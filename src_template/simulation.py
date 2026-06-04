@@ -730,6 +730,28 @@ def tick(db, hours: float = 1.0) -> dict:
     except Exception:
         pass
 
+    # ── PHASE 6f: ESCALATION LADDER — faction conflict state machine
+    try:
+        from .escalation_ladder import check_all_escalations, get_conflict_state
+        esc_events = check_all_escalations(db, wid, tick_number, growth)
+        for ee in esc_events:
+            from .federation_events import _event as _fevent_e
+            pop_events.append(_fevent_e(
+                event_id=f"{wid}:tick-{tick_number}:escalation:{ee['event_type']}:{int(time.time())}",
+                world_id=wid,
+                event_type=ee["event_type"],
+                category=ee["category"],
+                title=ee["title"][:72],
+                description=ee["description"],
+                importance=ee.get("importance", 0.8),
+                actor_ids=ee.get("actor_ids", []),
+                tags=ee.get("tags", []),
+                payload=ee.get("payload", {}),
+                world_time=time_info,
+            ))
+    except Exception:
+        pass
+
     # ── PHASE 7: CREATIVE OUTPUT ──
     from .creative_output import creative_output_tick
     owl_loc = db.execute("SELECT location_id FROM agents WHERE type = 'player'").fetchone()
