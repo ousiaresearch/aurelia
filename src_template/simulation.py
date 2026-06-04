@@ -627,6 +627,44 @@ def tick(db, hours: float = 1.0) -> dict:
     except Exception:
         pass
 
+    # ── PHASE 6c: CROSS-BORDER EVENT GENERATORS
+    try:
+        from .event_generators import check_memory_trader, check_ecology_dispute
+        # Memory Trader: query coordinator for anomaly count
+        req_url = "http://127.0.0.1:9001/api/growth"
+        anomaly_count = 0
+        try:
+            import urllib.request, json
+            resp = urllib.request.urlopen(req_url, timeout=5)
+            growth = json.loads(resp.read())
+            anomaly_count = growth.get("glim_anomaly_signals", 0)
+        except Exception:
+            pass
+        rev = check_memory_trader(db, wid, anomaly_count)
+        if rev:
+            from .federation_events import _event as _fevent
+            pop_events.append(_fevent(
+                event_id=f"{wid}:tick-{tick_number}:memory-revelation:{int(time.time())}",
+                world_id=wid, event_type="memory_revelation", category="memory_revelation",
+                title=rev.get("description", "")[:72], description=rev.get("description", ""),
+                importance=0.9, actor_ids=[], tags=["memory", "revelation", wid],
+                payload=rev, world_time=time_info,
+            ))
+        # Ecology disputes (Valdris only)
+        trade_vol = economy_summary.get("trade_volume", 0.5) if isinstance(economy_summary, dict) else 0.5
+        eco = check_ecology_dispute(wid, trade_vol, 0.5)
+        if eco:
+            from .federation_events import _event as _fevent2
+            pop_events.append(_fevent2(
+                event_id=f"{wid}:tick-{tick_number}:ecology-dispute:{int(time.time())}",
+                world_id=wid, event_type="ecology_dispute", category="ecology",
+                title=eco.get("description", "")[:72], description=eco.get("description", ""),
+                importance=0.75, actor_ids=[], tags=["ecology", "dispute", wid],
+                payload=eco, world_time=time_info,
+            ))
+    except Exception:
+        pass
+
     # ── PHASE 7: CREATIVE OUTPUT ──
     from .creative_output import creative_output_tick
     owl_loc = db.execute("SELECT location_id FROM agents WHERE type = 'player'").fetchone()
