@@ -395,6 +395,50 @@ def init_world(db_path: Path = DB_PATH) -> sqlite3.Connection:
             last_updated REAL NOT NULL DEFAULT 0,
             decision_log JSON NOT NULL DEFAULT '[]'
         );
+
+        -- ──────────────────────────────────────────────
+        -- FACTIONS (Phase 6 — emergent geopolitics)
+        -- ──────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS factions (
+            faction_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            world_id TEXT NOT NULL,
+            region TEXT,
+            status TEXT NOT NULL DEFAULT 'forming',
+            primary_grievance TEXT,
+            demand TEXT,
+            leader_npc_id TEXT,
+            member_count INTEGER DEFAULT 0,
+            influence REAL DEFAULT 0.0,
+            founded_tick INTEGER,
+            dissolved_tick INTEGER,
+            metadata JSON DEFAULT '{}',
+            created_at REAL NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS faction_members (
+            faction_id TEXT NOT NULL REFERENCES factions(faction_id),
+            npc_id TEXT NOT NULL REFERENCES agents(id),
+            joined_tick INTEGER NOT NULL,
+            role TEXT DEFAULT 'member',
+            PRIMARY KEY (faction_id, npc_id)
+        );
+
+        -- ──────────────────────────────────────────────
+        -- SOVEREIGNTY EVENTS (Phase 6 — faction-to-country)
+        -- ──────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS sovereignty_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            faction_id TEXT NOT NULL,
+            world_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            new_country_name TEXT,
+            recognized_by TEXT,
+            territory_control REAL,
+            member_count INTEGER,
+            tick_number INTEGER,
+            created_at REAL NOT NULL
+        );
     """)
 
     return db

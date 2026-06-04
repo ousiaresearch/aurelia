@@ -706,6 +706,30 @@ def tick(db, hours: float = 1.0) -> dict:
     except Exception:
         pass
 
+    # ── PHASE 6e: FACTION ENGINE — grievance-driven NPC organization
+    faction_events = []
+    try:
+        from .faction_engine import check_faction_formation, update_all_factions
+        faction_event = check_faction_formation(db, wid, tick_number, growth)
+        if faction_event:
+            from .federation_events import _event as _fevent_f
+            pop_events.append(_fevent_f(
+                event_id=f"{wid}:tick-{tick_number}:faction-formed:{int(time.time())}",
+                world_id=wid,
+                event_type=faction_event["event_type"],
+                category=faction_event["category"],
+                title=faction_event["title"][:72],
+                description=faction_event["description"],
+                importance=faction_event.get("importance", 0.75),
+                actor_ids=faction_event.get("actor_ids", []),
+                tags=faction_event.get("tags", []),
+                payload=faction_event.get("payload", {}),
+                world_time=time_info,
+            ))
+        update_all_factions(db, wid, tick_number)
+    except Exception:
+        pass
+
     # ── PHASE 7: CREATIVE OUTPUT ──
     from .creative_output import creative_output_tick
     owl_loc = db.execute("SELECT location_id FROM agents WHERE type = 'player'").fetchone()

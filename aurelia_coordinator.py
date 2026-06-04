@@ -359,7 +359,29 @@ class CoordinatorState:
             "glim_anomaly_signals": anomaly_count,
             "total_federation_events": db.execute("SELECT COUNT(*) FROM federation_events").fetchone()[0],
             "diplomatic_incidents": db.execute("SELECT COUNT(*) FROM diplomatic_incidents").fetchone()[0],
+            "faction_counts": self._load_faction_counts(),
         }
+
+    def _load_faction_counts(self):
+        """Query each world DB for faction counts."""
+        counts = {}
+        for country in ["solara", "valdris", "mirithane", "arkos", "verge"]:
+            db_path = AGENTS_HOME / country / "aurelia-world" / "world" / "world.db"
+            if not db_path.exists():
+                counts[country] = {"active": 0, "total": 0}
+                continue
+            try:
+                wdb = sqlite3.connect(str(db_path), timeout=2)
+                wdb.row_factory = sqlite3.Row
+                total = wdb.execute("SELECT COUNT(*) FROM factions").fetchone()[0]
+                active = wdb.execute(
+                    "SELECT COUNT(*) FROM factions WHERE status NOT IN ('dissolved', 'sovereign')"
+                ).fetchone()[0]
+                wdb.close()
+                counts[country] = {"active": active, "total": total}
+            except Exception:
+                counts[country] = {"active": 0, "total": 0}
+        return counts
 
     def get_diplomatic_relations(self):
         db = sqlite3.connect(str(COORDINATOR_DB), timeout=5)
