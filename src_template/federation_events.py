@@ -190,3 +190,40 @@ def build_federation_events(
                 return events
 
     return events
+
+
+def build_population_event(world_id: str, tick_number: int, pop_data: dict, world_time: dict) -> dict:
+    event_type = pop_data.get("event_type", "population_change")
+    description = pop_data.get("description", "Population event.")
+    return _event(
+        event_id=f"{world_id}:tick-{tick_number}:pop:{event_type}:{pop_data.get('npc_id','?')}",
+        world_id=world_id,
+        event_type=event_type,
+        category="population",
+        title=description[:72],
+        description=description,
+        importance=0.7 if event_type in ("migration", "mortality") else 0.55,
+        actor_ids=[pop_data.get("npc_id")] if pop_data.get("npc_id") else [],
+        tags=["population", event_type, world_id],
+        payload=pop_data,
+        world_time=world_time,
+    )
+
+
+def build_glim_anomaly_event(world_id: str, tick_number: int, anomaly_data: dict, world_time: dict) -> dict:
+    npc_id = anomaly_data.get("npc_id", "unknown")
+    anomal_type = anomaly_data.get("anomaly_type", "anomaly")
+    description = anomaly_data.get("description", f"Glim {npc_id} shows anomalous behavior.")
+    return _event(
+        event_id=f"{world_id}:tick-{tick_number}:glim-anomaly:{npc_id}:{anomal_type}",
+        world_id=world_id,
+        event_type="glim_anomaly",
+        category="glim_personhood",
+        title=f"Anomalous Glim behavior detected: {npc_id} — {anomal_type}",
+        description=description,
+        importance=0.85,
+        actor_ids=[npc_id],
+        tags=["glim", "personhood", anomal_type, world_id],
+        payload=anomaly_data,
+        world_time=world_time,
+    )

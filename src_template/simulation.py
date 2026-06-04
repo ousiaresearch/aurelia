@@ -456,6 +456,44 @@ def tick(db, hours: float = 1.0) -> dict:
     except Exception:
         pass
 
+    # 2b. POPULATION DYNAMICS — migration, reproduction, mortality, Glim anomalies
+    pop_events = []
+    try:
+        # Resolve world_id from registry
+        world_reg = db.execute("SELECT world_id FROM world_registry WHERE id = 1").fetchone()
+        world_id = world_reg["world_id"] if world_reg else "solara"
+        tick_number = db.execute("SELECT COALESCE(MAX(tick_number), 0) + 1 FROM tick_log").fetchone()[0]
+        
+        from .population import check_migration, check_reproduction, check_mortality
+        from .decision_feeder import check_glim_tipping
+        npcs = db.execute("SELECT id, type FROM agents WHERE type = 'npc' LIMIT 25").fetchall()
+        for npc_id, npc_type in npcs:
+            # Glim tipping check
+            if npc_type == "glim":
+                tip = check_glim_tipping(db, npc_id, world_id, {"tick": tick_number})
+                if tip:
+                    from .federation_events import build_glim_anomaly_event
+                    pop_events.append(build_glim_anomaly_event(world_id, tick_number, tip, time_info))
+            # Migration
+            mig = check_migration(db, npc_id, npc_type, world_id, {"tick": tick_number})
+            if mig:
+                pop_events.append(mig)
+            # Reproduction
+            rep = check_reproduction(db, npc_id, npc_type, world_id, {"tick": tick_number})
+            if rep:
+                pop_events.append(rep)
+            # Mortality
+            death = check_mortality(db, npc_id, npc_type, world_id, {"tick": tick_number})
+            if death:
+                pop_events.append(death)
+                db.execute("DELETE FROM agents WHERE id = ?", (npc_id,))
+                db.execute("DELETE FROM npc_decision_state WHERE npc_id = ?", (npc_id,))
+        if pop_events:
+            db.commit()
+            all_tick_events.extend(pop_events)
+    except Exception:
+        pass
+
     # 3. STORY CREATION — scan events for story-worthy patterns
     try:
         from .narrative_arcs import check_story_creation_from_events
@@ -572,6 +610,22 @@ def tick(db, hours: float = 1.0) -> dict:
     # ── PHASE 6: ECONOMY ──
     from .economy import economy_tick
     economy_summary = economy_tick(db)
+
+    # ── PHASE 6b: ECONOMIC DRIFT — currency stability affects NPCs
+    try:
+        from .economic_drift import drift_currency, stability_affects_npcs
+        wreg = db.execute("SELECT world_id FROM world_registry WHERE id = 1").fetchone()
+        wid = wreg["world_id"] if wreg else "solara"
+        trade_balance = economy_summary.get("trade_balance", 0.0)
+        import sqlite3 as _sql3
+        _cdb = _sql3.connect("/Users/johann/aurelia/coordinator.db", timeout=2)
+        _trow = _cdb.execute("SELECT AVG(tension) FROM diplomatic_relations").fetchone()
+        dipl_tension = _trow[0] if _trow and _trow[0] else 0.3
+        _cdb.close()
+        drift_currency(wid, trade_balance, dipl_tension)
+        stability_affects_npcs(db, wid)
+    except Exception:
+        pass
 
     # ── PHASE 7: CREATIVE OUTPUT ──
     from .creative_output import creative_output_tick
