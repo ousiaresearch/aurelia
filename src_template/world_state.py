@@ -1231,21 +1231,54 @@ def set_world_identity(db: sqlite3.Connection, world_id: str, name: str, region:
 
 
 def get_world_identity(db: sqlite3.Connection) -> dict | None:
-    """Return the world identity dict for the federation coordinator."""
+    """Return the world identity dict for the federation coordinator.
+
+    Aurelia factory worlds use a compact ``world_registry`` schema:
+    ``(id, world_id, data, created_at)``, with most identity fields stored as
+    JSON in ``data``. Older per-agent worlds use flat columns like
+    ``hosted_agent_id`` and ``entry_location_id``. Support both shapes so a
+    coordinator restart can be followed by daemon restarts without crashing.
+    """
     row = db.execute("SELECT * FROM world_registry WHERE id = 1").fetchone()
     if not row:
         return None
-    loc_count = db.execute("SELECT COUNT(*) FROM locations").fetchone()[0]
-    npc_count = db.execute("SELECT COUNT(*) FROM agents WHERE type = 'npc'").fetchone()[0]
-    # Agent location for dashboard
-    agent_id = row["hosted_agent_id"]
-    agent_row = db.execute("SELECT location_id FROM agents WHERE id = ?", (agent_id,)).fetchone()
-    agent_loc = agent_row["location_id"] if agent_row else None
-    # Resolve location name
+
+    keys = set(row.keys())
+    registry_data = {}
+    if "data" in keys and row["data"]:
+        try:
+            registry_data = json.loads(row["data"]) if isinstance(row["data"], str) else dict(row["data"])
+        except Exception:
+            registry_data = {}
+
+    def field(name, default=None):
+        if name in keys:
+            return row[name]
+        return registry_data.get(name, default)
+
+    def safe_count(sql, default=0):
+        try:
+            return db.execute(sql).fetchone()[0]
+        except Exception:
+            return default
+
+    loc_count = safe_count("SELECT COUNT(*) FROM locations") or registry_data.get("location_count", 0)
+    npc_count = safe_count("SELECT COUNT(*) FROM agents WHERE type = 'npc'")
+
+    # Hosted agent / sovereign country-state fallback.
+    agent_id = field("hosted_agent_id") or registry_data.get("agent_id")
+    if not agent_id:
+        player = db.execute("SELECT id FROM agents WHERE type = 'player' LIMIT 1").fetchone()
+        agent_id = player["id"] if player else field("world_id")
+
+    agent_row = db.execute("SELECT location_id FROM agents WHERE id = ?", (agent_id,)).fetchone() if agent_id else None
+    agent_loc = agent_row["location_id"] if agent_row else field("entry_location_id")
+
     loc_name = None
     if agent_loc:
         lr = db.execute("SELECT name FROM locations WHERE id = ?", (agent_loc,)).fetchone()
         loc_name = lr["name"] if lr else agent_loc
+
     # Weather
     wx_row = db.execute("SELECT condition, temperature, wind_speed, wind_direction, description FROM weather WHERE id = 1").fetchone()
     weather = None
@@ -1257,41 +1290,49 @@ def get_world_identity(db: sqlite3.Connection) -> dict | None:
             "wind_direction": wx_row["wind_direction"],
             "description": wx_row["description"],
         }
+
     # Recent events (last 3 meaningful, non-tick)
     events = []
-    for evt in db.execute(
-        "SELECT event_type, description, agent_id, location_id FROM events WHERE event_type != 'tick' ORDER BY id DESC LIMIT 3"
-    ).fetchall():
+    try:
+        event_rows = db.execute(
+            "SELECT event_type, description, agent_id, location_id FROM events WHERE event_type != 'tick' ORDER BY id DESC LIMIT 3"
+        ).fetchall()
+    except Exception:
+        event_rows = []
+    for evt in event_rows:
         events.append({
             "type": evt["event_type"],
             "description": evt["description"],
             "agent_id": evt["agent_id"],
             "location_id": evt["location_id"],
         })
+
     # ── Depth drill-down ──────────────────────────────────────────
-    # Top 5 NPCs (by relationship count or activity)
     top_npcs = []
-    for npc in db.execute(
-        """SELECT a.id, a.name, a.location_id,
-                  (SELECT COUNT(*) FROM npc_relationships WHERE npc_a=a.id OR npc_b=a.id) as rels
-           FROM agents a WHERE a.type='npc'
-           ORDER BY rels DESC LIMIT 5"""
-    ).fetchall():
+    try:
+        npc_rows = db.execute(
+            """SELECT a.id, a.name, a.location_id,
+                      (SELECT COUNT(*) FROM npc_relationships WHERE npc_a=a.id OR npc_b=a.id) as rels
+               FROM agents a WHERE a.type='npc'
+               ORDER BY rels DESC LIMIT 5"""
+        ).fetchall()
+    except Exception:
+        npc_rows = []
+    for npc in npc_rows:
         top_npcs.append({"id": npc["id"], "name": npc["name"],
                          "location_id": npc["location_id"], "relationships": npc["rels"]})
-    # Ecology summary
-    animal_count = db.execute("SELECT COUNT(*) FROM animals").fetchone()[0]
-    plant_count = db.execute("SELECT COUNT(*) FROM resource_nodes").fetchone()[0]
-    eco_events = db.execute("SELECT COUNT(*) FROM ecology_events").fetchone()[0]
-    ecology = {"animals": animal_count, "plants": plant_count, "events": eco_events}
-    # Ritual summary
-    rituals_pending = db.execute("SELECT COUNT(*) FROM ritual_state WHERE phase IN ('upcoming','active')").fetchone()[0]
-    rituals_total = db.execute("SELECT COUNT(*) FROM ritual_state").fetchone()[0]
-    # Narrative
-    narrative_count = db.execute("SELECT COUNT(*) FROM narrative_moments").fetchone()[0]
-    arcs_active = db.execute("SELECT COUNT(*) FROM story_arcs WHERE active=1").fetchone()[0]
-    arcs_total = db.execute("SELECT COUNT(*) FROM story_arcs").fetchone()[0]
-    # Internal state
+
+    ecology = {
+        "animals": safe_count("SELECT COUNT(*) FROM animals"),
+        "plants": safe_count("SELECT COUNT(*) FROM resource_nodes"),
+        "events": safe_count("SELECT COUNT(*) FROM ecology_events"),
+    }
+    rituals_pending = safe_count("SELECT COUNT(*) FROM ritual_state WHERE phase IN ('upcoming','active')")
+    rituals_total = safe_count("SELECT COUNT(*) FROM ritual_state")
+    narrative_count = safe_count("SELECT COUNT(*) FROM narrative_moments")
+    arcs_active = safe_count("SELECT COUNT(*) FROM story_arcs WHERE active=1")
+    arcs_total = safe_count("SELECT COUNT(*) FROM story_arcs")
+
     interior_row = db.execute("SELECT mood, energy, restlessness, creative_urge, dominant_interest FROM internal_state WHERE id=1").fetchone()
     interior = None
     if interior_row:
@@ -1299,19 +1340,22 @@ def get_world_identity(db: sqlite3.Connection) -> dict | None:
                     "restlessness": round(interior_row["restlessness"], 2),
                     "creative_urge": round(interior_row["creative_urge"], 2),
                     "dominant_interest": interior_row["dominant_interest"]}
-    # World time
+
     wt_row = db.execute("SELECT year, month, day, hour, season, time_of_day FROM world_time WHERE id=1").fetchone()
     world_time = None
     if wt_row:
         world_time = {"year": wt_row["year"], "month": wt_row["month"], "day": wt_row["day"],
                       "hour": wt_row["hour"], "season": wt_row["season"], "time_of_day": wt_row["time_of_day"]}
-    # Artifacts
-    artifact_count = db.execute("SELECT COUNT(*) FROM world_artifacts WHERE visible=1").fetchone()[0]
-    # Event volume (last 24 ticks — for heatmap)
+
+    artifact_count = safe_count("SELECT COUNT(*) FROM world_artifacts WHERE visible=1")
     event_volumes = []
-    for evc in db.execute("SELECT COUNT(*) as c FROM events WHERE event_type='tick' GROUP BY (id / 10) ORDER BY id DESC LIMIT 12").fetchall():
-        event_volumes.append(evc["c"])
-    event_volumes.reverse()  # oldest first
+    try:
+        for evc in db.execute("SELECT COUNT(*) as c FROM events WHERE event_type='tick' GROUP BY (id / 10) ORDER BY id DESC LIMIT 12").fetchall():
+            event_volumes.append(evc["c"])
+        event_volumes.reverse()  # oldest first
+    except Exception:
+        pass
+
     depth = {
         "top_npcs": top_npcs,
         "ecology": ecology,
@@ -1326,13 +1370,18 @@ def get_world_identity(db: sqlite3.Connection) -> dict | None:
         "event_volumes": event_volumes,
     }
     return {
-        "world_id": row["world_id"],
-        "name": row["name"],
-        "region": row["region"],
-        "timezone": row["timezone"],
-        "hosted_agent_id": row["hosted_agent_id"],
-        "entry_location_id": row["entry_location_id"],
-        "api_port": row["api_port"],
+        "world_id": field("world_id"),
+        "name": field("name"),
+        "full_name": field("full_name"),
+        "region": field("region", "Aurelia"),
+        "timezone": field("timezone", "UTC"),
+        "hosted_agent_id": agent_id,
+        "entry_location_id": field("entry_location_id") or agent_loc,
+        "api_port": field("api_port", 0),
+        "currency": field("currency"),
+        "currency_symbol": field("currency_symbol"),
+        "currency_backing": field("currency_backing"),
+        "biome": field("biome"),
         "location_count": loc_count,
         "npc_count": npc_count,
         "agent_location_id": agent_loc,
