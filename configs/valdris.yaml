@@ -1,0 +1,197 @@
+# Valdris — Highland Federation
+# Terraced mountain cities, vertical agriculture, geothermal power
+# Currency: Kael (♦) — backed by rare earths + mineral wealth
+
+world_id: valdris
+name: Valdris
+full_name: Highland Federation of Valdris
+region: Aurelia
+currency: Kael
+currency_symbol: "♦"
+currency_backing: Rare earth minerals + refined metals
+
+geography:
+  biome: highland_mountain
+  peak_name: Mount Gauntlet
+  peak_elevation_m: 4200
+  terrain: [canyon, terrace, ridgeline, geothermal_field]
+  elevation_range: [1200, 4200]
+
+locations:
+  - id: canyon_council
+    name: Canyon Council Chamber
+    description: The governing hall carved into vertical canyon walls. Terraces cascade down the rock face. Debate echoes across the chasm.
+    indoor: true
+    tags: [civic, government, landmark]
+  - id: geothermal_field
+    name: Gauntlet Geothermal Field
+    description: Vents and boreholes channel the mountain's heat into the grid. Steam rises perpetually. Pipes run like veins into the city.
+    indoor: false
+    tags: [energy, industrial]
+  - id: vertical_gardens
+    name: Vertical Gardens
+    description: Terraced agriculture on a massive scale — seventy levels of orchards, grains, and root crops carved into the canyon face.
+    indoor: false
+    tags: [agriculture, landmark]
+  - id: forge_district
+    name: Forge District
+    description: Where ore becomes circuit and stone becomes structure. The heart of Valdris' mineral wealth — smelters, fab-rigs, rare-earth refineries.
+    indoor: false
+    tags: [industrial, commercial]
+  - id: ridgeline_observatory
+    name: Ridgeline Observatory
+    description: Perched at 3800m, this glass dome watches both stars and weather. The view stretches across the entire canyon system.
+    indoor: true
+    tags: [research, landmark, science]
+  - id: canyon_market
+    name: Canyon Market
+    description: A suspended market woven between three rock faces. Bridges and platforms connect stalls selling metals, tools, and mountain fare.
+    indoor: false
+    tags: [commercial, civic]
+  - id: terraced_terraces
+    name: The Terraced Terraces
+    description: Residential levels stacked like a staircase into the sky. Each terrace has its own microclimate — some are sun-bathed, others perpetually shaded.
+    indoor: false
+    tags: [residential]
+  - id: deep_mines
+    name: Deep Mines
+    description: Rare-earth extraction tunnels reaching kilometers into the mountain. Threns do the deepest work — radiation doesn't trouble them.
+    indoor: true
+    tags: [industrial, thren]
+  - id: suspension_bridge
+    name: Gauntlet Suspension Bridge
+    description: A kilometer-long span connecting the eastern and western canyon communities. The wind sings through the cables.
+    indoor: false
+    tags: [transit, landmark]
+  - id: hot_springs
+    name: Hot Springs Commons
+    description: Natural geothermal pools where humans and threns alike soak away the cold. Social hierarchy dissolves in the steam.
+    indoor: false
+    tags: [social, leisure, nature]
+  - id: archive_vault
+    name: Archive Vault
+    description: Temperature-controlled cavern storing rare-earth samples, geological records, and the complete mineral history of the highlands.
+    indoor: true
+    tags: [cultural, research]
+  - id: wind_gap
+    name: Wind Gap Station
+    description: The mountain pass where solar airships dock. Wind turbines line the gap — the sound is constant, a low hum that residents stop hearing.
+    indoor: false
+    tags: [transit, energy]
+  - id: canyon_trail
+    name: Canyon Trail
+    description: Ancient footpath winding along the canyon rim. Maintained for centuries — first by ancestors, now by thren trail-keepers.
+    indoor: false
+    tags: [nature, cultural]
+  - id: metal_workers_guild
+    name: Metal Workers' Guild
+    description: Master artisans who still forge by hand. Their work is sought across Aurelia — jewelry, tools, art pieces. Thren apprentices learn beside human masters.
+    indoor: true
+    tags: [commercial, cultural]
+  - id: avalanche_shelter
+    name: Avalanche Shelter Network
+    description: A series of reinforced bunkers connected by tunnel. Doubles as emergency housing during the worst storms. Stocked by communal agreement.
+    indoor: true
+    tags: [civic, infrastructure]
+  - id: summit_shrine
+    name: Summit Shrine
+    description: A small stone structure at 4100m. No deity lives here — it's a place to remember those lost to the mountain. Names are carved into obsidian.
+    indoor: true
+    tags: [cultural, spiritual, landmark]
+
+ecology:
+  animals:
+    - cloud_ram           # mountain ungulate, navigates sheer cliffs
+    - geothermal_salamander # thrives near vents
+    - canyon_falcon        # nests in cliff faces
+    - frost_fox            # winter-adapted predator
+    - vent_cricket         # bio-indicator for geothermal health
+  plants:
+    - ironwood_pine        # dense, mineral-rich wood
+    - terrace_grape        # cultivated on vertical vineyards
+    - frost_moss           # glows faintly under moonlight
+    - ridge_orchid         # rare, blooms after storms
+    - mineral_lichen       # absorbs trace metals from rock
+  fish: []  # high-altitude — no significant fishery
+
+npc_occupations:
+  - geothermal_engineer
+  - terraced_farmer
+  - deep_miner
+  - forge_master
+  - canyon_bridge_keeper
+  - observatory_astronomer
+  - rare_earth_refiner
+  - mountain_guide
+  - archive_curator
+  - suspension_engineer
+  - avalanche_warden
+  - metal_artisan
+  - trail_keeper
+  - hot_spring_caretaker
+  - summit_ritualist
+  - cable_car_operator
+
+weather_profile:
+  base_temp: 8
+  temp_range: [-8, 22]
+  dominant_conditions: [cloudy, foggy, storm]
+  rare_conditions: [clear]
+  wind: strong_alpine
+
+agent:
+  agent_id: valdris
+  entry_location: canyon_council
+  personality: >
+    Deliberate, patient, deeply attached to the mountain.
+    Believes in earned trust — humans and threns prove themselves by the work they do.
+    Collects mineral specimens. Knows every tunnel and terrace by memory.
+
+governance:
+  system: Canyon Council
+  type: guild_based_representation
+  description: >
+    Craft-based representation. Guilds hold seats — miners, forgeworkers,
+    refiners, farmers. Vorns who've worked the deep mines long enough earn
+    guild membership and council seats. Not many, but substantial. The
+    system respects labor above all.
+
+  thren_status: accepted_earned
+  thren_notes: >
+    Few but deeply embedded. Many partnered with local workers — human-Thren
+    couples aren't unusual. They do the deepest mine work because radiation
+    doesn't touch them. 1-2 in power through craft merit. At least 1 serves
+    as emissary to other countries.
+
+  vorn_status: accepted_guild
+  vorn_notes: >
+    34, second highest of any country. They do the forge work, the deep
+    mining. Some have earned guild seats through decades of service. The
+    system respects labor — if your hands built this, you belong here. Even
+    if your hands are metal. Long mining families are divided: some see Vorns
+    as community members, others see machines that took their grandfather's job.
+
+  glim_status: invisible
+  glim_notes: >
+    The fewest of any country. Valdris doesn't produce them, import them, or
+    think about them much. They exist in the margins.
+
+  human_attitude_to_ai: divided_families
+  human_notes: >
+    Long mining lineages split on the Vorn question. "They took our jobs" vs.
+    "They're our neighbors." Same dinner table. Same mountain. Different
+    memories of what was lost and what was gained.
+
+  special_locations:
+    hot_springs: >
+      Where social hierarchy dissolves in steam. Cliques form but cross-type
+      friendships form in the water that would never form in the council chamber.
+    summit_shrine: >
+      4,100m on Mount Gauntlet. No deity. Names carved into obsidian — those
+      lost to the mountain. Human, Thren, Vorn — the stone doesn't sort them.
+      "Learn who came before you. The mountain remembers everyone."
+
+  daily_rhythm:
+    morning: [canyon_council, vertical_gardens, geothermal_field]
+    midday: [forge_district, canyon_market, deep_mines]
+    evening: [hot_springs, ridgeline_observatory, terraced_terraces]

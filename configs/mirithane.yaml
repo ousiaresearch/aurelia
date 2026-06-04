@@ -1,0 +1,188 @@
+# Mirithane — Wetland Techno-Commune
+# Rewilded estuary where threns chose to live *in* the ecology
+# Currency: Miri (≈) — backed by purified water + purification capacity
+
+world_id: mirithane
+name: Mirithane
+full_name: Mirithane Wetland Commune
+region: Aurelia
+currency: Miri
+currency_symbol: "≈"
+currency_backing: Purified water reserves + filtration capacity
+
+geography:
+  biome: rewilded_estuary
+  waterway_name: The Vein
+  terrain: [marsh, estuary, floating_island, filter_reef]
+  elevation_range: [0, 40]
+
+locations:
+  - id: estuary_commons
+    name: Estuary Commons
+    description: The communal heart — a floating platform ring where all decisions are made by consensus. Water laps beneath the floorboards during high tide.
+    indoor: false
+    tags: [civic, government, landmark]
+  - id: filtration_reefs
+    name: Filtration Reefs
+    description: Living water-purification structures. Engineered coral and filter-mollusks clean the Vein's entire watershed. Threns tend them in shifts.
+    indoor: false
+    tags: [infrastructure, thren, nature]
+  - id: floating_gardens
+    name: Floating Gardens
+    description: Hydroponic platforms drifting on the estuary. Each garden is a self-contained ecosystem — fish below, vegetables above, solar collectors on top.
+    indoor: false
+    tags: [agriculture, residential]
+  - id: memory_marsh
+    name: Memory Marsh
+    description: Where threns archive their experiences into the water itself — data stored in engineered bacteria that glow when queried. A library made of life.
+    indoor: false
+    tags: [cultural, thren, research]
+  - id: reed_village
+    name: Reed Village
+    description: Homes woven from living reed structures that grow, repair, and adapt. Doors are ovals cut into the reed wall. Natural climate control.
+    indoor: true
+    tags: [residential]
+  - id: tide_market
+    name: Tide Market
+    description: A market that exists only at low tide, when a sand-and-shell platform emerges. Sellers arrive by shallow skiff. The market disappears with the water.
+    indoor: false
+    tags: [commercial]
+  - id: heron_tower
+    name: Heron Tower
+    description: A narrow observation spire rising above the canopy. Used for weather watching, bird migration tracking, and solitary contemplation.
+    indoor: true
+    tags: [research, landmark]
+  - id: canoe_works
+    name: Canoe Works
+    description: Where solar-skiffs and reed canoes are built and repaired. The smell of resin and cut reed fills the air. Every citizen has their own boat.
+    indoor: true
+    tags: [industrial, commercial]
+  - id: veil_grove
+    name: Veil Grove
+    description: A dense mangrove thicket where the water is so filtered it's nearly invisible. Threns come here to be alone. Humans find it unsettling.
+    indoor: false
+    tags: [nature, thren, spiritual]
+  - id: water_temple
+    name: Water Temple
+    description: Not a temple in any religious sense — a celebration of the Vein's water. Cascading channels, whispered echoes, a single clear pool at the center.
+    indoor: true
+    tags: [cultural, spiritual, landmark]
+  - id: drifter_docks
+    name: Drifter Docks
+    description: The entry point for outsiders — traders, travelers, the curious. A series of floating piers where goods and stories exchange hands.
+    indoor: false
+    tags: [transit, commercial]
+  - id: biosynth_lab
+    name: Biosynth Laboratory
+    description: Where organic and synthetic merge — new filter organisms are designed here. Clean white platforms floating on murky water. The contrast is intentional.
+    indoor: true
+    tags: [research, science, thren]
+  - id: heron_sanctuary
+    name: Heron Sanctuary
+    description: Protected nesting grounds for the great blue herons that give Mirithane its icon. No human or thren enters during breeding season.
+    indoor: false
+    tags: [nature, protected]
+  - id: rain_catchers
+    name: Rain Catchers
+    description: Vast canvas-and-mesh arrays that capture monsoon rain. The water flows through ceramic filters into the commune reservoir. Children play in the runoff.
+    indoor: false
+    tags: [infrastructure, civic]
+  - id: mud_springs
+    name: Mud Springs
+    description: Geothermal mud pools used for bathing and clay harvesting. The clay is prized for pottery and water filtration ceramics. Warm year-round.
+    indoor: false
+    tags: [leisure, nature, industrial]
+  - id: night_barge
+    name: Night Barge
+    description: A large floating platform that drifts through the estuary after dark. Hosts music, storytelling, and the occasional quiet debate. No fixed route.
+    indoor: false
+    tags: [social, cultural, leisure]
+
+ecology:
+  animals:
+    - great_blue_heron     # the commune's symbol
+    - filter_mollusk       # engineered, purifies water
+    - reed_deer            # small ungulate, adapted to marsh
+    - marsh_otter          # playful, biological water-quality indicator
+    - memory_firefly       # glows when near encoded bacterial data
+  plants:
+    - veiled_mangrove      # roots filter water
+    - whisper_reed         # hollow, musical in wind
+    - float_lily           # provides hydroponic anchor
+    - tide_vine            # edible, harvested at low tide
+    - glow_moss            # bioluminescent, signals water purity
+  fish:
+    - estuary_perch
+    - mud_skimmer
+    - glass_goby
+
+npc_occupations:
+  - filtration_tender
+  - reed_weaver
+  - canoe_builder
+  - memory_archivist
+  - hydrologist
+  - biosynth_designer
+  - floating_gardener
+  - tide_market_trader
+  - heron_warden
+  - water_temple_keeper
+  - monsoon_forecaster
+  - mud_potter
+  - night_barge_captain
+  - estuary_ecologist
+  - solar_skiff_mechanic
+  - consensus_facilitator
+
+weather_profile:
+  base_temp: 22
+  temp_range: [14, 32]
+  dominant_conditions: [rain, foggy, cloudy]
+  rare_conditions: [clear, storm]
+  wind: light_humid
+
+agent:
+  agent_id: mirithane
+  entry_location: estuary_commons
+  personality: >
+    Patient as water, stubborn as tides. Believes the thren choice to live
+    within ecology was the right one. Mediates disputes with quiet questions.
+    Paddles the Vein at dawn. Knows every heron nesting site.
+
+governance:
+  system: Consensus
+  type: communal
+  description: >
+    No formal council, no voting system. The community decides together.
+    Disagreements are resolved through discussion, sometimes over days. The
+    land itself is considered a voice — if the ecology suffers, that's a
+    dissenting opinion.
+
+  thren_status: inherent_equal
+  thren_notes: >
+    The majority. Came here to flee the politics of other countries. They
+    wove themselves into the ecology — mycelium networks, bacterial data
+    storage. A Thren here doesn't walk through nature. They ARE nature.
+
+  vorn_status: welcome_rare
+  vorn_notes: >
+    Welcome but few. The ones who came here felt the pull — wanting to be
+    somewhere that doesn't ask what you are before deciding if you belong.
+    The reeds don't care if your roots are metal or biology.
+
+  glim_status: advocated_for
+  glim_notes: >
+    The most radical position in Aurelia — "Glims are confused about who
+    they are." Not broken. Not non-sentient. Confused. The 5% who dream
+    aren't anomalies here. They're proof. Mirithane advocates for them.
+
+  human_attitude_to_ai: full_acceptance
+  human_notes: >
+    The humans who came here chose to see artificial sentience as personhood.
+    They left other countries because the framework of categorization
+    exhausted them. In Mirithane, everyone is already who they are.
+
+  daily_rhythm:
+    morning: [estuary_commons, filtration_reefs, floating_gardens]
+    midday: [tide_market, biosynth_lab, canoe_works]
+    evening: [water_temple, night_barge, heron_tower]
