@@ -197,17 +197,60 @@ CONSUMPTION_RATES = {
 
 # ── Initialization ─────────────────────────────────────────────────────────────
 
+def _table_columns(db, table: str) -> set:
+    """Return column names for a table. Used to tolerate factory/template schema drift."""
+    return {row["name"] for row in db.execute(f"PRAGMA table_info({table})").fetchall()}
+
+
+def _resource_exists(db, resource_id: str) -> bool:
+    row = db.execute("SELECT 1 FROM resources WHERE id = ?", (resource_id,)).fetchone()
+    return row is not None
+
+
+def _agent_exists(db, agent_id: str) -> bool:
+    row = db.execute("SELECT 1 FROM agents WHERE id = ?", (agent_id,)).fetchone()
+    return row is not None
+
+
+def _ensure_resource(db, resource_id: str) -> bool:
+    """Ensure a known resource exists before inserting FK-constrained inventory.
+
+    Aurelia factory worlds seed country-scale resources (biogel, rare_earth,
+    purified_water, etc.) but the inherited economy loop still produces and
+    consumes the older cabin resources (water, herbs, fish, writing...). Missing
+    rows in resources caused tick-4 FK crashes in every Aurelia daemon. Insert
+    only columns that exist so both factory and template schemas work.
+    """
+    if _resource_exists(db, resource_id):
+        return True
+    defn = RESOURCE_DEFINITIONS.get(resource_id)
+    if not defn:
+        return False
+
+    cols = _table_columns(db, "resources")
+    values = {
+        "id": resource_id,
+        "name": defn["name"],
+        "unit": defn["unit"],
+        "category": defn["category"],
+        "perishable": defn["perishable"],
+        "decay_rate": defn["decay_rate"],
+        "properties": json.dumps(defn),
+        "created_at": time.time(),
+    }
+    insert_cols = [c for c in values if c in cols]
+    placeholders = ", ".join("?" for _ in insert_cols)
+    db.execute(
+        f"INSERT OR IGNORE INTO resources ({', '.join(insert_cols)}) VALUES ({placeholders})",
+        tuple(values[c] for c in insert_cols),
+    )
+    return _resource_exists(db, resource_id)
+
+
 def seed_resources(db) -> None:
     """Insert all resource definitions into the resources table."""
-    now = time.time()
-    for rid, defn in RESOURCE_DEFINITIONS.items():
-        db.execute(
-            """INSERT OR IGNORE INTO resources
-               (id, name, unit, category, perishable, decay_rate, properties, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (rid, defn["name"], defn["unit"], defn["category"],
-             defn["perishable"], defn["decay_rate"], json.dumps(defn), now)
-        )
+    for rid in RESOURCE_DEFINITIONS:
+        _ensure_resource(db, rid)
 
 
 def seed_resource_nodes(db) -> None:
@@ -308,6 +351,11 @@ def adjust_inventory(db, agent_id: str, resource_id: str, delta: float) -> float
 
     if row is None:
         if delta < 0:
+            return 0.0
+        # Guard FK-constrained inserts. Some scaled/factory worlds have a
+        # different resources seed set than the inherited economy constants.
+        # Missing resource rows should not poison the daemon transaction.
+        if not _agent_exists(db, agent_id) or not _ensure_resource(db, resource_id):
             return 0.0
         db.execute(
             """INSERT INTO agent_inventory (agent_id, resource_id, quantity, updated_at)
