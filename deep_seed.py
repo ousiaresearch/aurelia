@@ -128,79 +128,86 @@ RELATIONSHIP_TYPES = [
 ]
 
 def generate_relationships(npcs_by_id, country_id):
-    """Create a social graph of relationships between NPCs."""
-    relationships = []
+    """Create a bounded social graph — O(n) reservoir sampling, target 5 rels/NPC.
+
+    Replaces the old O(n²) pairwise algorithm. At 12k NPCs the old version
+    would iterate 144M candidate pairs. This version builds indexes and
+    samples candidates per NPC, capping at ~5 relationships each = ~30k total.
+    """
     npc_list = list(npcs_by_id.keys())
     npc_types = {nid: npcs_by_id[nid].get("npc_type", "human") for nid in npc_list}
     npc_occs = {nid: npcs_by_id[nid].get("occupation", "") for nid in npc_list}
     npc_locs = {nid: npcs_by_id[nid].get("location_id", "") for nid in npc_list}
 
-    # Coworker pairs — same occupation
-    occ_groups = {}
-    for nid, occ in npc_occs.items():
-        occ_groups.setdefault(occ, []).append(nid)
-    for occ, members in occ_groups.items():
-        random.shuffle(members)
-        for i in range(0, min(len(members), 12), 2):
-            if i+1 < len(members):
-                relationships.append(_rel(members[i], members[i+1], "coworker", 0.3, 0.7))
+    # Build indexes: occupation -> [ids], location -> [ids], type -> [ids]
+    occ_index = {}
+    loc_index = {}
+    type_index = {}
+    for nid in npc_list:
+        occ = npc_occs[nid]
+        loc = npc_locs[nid]
+        t = npc_types[nid]
+        occ_index.setdefault(occ, []).append(nid)
+        loc_index.setdefault(loc, []).append(nid)
+        type_index.setdefault(t, []).append(nid)
 
-    # Neighbor pairs — same location
-    loc_groups = {}
-    for nid, loc in npc_locs.items():
-        loc_groups.setdefault(loc, []).append(nid)
-    for loc, members in loc_groups.items():
-        random.shuffle(members)
-        for i in range(0, min(len(members), 10), 2):
-            if i+1 < len(members):
-                relationships.append(_rel(members[i], members[i+1], "neighbor", 0.1, 0.5))
+    relationships = []
 
-    # Type-bonded pairs (thren_sibling, vorn_forge_bond)
-    type_groups = {}
-    for nid, t in npc_types.items():
-        type_groups.setdefault(t, []).append(nid)
-    for t, members in type_groups.items():
-        if t == "thren":
-            random.shuffle(members)
-            for i in range(0, min(len(members), 8), 2):
-                if i+1 < len(members):
-                    relationships.append(_rel(members[i], members[i+1], "thren_sibling", 0.4, 0.8))
-        elif t == "vorn":
-            random.shuffle(members)
-            for i in range(0, min(len(members), 8), 2):
-                if i+1 < len(members):
-                    relationships.append(_rel(members[i], members[i+1], "vorn_forge_bond", 0.3, 0.7))
+    for nid in npc_list:
+        occ = npc_occs[nid]
+        loc = npc_locs[nid]
+        t = npc_types[nid]
+        seen = {nid}
 
-    # Cross-type allies
-    all_ids = list(npc_list)
-    random.shuffle(all_ids)
-    cross_count = 0
-    for i in range(len(all_ids)):
-        if cross_count >= 15:
-            break
-        a = all_ids[i]
-        for j in range(i+1, min(i+5, len(all_ids))):
-            b = all_ids[j]
-            if npc_types[a] != npc_types[b]:
-                relationships.append(_rel(a, b, "cross_type_ally", 0.2, 0.6))
-                cross_count += 1
-                break
+        # 2 coworkers
+        coworkers = [c for c in occ_index.get(occ, []) if c not in seen]
+        if coworkers:
+            for c in random.sample(coworkers, min(2, len(coworkers))):
+                seen.add(c)
+                relationships.append(_rel(nid, c, "coworker", 0.3, 0.7))
 
-    # Random friendships
-    random.shuffle(all_ids)
-    for i in range(0, min(len(all_ids), 30), 2):
-        if i+1 < len(all_ids):
-            relationships.append(_rel(all_ids[i], all_ids[i+1], "friend", 0.2, 0.6))
+        # 1 neighbor
+        neighbors = [c for c in loc_index.get(loc, []) if c not in seen]
+        if neighbors:
+            c = random.choice(neighbors)
+            seen.add(c)
+            relationships.append(_rel(nid, c, "neighbor", 0.1, 0.5))
 
-    # A few rivalries
-    random.shuffle(all_ids)
-    for i in range(0, min(8, len(all_ids))):
-        a = all_ids[i]
-        b = all_ids[(i+3) % len(all_ids)]
-        if a != b:
-            relationships.append(_rel(a, b, "rival", -0.5, -0.1))
+        # 1 type-bond (Thren/Vorn only)
+        if t in ("thren", "vorn"):
+            bonds = [c for c in type_index.get(t, []) if c not in seen]
+            if bonds:
+                c = random.choice(bonds)
+                seen.add(c)
+                rtype = "thren_sibling" if t == "thren" else "vorn_forge_bond"
+                relationships.append(_rel(nid, c, rtype, 0.3, 0.8))
 
-    return relationships
+        # 1 cross-type ally
+        other_types = [ot for ot in type_index if ot != t]
+        cross = [c for ot in other_types for c in type_index[ot] if c not in seen]
+        if cross:
+            c = random.choice(cross)
+            seen.add(c)
+            relationships.append(_rel(nid, c, "cross_type_ally", 0.2, 0.6))
+
+        # 1 rival (20% chance)
+        if random.random() < 0.2:
+            potential = [c for c in npc_list if c not in seen]
+            if potential:
+                c = random.choice(potential)
+                seen.add(c)
+                relationships.append(_rel(nid, c, "rival", -0.5, -0.1))
+
+    # Deduplicate: keep only one direction per pair
+    seen_pairs = set()
+    deduped = []
+    for r in relationships:
+        key = tuple(sorted([r["npc_a"], r["npc_b"]]))
+        if key not in seen_pairs:
+            seen_pairs.add(key)
+            deduped.append(r)
+
+    return deduped
 
 def _rel(a, b, rtype, affinity_lo, affinity_hi):
     now = time.time()
@@ -511,6 +518,25 @@ def deep_seed_country(country_id):
         profile_count += 1
 
     db.commit()
+
+    # 6. DECISION STATE SEED — initialize growth engine variables for all NPCs
+    try:
+        GLIM_BASE = {"security": 0.7, "satisfaction": 0.6, "connectedness": 0.5,
+                     "restlessness": 0.2, "ideological_alignment": 0.65,
+                     "anomaly_pressure": 0.0, "observed_injustice": 0.0}
+        BASE_STATE = {"security": 0.7, "satisfaction": 0.6, "connectedness": 0.5,
+                      "restlessness": 0.2, "ideological_alignment": 0.65}
+        ds_count = 0
+        for nid, info in npc_data.items():
+            base = GLIM_BASE if info["npc_type"] == "glim" else BASE_STATE
+            db.execute(
+                "INSERT OR IGNORE INTO npc_decision_state (npc_id, variables, last_updated) VALUES (?, ?, ?)",
+                (nid, json.dumps(base), now)
+            )
+            ds_count += 1
+        print(f"    Decision seed:  {ds_count} NPCs initialized")
+    except Exception as e:
+        print(f"    Decision seed:  skipped ({e})")
 
     # Summary
     rel_counts = {}

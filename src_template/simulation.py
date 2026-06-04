@@ -317,7 +317,10 @@ def update_npc_positions(db, hour: float) -> list:
     departed = []
     already_traveling = []
 
-    npcs = db.execute("SELECT id, name, location_id FROM agents WHERE type = 'npc'").fetchall()
+    # Round-robin: use tick_number modulo to sweep through all NPCs over N ticks
+    tick_num = db.execute("SELECT COALESCE(MAX(tick_number), 0) + 1 FROM tick_log").fetchone()[0]
+    offset = (tick_num * 500) % max(1, db.execute("SELECT COUNT(*) FROM agents WHERE type='npc'").fetchone()[0])
+    npcs = db.execute(f"SELECT id, name, location_id FROM agents WHERE type='npc' ORDER BY id LIMIT 500 OFFSET ?", (offset,)).fetchall()
     for npc in npcs:
         npc_id = npc["id"]
 
@@ -466,7 +469,20 @@ def tick(db, hours: float = 1.0) -> dict:
         
         from .population import check_migration, check_reproduction, check_mortality
         from .decision_feeder import check_glim_tipping
-        npcs = db.execute("SELECT id, type FROM agents WHERE type = 'npc' LIMIT 25").fetchall()
+        npcs = db.execute("""
+            SELECT a.id, a.type FROM agents a
+            LEFT JOIN npc_decision_state ds ON ds.npc_id = a.id
+            WHERE a.type = 'npc'
+            ORDER BY
+                CASE
+                    WHEN a.type = 'glim' AND CAST(COALESCE(json_extract(ds.variables, '$.anomaly_pressure'), '0') AS REAL) > 0.4 THEN 0
+                    WHEN CAST(COALESCE(json_extract(ds.variables, '$.security'), '1') AS REAL) < 0.3 THEN 1
+                    WHEN CAST(COALESCE(json_extract(ds.variables, '$.satisfaction'), '0') AS REAL) > 0.7 THEN 2
+                    ELSE 3
+                END,
+                RANDOM()
+            LIMIT 300
+        """).fetchall()
         for npc_id, npc_type in npcs:
             # Glim tipping check
             if npc_type == "glim":

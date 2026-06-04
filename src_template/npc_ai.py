@@ -358,6 +358,17 @@ def _insert_npc_action(db, npc_id: str, action_type: str, description: str,
             INSERT INTO npc_actions (npc_id, timestamp, action_type, description, location_id)
             VALUES (?, ?, ?, ?, ?)
         """, (npc_id, time.time(), action_type, description, location_id))
+    # Retention: keep last 100 actions per NPC
+    try:
+        db.execute("""
+            DELETE FROM npc_actions WHERE id IN (
+                SELECT id FROM npc_actions WHERE npc_id = ?
+                ORDER BY timestamp ASC
+                LIMIT max(0, (SELECT COUNT(*) - 100 FROM npc_actions WHERE npc_id = ?))
+            )
+        """, (npc_id, npc_id))
+    except Exception:
+        pass
 
 
 def _scheduled_npc_action(db, npc, hour: int) -> Optional[dict]:
@@ -418,7 +429,7 @@ def _feed_npc_experience(db, npc_id: str, action: dict, world_id: str = "solara"
         pass  # Don't let decision feeding break the tick
 
 
-def run_npc_ai_tick(db, hour: int, world_id: str = "solara") -> list:
+def run_npc_ai_tick(db, hour: int, world_id: str = "solara", max_actions: int = 200) -> list:
     """
     Run AI for active NPCs.
 
@@ -436,6 +447,8 @@ def run_npc_ai_tick(db, hour: int, world_id: str = "solara") -> list:
 
     # Not every NPC acts every tick — stochastic
     for npc in npcs:
+        if len(actions) >= max_actions:
+            break
         if random.random() > 0.15:  # 15% chance per NPC per tick
             continue
 

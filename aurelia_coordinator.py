@@ -569,7 +569,7 @@ class CoordinatorState:
                 db.execute("PRAGMA journal_mode=WAL")
                 total = db.execute("SELECT COUNT(*) FROM agents WHERE type='npc'").fetchone()[0]
                 type_counts = {}
-                rows = db.execute("SELECT properties FROM agents WHERE type='npc'").fetchall()
+                rows = db.execute("SELECT properties FROM agents WHERE type='npc' LIMIT 5000").fetchall()
                 for r in rows:
                     try:
                         props = json.loads(r["properties"])
