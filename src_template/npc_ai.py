@@ -401,7 +401,24 @@ def _scheduled_npc_action(db, npc, hour: int) -> Optional[dict]:
     }
 
 
-def run_npc_ai_tick(db, hour: int) -> list:
+def _feed_npc_experience(db, npc_id: str, action: dict, world_id: str = "solara"):
+    """Feed decision state from a single NPC's tick experience."""
+    try:
+        from .decision_feeder import feed_tick_experience
+        props = {}
+        row = db.execute("SELECT properties FROM agents WHERE id = ?", (npc_id,)).fetchone()
+        if row:
+            try:
+                props = json.loads(row[0]) if row[0] else {}
+            except (json.JSONDecodeError, TypeError):
+                props = {}
+        npc_type = action.get("npc_type", props.get("npc_type", "human"))
+        feed_tick_experience(db, npc_id, npc_type, action, {}, world_id)
+    except Exception:
+        pass  # Don't let decision feeding break the tick
+
+
+def run_npc_ai_tick(db, hour: int, world_id: str = "solara") -> list:
     """
     Run AI for active NPCs.
 
@@ -425,6 +442,8 @@ def run_npc_ai_tick(db, hour: int) -> list:
         scheduled = _scheduled_npc_action(db, npc, hour)
         if scheduled:
             actions.append(scheduled)
+            # Feed decision state from this tick's experience
+            _feed_npc_experience(db, npc["id"], scheduled, world_id)
             continue
 
         # Fallback for older worlds without deep-seeded schedules. Avoid letting
@@ -448,6 +467,7 @@ def run_npc_ai_tick(db, hour: int) -> list:
                 actions.append(payload)
                 _insert_npc_action(db, npc["id"], "ai_action", action, npc["location_id"], payload)
                 mind.save()
+                _feed_npc_experience(db, npc["id"], payload, world_id)
         except Exception as exc:
             props = _load_props(npc)
             description = f"{npc['name']} keeps to their current rhythm; legacy goal AI could not resolve this tick."

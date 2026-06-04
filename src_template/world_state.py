@@ -385,6 +385,16 @@ def init_world(db_path: Path = DB_PATH) -> sqlite3.Connection:
             created_at REAL NOT NULL,
             updated_at REAL NOT NULL
         );
+
+        -- ──────────────────────────────────────────────
+        -- NPC DECISION STATE (growth engine)
+        -- ──────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS npc_decision_state (
+            npc_id TEXT PRIMARY KEY,
+            variables JSON NOT NULL DEFAULT '{}',
+            last_updated REAL NOT NULL DEFAULT 0,
+            decision_log JSON NOT NULL DEFAULT '[]'
+        );
     """)
 
     return db
