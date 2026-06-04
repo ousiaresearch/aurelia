@@ -752,6 +752,28 @@ def tick(db, hours: float = 1.0) -> dict:
     except Exception:
         pass
 
+    # ── PHASE 6g: SOVEREIGNTY PIPELINE — faction-to-country emergence
+    try:
+        from .sovereignty import process_sovereignty_tick, is_secession_cascade_active, get_cascade_ticks_remaining
+        sov_events = process_sovereignty_tick(db, wid, tick_number)
+        for se in sov_events:
+            from .federation_events import _event as _fevent_s
+            pop_events.append(_fevent_s(
+                event_id=f"{wid}:tick-{tick_number}:sovereignty:{se['event_type']}:{int(time.time())}",
+                world_id=wid,
+                event_type=se["event_type"],
+                category=se["category"],
+                title=se["title"][:72],
+                description=se["description"],
+                importance=se.get("importance", 0.9),
+                actor_ids=se.get("actor_ids", []),
+                tags=se.get("tags", []),
+                payload=se.get("payload", {}),
+                world_time=time_info,
+            ))
+    except Exception:
+        pass
+
     # ── PHASE 7: CREATIVE OUTPUT ──
     from .creative_output import creative_output_tick
     owl_loc = db.execute("SELECT location_id FROM agents WHERE type = 'player'").fetchone()

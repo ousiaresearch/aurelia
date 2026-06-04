@@ -361,6 +361,7 @@ class CoordinatorState:
             "diplomatic_incidents": db.execute("SELECT COUNT(*) FROM diplomatic_incidents").fetchone()[0],
             "faction_counts": self._load_faction_counts(),
             "conflict_state": self._load_conflict_state(),
+            "sovereignty": self._load_sovereignty_state(),
         }
 
     def _load_faction_counts(self):
@@ -386,12 +387,12 @@ class CoordinatorState:
 
     def _load_conflict_state(self):
         """Query each world DB for conflict intensity."""
-        LADDER_INDEX = {"dormant": 0, "grievance": 1, "organization": 2, "ultimatum": 3, "skirmish": 4, "armed_conflict": 5, "war": 6}
+        LADDER_IDX = {"dormant": 0, "grievance": 1, "organization": 2, "ultimatum": 3, "skirmish": 4, "armed_conflict": 5, "war": 6}
         state = {}
         for country in ["solara", "valdris", "mirithane", "arkos", "verge"]:
             db_path = AGENTS_HOME / country / "aurelia-world" / "world" / "world.db"
             if not db_path.exists():
-                state[country] = {"active_conflicts": 0, "max_intensity": 0, "at_war": 0}
+                state[country] = {"active_conflicts": 0, "max_intensity": 0, "at_war": 0, "total_faction_members": 0}
                 continue
             try:
                 wdb = sqlite3.connect(str(db_path), timeout=2)
@@ -402,7 +403,7 @@ class CoordinatorState:
                 active = len(rows)
                 at_war = sum(1 for r in rows if r["status"] == "war")
                 max_intensity = max(
-                    (LADDER_INDEX.get(r["status"], 0) / 6.0 for r in rows),
+                    (LADDER_IDX.get(r["status"], 0) / 6.0 for r in rows),
                     default=0.0
                 )
                 total_members = sum(r["member_count"] or 0 for r in rows)
@@ -416,6 +417,68 @@ class CoordinatorState:
             except Exception:
                 state[country] = {"active_conflicts": 0, "max_intensity": 0, "at_war": 0, "total_faction_members": 0}
         return state
+
+    def _load_sovereignty_state(self):
+        """Query each world DB for sovereignty candidates and new countries."""
+        state = {}
+        try:
+            from src_template.sovereignty import is_secession_cascade_active, get_cascade_ticks_remaining
+            cascade_active = is_secession_cascade_active()
+            cascade_remaining = get_cascade_ticks_remaining()
+        except Exception:
+            cascade_active = False
+            cascade_remaining = 0
+
+        new_countries = []
+        for country in ["solara", "valdris", "mirithane", "arkos", "verge"]:
+            db_path = AGENTS_HOME / country / "aurelia-world" / "world" / "world.db"
+            if not db_path.exists():
+                continue
+            try:
+                wdb = sqlite3.connect(str(db_path), timeout=2)
+                wdb.row_factory = sqlite3.Row
+                # Sovereignty events
+                secession_rows = wdb.execute(
+                    "SELECT * FROM sovereignty_events WHERE event_type = 'secession' ORDER BY id DESC LIMIT 5"
+                ).fetchall()
+                for row in secession_rows:
+                    try:
+                        recognized = json.loads(row["recognized_by"]) if isinstance(row["recognized_by"], str) else row["recognized_by"]
+                    except Exception:
+                        recognized = []
+                    new_countries.append({
+                        "name": row["new_country_name"],
+                        "parent": country,
+                        "faction_id": row["faction_id"],
+                        "recognized_by": recognized,
+                        "population": row["member_count"],
+                        "tick": row["tick_number"],
+                    })
+
+                # Declaring factions
+                declaring = wdb.execute(
+                    "SELECT faction_id, name, member_count, influence FROM factions WHERE status = 'declaring'"
+                ).fetchall()
+                candidates = [
+                    {"faction_id": r["faction_id"], "name": r["name"],
+                     "members": r["member_count"], "influence": r["influence"]}
+                    for r in declaring
+                ]
+                wdb.close()
+                if candidates:
+                    if country not in state:
+                        state[country] = {}
+                    state[country]["candidates"] = candidates
+            except Exception:
+                pass
+
+        return {
+            "new_countries": new_countries,
+            "total_secessions": len(new_countries),
+            "cascade_active": cascade_active,
+            "cascade_ticks_remaining": cascade_remaining,
+            "per_world_candidates": state,
+        }
 
     def get_diplomatic_relations(self):
         db = sqlite3.connect(str(COORDINATOR_DB), timeout=5)
