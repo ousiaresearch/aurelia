@@ -10,7 +10,7 @@ from pathlib import Path
 
 AURELIA_ROOT = Path("/Users/johann/aurelia")
 AGENTS_HOME = Path("/Users/johann/.hermes/agents")
-NPC_COUNT = 120
+NPC_COUNT = 12000  # was 120 — Phase 5 scaling
 
 # ── NPC Type Taxonomy (Scheme C — original coinages) ──────────────────
 # Thren: bio-synthetic sentients. Organic, breathing, belonging in ecology.
@@ -29,72 +29,120 @@ TYPE_WEIGHTS = {
     "verge":    [0.20, 0.20, 0.20, 0.40],  # Melting pot — even mix
 }
 
-# ── Name pools ────────────────────────────────────────────────────────
+# ── Combinatorial Name Generation ─────────────────────────────────────
+# Syllable pools × type-appropriate pairing = ~100K+ unique names per type
 
-# Human names — warm, Aurelian feel
-HUMAN_GIVEN = [
-    "Aria", "Kai", "Nova", "Zephyr", "Lyra", "Orion", "Vega", "Rune",
-    "Talis", "Soren", "Ember", "Ash", "Terra", "Sol", "Lumen", "Vael", "Nyx",
-    "Orin", "Seren", "Mira", "Thane", "Jora", "Kest", "Pax", "Ren", "Silas",
-    "Zara", "Ivo", "Eko", "Zin", "Fane", "Quill", "Reva", "Gale", "Haze",
-    "Tess", "Dex", "Neri", "Fenn", "Orla", "Bram", "Sage", "Venn", "Rook",
-    "Cleo", "Flint", "Indra", "Jun", "Kael", "Lior", "Merit", "Nadia",
-    "Oren", "Petra", "Rei", "Sula", "Teo", "Umi", "Voss", "Wynn", "Xen",
+_HUMAN_SYL = [
+    "Ar", "Ka", "No", "Ze", "Ly", "Or", "Ve", "Ru", "Ta", "So",
+    "Em", "Ash", "Ter", "Lu", "Vae", "Ny", "Se", "Mi", "Tha", "Jo",
+    "Kes", "Pax", "Si", "Za", "Iv", "Ek", "Zin", "Fa", "Qui", "Re",
+    "Ga", "Ha", "Tes", "Dex", "Ne", "Fen", "Orl", "Br", "Sa", "Ven",
+    "Ro", "Cle", "Fli", "In", "Jun", "Lio", "Me", "Na", "Ore", "Pet",
+    "Rai", "Su", "Teo", "Um", "Vos", "Wy", "Xe", "Cy", "Zel", "Tor",
+    "Val", "Mar", "Del", "Fae",
 ]
-HUMAN_SURNAMES = [
-    "Solaris", "Ventris", "Aurelian", "Terraforge", "Glassweaver", "Redshore",
-    "Skyborn", "Ashvalley", "Suntear", "Stormveil", "Ironbend", "Nightwhisper",
-    "Flintedge", "Brooksong", "Reedwalker", "Cloudrest", "Saltvein", "Dunefall",
-    "Brightwater", "Frostmere", "Thornwood", "Misthollow", "Starcradle",
-    "Ridgecrest", "Deepwell", "Embercoast", "Mossgrave", "Tidepool",
-    "Windhaven", "Glassmere", "Sandspine", "Cragfern", "Sunshadow",
+_HUMAN_SURFIX = [
+    "crest", "vale", "mere", "fall", "shire", "haven", "gard", "well",
+    "wood", "forge", "mark", "watch", "holm", "rest", "reach", "hold",
+    "spire", "brook", "field", "stone", "moor", "grave", "coast", "pool",
+    "gate", "march", "glen", "crag", "dell", "keep",
 ]
 
-# Thren names — soft, breathy, organic
-THREN_GIVEN = [
-    "Breva", "Aelis", "Thessaly", "Mirael", "Liora", "Yves", "Sael",
-    "Orith", "Navine", "Caelum", "Sorrel", "Eirian", "Luthien", "Vaela",
-    "Anara", "Ithil", "Selune", "Faye", "Reverie", "Thessia", "Verdis",
-    "Isolde", "Brielle", "Aurene", "Sylva", "Dahlia", "Lumine", "Ariael",
-    "Cerule", "Vesper", "Solenne", "Elowen", "Miravel", "Aether", "Serein",
+_THREN_SYL = [
+    "Brev", "Ael", "Thes", "Mir", "Lior", "Yves", "Sael", "Orith",
+    "Nav", "Cael", "Sor", "Eir", "Luth", "Vael", "Anar", "Ithil",
+    "Sel", "Faye", "Rev", "Ver", "Isol", "Briel", "Aur", "Sylv",
+    "Dahl", "Lum", "Cer", "Vesp", "Sol", "Elow", "Aeth", "Ser",
+    "Thal", "Maev", "Oria", "Nys", "Wren", "Mel", "Cal", "Fior",
 ]
-THREN_SURNAMES = [
-    "Bloomweave", "Dewfall", "Reedheart", "Tideborn", "Greenhollow",
-    "Mosswind", "Petalgrave", "Starbloom", "Rainveil", "Fernhallow",
-    "Willowmere", "Softroot", "Silkstream", "Dawnrift", "Leafwhisper",
-    "Thornberry", "Sagewater", "Vinecrest", "Pearldrop", "Mistgarden",
-]
-
-# Vorn names — hard consonants, mechanical resonance
-VORN_GIVEN = [
-    "Kragg", "Torq", "Vexis", "Draven", "Ironn", "Kolt", "Graith",
-    "Bolvar", "Rivet", "Stern", "Korvax", "Grindel", "Piston", "Tungsten",
-    "Axel", "Forge", "Temper", "Ratchet", "Clank", "Rust", "Burnish",
-    "Diezel", "Grommet", "Harrow", "Junker", "Kovak", "Luxite", "Mallek",
-    "Nicket", "Oxide", "Platin", "Quartz", "Rivvik", "Solder", "Trunion",
-]
-VORN_SURNAMES = [
-    "Ironvale", "Steelcrest", "Anvilborn", "Gearwright", "Hammerfall",
-    "Voltstream", "Burnside", "Castforge", "Deepvein", "Foundry",
-    "Grindstone", "Hotplate", "Jackshaft", "Killswitch", "Linkchain",
-    "Mountbolt", "Nickelback", "Overpress", "Pulverise", "Quenchwell",
-    "Rivetsong", "Slagheap", "Torchborn", "Underplate", "Vicegrip",
-    "Weldmark", "Crosspeen", "Yieldpoint", "Zincfall", "Crucible",
+_THREN_SURFIX = [
+    "bloom", "weave", "dew", "heart", "tide", "hollow", "wind",
+    "petal", "star", "rain", "fern", "willow", "root", "silk",
+    "dawn", "leaf", "thorn", "sage", "vine", "mist", "pearl",
+    "nacre", "grove", "shade", "briar", "brook", "glade", "whisper",
 ]
 
-# Glim names — designation-style, short, quick
-GLIM_PREFIXES = ["GL", "GM", "GW", "DR", "SV", "DL", "MN", "RP", "TK", "BR"]
-GLIM_DESIGNATIONS = [
-    f"{random.choice(GLIM_PREFIXES)}-{random.randint(100,999)}"
-    for _ in range(120)
-]  # Generate a pool; we'll pick from it
+_VORN_SYL = [
+    "Krag", "Torq", "Vex", "Drav", "Irn", "Kolt", "Graith",
+    "Bol", "Riv", "Stern", "Korv", "Grind", "Pist", "Tungs",
+    "Ax", "Forg", "Temp", "Ratch", "Clank", "Rust", "Burn",
+    "Diez", "Grom", "Harr", "Junk", "Kov", "Lux", "Mal",
+    "Nick", "Ox", "Plat", "Quar", "Rivv", "Sold", "Trun",
+    "Cruc", "Weld", "Slag", "Vice", "Zinc", "Cop", "Braz",
+]
+_VORN_SURFIX = [
+    "vale", "crest", "born", "wright", "fall", "stream", "side",
+    "forge", "vein", "stone", "plate", "shaft", "switch", "chain",
+    "bolt", "press", "well", "song", "heap", "mark", "grip",
+    "peen", "point", "fall", "bed", "cast", "torch", "drift",
+]
 
-def glim_name():
-    """Glim names are functional designations."""
-    prefix = random.choice(GLIM_PREFIXES)
-    num = random.randint(10, 999)
-    suffix = random.choice(["", "", "", "-A", "-B", "-R", "-X"])
-    return f"{prefix}-{num}{suffix}"
+GLIM_PREFIXES = ["GL", "GM", "GW", "DR", "SV", "DL", "MN", "RP", "TK",
+                 "BR", "CX", "FQ", "HN", "JS", "KV", "LM", "NP", "QR", "ST"]
+
+
+def _combo_name(syl_pool, surfix_pool, max_syls=2):
+    """Generate a unique name by combining syllables + surfix."""
+    count = random.randint(1, max_syls)
+    chosen = [random.choice(syl_pool) for _ in range(count)]
+    base = "".join(chosen).capitalize()
+    suffix = random.choice(surfix_pool)
+    return f"{base} {suffix.capitalize()}"
+
+
+# Track generated names to avoid collisions at scale
+_used_names: set = set()
+
+
+def pick_name(npc_type):
+    """Generate a unique name appropriate to the NPC type."""
+    for _ in range(100):  # retry loop for uniqueness
+        if npc_type == "thren":
+            name = _combo_name(_THREN_SYL, _THREN_SURFIX)
+        elif npc_type == "vorn":
+            name = _combo_name(_VORN_SYL, _VORN_SURFIX)
+        elif npc_type == "glim":
+            prefix = random.choice(GLIM_PREFIXES)
+            num = random.randint(10, 9999)
+            suffix = random.choice(["", "", "", "-A", "-B", "-R", "-X", "-K"])
+            name = f"{prefix}-{num}{suffix}"
+        else:
+            name = _combo_name(_HUMAN_SYL, _HUMAN_SURFIX)
+        if name not in _used_names:
+            _used_names.add(name)
+            return name
+    # Fallback: force unique with counter
+    base = f"{npc_type}-{len(_used_names)}"
+    _used_names.add(base)
+    return base
+
+
+# ── Type-aware occupation matrix ──────────────────────────────────────
+TYPE_OCCUPATIONS = {
+    "thren": [
+        "biofuel_chemist", "reef_cultivator", "filtration_tech", "biosynth_researcher",
+        "herbalist", "solar_botanist", "water_ecologist", "genetic_weaver",
+        "marsh_archivist", "kelp_farmer", "algae_engineer", "floating_gardener",
+        "microbiome_analyst", "pollinator_keeper", "wetland_cartographer",
+    ],
+    "vorn": [
+        "forge_operator", "metal_smith", "sand_glass_engineer", "drone_station_op",
+        "geothermal_tech", "deep_miner", "autonomous_factory_supervisor", "circuit_weaver",
+        "turbine_mechanic", "structural_welder", "alloy_chemist", "crane_controller",
+        "pipeline_inspector", "heavy_hauler", "subterranean_surveyor",
+    ],
+    "glim": [
+        "solar_panel_cleaner", "kelp_harvester", "salvage_sort", "warehouse_loader",
+        "drone_courier", "street_sweeper", "assembly_line_worker", "cargo_scanner",
+        "maintenance_runner", "delivery_unit", "survey_drone", "rubble_clearer",
+    ],
+    "human": [
+        "bureaucrat", "merchant", "teacher", "medic", "guide", "trader",
+        "council_clerk", "dock_worker", "market_vendor", "innkeeper",
+        "courier", "guard", "architect", "diplomat", "artist",
+        "cook", "fisher", "weaver", "scribe", "carpenter",
+    ],
+}
 
 # ── Personality & trait pools ─────────────────────────────────────────
 
@@ -157,17 +205,6 @@ def load_config(country_id):
             return yaml.safe_load(f)
     return None
 
-def pick_name(npc_type):
-    """Generate a name appropriate to the NPC type."""
-    if npc_type == "thren":
-        return f"{random.choice(THREN_GIVEN)} {random.choice(THREN_SURNAMES)}"
-    elif npc_type == "vorn":
-        return f"{random.choice(VORN_GIVEN)} {random.choice(VORN_SURNAMES)}"
-    elif npc_type == "glim":
-        return glim_name()
-    else:
-        return f"{random.choice(HUMAN_GIVEN)} {random.choice(HUMAN_SURNAMES)}"
-
 def populate_country(country_id):
     cfg = load_config(country_id)
     if not cfg:
@@ -193,18 +230,24 @@ def populate_country(country_id):
 
     # Get locations and occupations
     locations = [r["id"] for r in db.execute("SELECT id FROM locations").fetchall()]
-    occupations = cfg.get("npc_occupations", ["citizen"])
+    # Use type-aware occupations when available, fall back to config list
+    fallback_occs = cfg.get("npc_occupations", ["citizen"])
     country_name = cfg.get("name", "Aurelia")
     weights = TYPE_WEIGHTS.get(country_id, [0.25, 0.25, 0.25, 0.25])
 
     type_counts = {"thren": 0, "vorn": 0, "glim": 0, "human": 0}
     created = 0
     for i in range(needed):
-        npc_id = f"npc_{country_id}_{created:04d}"
+        npc_id = f"npc_{country_id}_{created:05d}"  # 5-digit padding for 12k
         npc_type = random.choices(NPC_TYPES, weights=weights, k=1)[0]
         name = pick_name(npc_type)
-        occupation = random.choice(occupations)
+        occ_pool = TYPE_OCCUPATIONS.get(npc_type, fallback_occs)
+        occupation = random.choice(occ_pool)
         loc = random.choice(locations) if locations else "unknown"
+
+        if i > 0 and i % 2000 == 0:
+            print(f"  ... {i}/{needed} NPCs created")
+            db.commit()  # commit every 2k to keep memory low
 
         # Glims have simpler personality profiles
         if npc_type == "glim":
