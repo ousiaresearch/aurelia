@@ -111,6 +111,20 @@ class CoordinatorState:
         """Record federation events and immediately process diplomacy triggers."""
         result = self.record_federation_events(world_id, events)
         diplomacy = self.process_diplomacy_events(limit=max(100, len(events) * 4 if isinstance(events, list) else 100))
+
+        # Persist growth snapshot every event batch
+        try:
+            snapshot = self.build_growth_snapshot()
+            snap_db = sqlite3.connect(str(COORDINATOR_DB), timeout=5)
+            snap_db.execute(
+                "INSERT OR REPLACE INTO growth_snapshots (snapshot_type, world_id, data, created_at, tick_number) VALUES (?, ?, ?, ?, ?)",
+                ("growth", None, json.dumps(snapshot), snapshot["ts"], snapshot.get("tick_number", 0)),
+            )
+            snap_db.commit()
+            snap_db.close()
+        except Exception:
+            pass  # Don't let snapshot failure break event ingestion
+
         return {**result, "diplomacy": diplomacy}
 
     def get_federation_events(self, limit=50, world_id=None, category=None, event_type=None):
@@ -293,6 +307,60 @@ class CoordinatorState:
         finally:
             db.close()
 
+    def build_growth_snapshot(self):
+        """Return a compact growth snapshot for the growth dashboard."""
+        now = time.time()
+        npc_stats = self.get_npc_stats_cached()
+        currency = self.get_currency_cached()
+
+        # Per-world population by type
+        populations = {}
+        for world_id, stats in npc_stats.items():
+            type_counts = stats.get("types", {})
+            pops = {}
+            for npc_type in ["human", "thren", "vorn", "glim"]:
+                pops[npc_type] = type_counts.get(npc_type, 0)
+            pops["total"] = stats.get("total", 0)
+            populations[world_id] = pops
+
+        # Diplomatic snapshot
+        db = sqlite3.connect(str(COORDINATOR_DB), timeout=5)
+        diplomacy = {}
+        for row in db.execute("SELECT relation_key, trust, tension, cooperation, trade FROM diplomatic_relations"):
+            diplomacy[row[0]] = {
+                "trust": row[1], "tension": row[2],
+                "cooperation": row[3], "trade": row[4],
+            }
+
+        # Federation event counts by category (last 1000)
+        event_counts = {}
+        for row in db.execute("""
+            SELECT category, COUNT(*) FROM (
+                SELECT category FROM federation_events ORDER BY id DESC LIMIT 1000
+            ) GROUP BY category
+        """):
+            event_counts[row[0]] = row[1]
+
+        # Anomaly hunt: count Glim-related events with anomaly terms
+        anomaly_count = db.execute("""
+            SELECT COUNT(*) FROM federation_events
+            WHERE (description LIKE '%glim%' OR tags LIKE '%glim%')
+            AND (description LIKE '%anomal%' OR description LIKE '%dream%'
+                 OR description LIKE '%decommission%' OR description LIKE '%shelter%'
+                 OR description LIKE '%refuge%')
+            ORDER BY id DESC LIMIT 500
+        """).fetchone()[0]
+
+        return {
+            "ts": now,
+            "populations": populations,
+            "diplomacy": diplomacy,
+            "event_distribution": event_counts,
+            "glim_anomaly_signals": anomaly_count,
+            "total_federation_events": db.execute("SELECT COUNT(*) FROM federation_events").fetchone()[0],
+            "diplomatic_incidents": db.execute("SELECT COUNT(*) FROM diplomatic_incidents").fetchone()[0],
+        }
+
     def get_diplomatic_relations(self):
         db = sqlite3.connect(str(COORDINATOR_DB), timeout=5)
         db.row_factory = sqlite3.Row
@@ -421,6 +489,15 @@ class CoordinatorState:
             );
             CREATE INDEX IF NOT EXISTS idx_diplomatic_incidents_category ON diplomatic_incidents(category, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_diplomatic_incidents_source_world ON diplomatic_incidents(source_world, created_at DESC);
+            CREATE TABLE IF NOT EXISTS growth_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                snapshot_type TEXT NOT NULL,
+                world_id TEXT,
+                data JSON NOT NULL,
+                created_at REAL NOT NULL,
+                tick_number INTEGER,
+                UNIQUE(snapshot_type, world_id, tick_number)
+            );
         """)
         self._seed_diplomatic_relations(db)
         db.commit()
@@ -777,6 +854,8 @@ class CoordinatorHandler(http.server.BaseHTTPRequestHandler):
             })
         elif path == "/api/health":
             self._send_json({"status": "ok", "worlds": len(STATE.worlds), "uptime": time.time()})
+        elif path == "/api/growth":
+            self._send_json(STATE.build_growth_snapshot())
         else:
             self._send_json({"error": "Not found"}, 404)
 
