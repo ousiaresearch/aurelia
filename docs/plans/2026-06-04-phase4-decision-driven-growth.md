@@ -4,7 +4,7 @@
 
 **Goal:** Replace routine timer-driven ticking with a decision-based, threshold-driven growth engine where population, diplomacy, and narrative emerge from NPC choices rather than clocks.
 
-**Architecture:** Five new modules layered over the existing Phase 1-3 pipeline. Each module generates events that accumulate pressure in NPCs, cross thresholds, and produce sporadic cascading outcomes — nothing fires on a schedule, everything fires because conditions tipped. The observability layer comes first so we can measure the silence before we fill it.
+**Architecture:** Six new modules layered over the existing Phase 1-3 pipeline. Each module generates events that accumulate pressure in NPCs, cross thresholds, and produce sporadic cascading outcomes — nothing fires on a schedule, everything fires because conditions tipped. The observability layer comes first so we can measure the silence before we fill it. **Birth and death are both decision-driven** — population grows from high-satisfaction reproduction AND contracts from security collapse, decommissioning, exposure, ecological disaster, and conflict.
 
 **Tech Stack:** Python 3.13, SQLite (per-world DBs + coordinator.db), HTTP API (coordinator port 9001)
 
@@ -933,6 +933,218 @@ git commit -m "feat(population): wire migration and reproduction into daemon tic
 
 ---
 
+### Task 4.4: Add decision-driven mortality
+
+**Objective:** NPCs die from conditions that cross fatal thresholds — NOT from timers or "natural causes" rates. Death is always a consequence of decisions + accumulated state.
+
+**Why this is essential:** The plan has births (Task 4.2) and migration. Without death, population can only grow — a silent escalation that eventually breaks the simulation. Death must be equally decision-driven, equally sporadic, equally emergent.
+
+**Death pathways (none are scheduled):**
+
+| Pathway | Trigger Condition | Probability per qualifying tick | Affected Types |
+|---|---|---|---|
+| **Security collapse** | `security < 0.1` sustained for 10+ ticks | 2% per tick after threshold | All, highest in The Verge |
+| **Glim decommissioning** | `anomaly_pressure > 0.9` AND `world_id = solara` | 8% per tick | Glim only |
+| **Ecological disaster** | `ecology_dispute` event active + location in affected zone | 5% per tick during active dispute | All in affected zones |
+| **Thren circuitry degradation** | `satisfaction < 0.15` AND restlessness > 0.8 AND npc_type = thren | 1% per tick | Thren only |
+| **Verge exposure** | `security < 0.05` AND `world_id = verge` | 4% per tick | All in The Verge |
+| **Conflict cascade** | `diplomatic_incident` active involving home country + security < 0.2 | 1.5% per tick | All in conflict zones |
+
+**Key properties that make this non-routine:**
+- No NPC dies from "age" — there is no lifespan variable. Death requires accumulated conditions.
+- Two Solara Glims with the same starting state may tip anomalously at different times; one gets decommissioned, the other doesn't.
+- A Thren in Mirithane might live forever if satisfaction stays high. A Thren in Solara whose security collapses might degrade within 100 ticks.
+- Ecological disputes kill in bursts — Valdris mining runoff episode → 3 NPCs die in Mirithane watershed → federation event → diplomatic cascade.
+- The Verge generates the most deaths but also the most Glim anomalies — freedom kills and transforms simultaneously.
+
+**Files:**
+- Modify: `src_template/population.py`
+
+**Step 1: Add mortality check to `population.py`**
+
+```python
+def check_mortality(db, npc_id: str, npc_type: str, world_id: str, 
+                    tick_info: dict, active_disasters: list = None,
+                    active_conflicts: list = None) -> Optional[dict]:
+    """Check if an NPC dies from accumulated conditions.
+    Returns a mortality event dict if death fires, None otherwise."""
+    state = get_decision_state(db, npc_id)
+    if not state:
+        return None
+    
+    security = state.get("security", 0.5)
+    anomaly = state.get("anomaly_pressure", 0.0)
+    satisfaction = state.get("satisfaction", 0.5)
+    restlessness = state.get("restlessness", 0.2)
+    
+    # Count how many consecutive ticks below threshold
+    safety_ticks = tick_info.get("low_security_ticks", {}).get(npc_id, 0)
+    
+    causes = []
+    roll = random.random()
+    
+    # 1. Security collapse: sustained danger
+    if security < 0.1 and safety_ticks >= 10:
+        if roll < 0.02:
+            causes.append("security_collapse")
+    
+    # 2. Glim decommissioning: Solara's policy enacted
+    if npc_type == "glim" and world_id == "solara" and anomaly > 0.9:
+        if roll < 0.08:
+            causes.append("decommissioning")
+    
+    # 3. Ecological disaster: active dispute in location
+    if active_disasters:
+        location = tick_info.get("location_id", "")
+        for disaster in active_disasters:
+            if disaster.get("world_id") == world_id:
+                if roll < 0.05:
+                    causes.append(f"ecology:{disaster.get('type', 'disaster')}")
+    
+    # 4. Thren circuitry degradation
+    if npc_type == "thren" and satisfaction < 0.15 and restlessness > 0.8:
+        if roll < 0.01:
+            causes.append("circuitry_degradation")
+    
+    # 5. Verge exposure: the frontier kills
+    if world_id == "verge" and security < 0.05:
+        if roll < 0.04:
+            causes.append("verge_exposure")
+    
+    # 6. Conflict cascade
+    if active_conflicts and security < 0.2:
+        for conflict in active_conflicts:
+            if conflict.get("world_id") == world_id:
+                if roll < 0.015:
+                    causes.append(f"conflict:{conflict.get('type', 'war')}")
+    
+    if not causes:
+        return None
+    
+    cause = random.choice(causes)
+    log_decision(db, npc_id, "death", {
+        "cause": cause,
+        "security": security,
+        "anomaly_pressure": anomaly,
+        "world": world_id,
+        "type": npc_type,
+    })
+    
+    return {
+        "event_type": "mortality",
+        "category": "population",
+        "description": f"{npc_type.title()} {npc_id} died in {world_id}: {cause}.",
+        "npc_id": npc_id,
+        "npc_type": npc_type,
+        "world_id": world_id,
+        "cause": cause,
+        "security_at_death": security,
+    }
+```
+
+**Step 2: Wire mortality into the daemon tick loop**
+
+In `world_daemon_template.py`, the population check loop, add mortality:
+
+```python
+from src.population import check_mortality
+
+# Track low-security ticks per NPC for sustained-danger detection
+low_security_ticks = {}
+active_disasters = []  # populated from federation_events ecology_dispute entries
+active_conflicts = []  # populated from diplomatic_incidents
+
+pop_events = []
+for npc in db.execute("SELECT id, type FROM agents WHERE type != 'player'").fetchall():
+    npc_id, npc_type = npc
+    
+    mig = check_migration(db, npc_id, npc_type, world_id, tick_info)
+    if mig:
+        pop_events.append(build_population_event(world_id, tick_number, mig, world_time))
+    
+    rep = check_reproduction(db, npc_id, npc_type, world_id, tick_info)
+    if rep:
+        pop_events.append(build_population_event(world_id, tick_number, rep, world_time))
+    
+    # Mortality comes last — after migration/reproduction decisions
+    death = check_mortality(db, npc_id, npc_type, world_id, 
+                           {"low_security_ticks": low_security_ticks, "tick": tick_number},
+                           active_disasters, active_conflicts)
+    if death:
+        pop_events.append(build_population_event(world_id, tick_number, death, world_time))
+        # Actually remove the NPC from the world DB
+        db.execute("DELETE FROM agents WHERE id = ?", (npc_id,))
+        db.execute("DELETE FROM npc_decision_state WHERE npc_id = ?", (npc_id,))
+        db.commit()
+```
+
+**Step 3: Test — simulate a Verge NPC dying from exposure**
+
+```bash
+cd /Users/johann/.hermes/agents/verge/aurelia-world
+python3 << 'EOF'
+from src.world_state import get_db
+from src.decision_state import ensure_decision_state, nudge_variable, get_decision_state
+from src.population import check_mortality
+
+db = get_db()
+npc = "test_verge_001"
+ensure_decision_state(db, npc, "human")
+# Push security to near-zero (Verge exposure)
+nudge_variable(db, npc, "security", -0.9)  # security → ~0.0
+
+deaths = 0
+for i in range(200):
+    state = get_decision_state(db, npc)
+    death = check_mortality(db, npc, "human", "verge", 
+                           {"low_security_ticks": {npc: 15}, "tick": i})
+    if death:
+        deaths += 1
+        print(f"TICK {i}: DIED — {death['cause']} (security: {death['security_at_death']:.3f})")
+
+print(f"Deaths: {deaths} / 200 (4% per tick at security<0.05)")
+EOF
+```
+
+Expected: Roughly 8 deaths in 200 ticks (4% per tick). Not every tick, not zero — sporadic.
+
+**Step 4: Test — Solara Glim decommissioning**
+
+```bash
+cd /Users/johann/.hermes/agents/solara/aurelia-world  
+python3 << 'EOF'
+from src.world_state import get_db
+from src.decision_state import ensure_decision_state, nudge_variable
+from src.population import check_mortality
+
+db = get_db()
+npc = "test_solara_glim_001"
+ensure_decision_state(db, npc, "glim")
+nudge_variable(db, npc, "anomaly_pressure", 1.0)  # way above 0.9 threshold
+
+deaths = 0
+for i in range(100):
+    death = check_mortality(db, npc, "glim", "solara", {"low_security_ticks": {}, "tick": i})
+    if death:
+        deaths += 1
+        print(f"TICK {i}: DECOMMISSIONED — {death['cause']}")
+
+print(f"Decommissionings: {deaths} / 100 (8% per tick)")
+EOF
+```
+
+Expected: Roughly 8 decommissionings in 100 ticks.
+
+**Step 5: Commit**
+
+```bash
+cd /Users/johann/aurelia
+git add src_template/population.py world_daemon_template.py
+git commit -m "feat(population): add decision-driven mortality (6 death pathways)"
+```
+
+---
+
 ## Module 5: Economic Drift & Currency Tension
 
 ### Goal
@@ -1238,7 +1450,7 @@ curl 'http://127.0.0.1:9001/api/diplomacy' | python3 -c "import json,sys; d=json
 ```
 Expected: Non-zero. Glim_personhood and memory_revelation incidents should appear.
 
-### Milestone 3: Population Drift
+### Milestone 3: Population Drift (Births AND Deaths)
 ```bash
 curl -s http://127.0.0.1:9001/api/growth | python3 -c "import json,sys; d=json.load(sys.stdin)['populations']; [print(f'{w}: human={p.get(\"human\",0)} thren={p.get(\"thren\",0)} vorn={p.get(\"vorn\",0)} glim={p.get(\"glim\",0)}') for w,p in sorted(d.items())]"
 ```
