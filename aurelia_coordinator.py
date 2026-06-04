@@ -739,6 +739,154 @@ STATE = CoordinatorState()
 
 # ── Dashboard HTML ─────────────────────────────────────────────────────
 
+def _build_faction_summary(faction_counts, conflict_state, countries_order, country_names, country_colors):
+    """Build the faction summary panel."""
+    total_active = sum(faction_counts.get(c, {}).get("active", 0) for c in countries_order)
+    total_members = sum(conflict_state.get(c, {}).get("total_faction_members", 0) for c in countries_order)
+    total_at_war = sum(conflict_state.get(c, {}).get("at_war", 0) for c in countries_order)
+
+    rows = ""
+    for cid in countries_order:
+        fc = faction_counts.get(cid, {"active": 0, "total": 0})
+        cs = conflict_state.get(cid, {"active_conflicts": 0, "max_intensity": 0, "at_war": 0})
+        color = country_colors.get(cid, "#666")
+        active = fc.get("active", 0)
+        at_war = cs.get("at_war", 0)
+        members = cs.get("total_faction_members", 0)
+        war_marker = " ⚡" if at_war > 0 else ""
+        row_color = "#ef4444" if at_war > 0 else "#a78bfa" if active > 0 else "#555"
+        rows += f"""<tr>
+            <td style="padding:4px 8px;color:{color};font-size:12px">{country_names.get(cid, cid)}</td>
+            <td style="padding:4px 8px;color:{row_color};font-size:12px;text-align:right">{active}{war_marker}</td>
+            <td style="padding:4px 8px;color:#888;font-size:11px;text-align:right">{members}</td>
+        </tr>"""
+
+    return f"""
+        <div style="display:flex;gap:12px;margin-bottom:12px">
+            <div style="text-align:center;flex:1">
+                <div style="font-size:28px;font-weight:bold;color:#a78bfa">{total_active}</div>
+                <div style="font-size:10px;color:#666;text-transform:uppercase">Active Factions</div>
+            </div>
+            <div style="text-align:center;flex:1">
+                <div style="font-size:28px;font-weight:bold;color:{'#ef4444' if total_at_war > 0 else '#f59e0b'}">{total_members}</div>
+                <div style="font-size:10px;color:#666;text-transform:uppercase">Members</div>
+            </div>
+            <div style="text-align:center;flex:1">
+                <div style="font-size:28px;font-weight:bold;color:{'#ef4444' if total_at_war > 0 else '#22c55e'}">{total_at_war}</div>
+                <div style="font-size:10px;color:#666;text-transform:uppercase">At War</div>
+            </div>
+        </div>
+        <table style="width:100%;font-size:12px">
+            <tr><th style="padding:4px 8px">Country</th><th style="padding:4px 8px;text-align:right">Active</th><th style="padding:4px 8px;text-align:right">Members</th></tr>
+            {rows}
+        </table>"""
+
+
+def _build_conflict_ladder(conflict_state, countries_order, country_names):
+    """Build the conflict ladder visualization."""
+    LADDER_LABELS = ["dormant", "grievance", "organization", "ultimatum", "skirmish", "armed_conflict", "war"]
+    LADDER_COLORS = ["#22c55e", "#4ecdc4", "#f6c343", "#f59e0b", "#e87040", "#ef4444", "#dc2626"]
+
+    # Find the highest intensity across all worlds
+    max_intensity = max(
+        (conflict_state.get(c, {}).get("max_intensity", 0) for c in countries_order),
+        default=0
+    )
+    current_step = int(max_intensity * 6)  # 0-6
+
+    steps_html = ""
+    for i, (label, color) in enumerate(zip(LADDER_LABELS, LADDER_COLORS)):
+        active = i <= current_step
+        opacity = "1" if active else "0.3"
+        glow = f"box-shadow: 0 0 8px {color}44" if active else ""
+        steps_html += f"""
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div style="width:12px;height:12px;border-radius:50%;background:{color};opacity:{opacity};{glow}"></div>
+            <span style="font-size:11px;color:{color if active else '#555'}">{label.replace('_', ' ').title()}</span>
+        </div>"""
+
+    # Per-world ladder positions
+    world_positions = ""
+    for cid in countries_order:
+        cs = conflict_state.get(cid, {"max_intensity": 0, "at_war": 0})
+        idx = int(cs.get("max_intensity", 0) * 6)
+        label = LADDER_LABELS[idx] if idx < len(LADDER_LABELS) else "war"
+        color = LADDER_COLORS[idx] if idx < len(LADDER_COLORS) else "#dc2626"
+        war_mark = " ⚡ WAR" if cs.get("at_war", 0) > 0 else ""
+        world_positions += f'<div style="font-size:11px;margin-bottom:2px"><span style="color:#888">{country_names.get(cid, cid)}:</span> <span style="color:{color}">{label.replace("_", " ").title()}{war_mark}</span></div>'
+
+    return f"""
+        <div style="margin-bottom:16px">
+            {steps_html}
+        </div>
+        <div style="border-top:1px solid #2a2a4a;padding-top:10px">
+            {world_positions}
+        </div>
+        <div style="margin-top:12px;font-size:10px;color:#555">
+            Escalation: probability × influence × repression × tension
+        </div>"""
+
+
+def _build_sovereignty_card(sovereignty, country_colors):
+    """Build the sovereignty pipeline panel."""
+    new_countries = sovereignty.get("new_countries", [])
+    total_secessions = sovereignty.get("total_secessions", 0)
+    cascade_active = sovereignty.get("cascade_active", False)
+    cascade_ticks = sovereignty.get("cascade_ticks_remaining", 0)
+    candidates = sovereignty.get("per_world_candidates", {})
+
+    # New countries list
+    countries_html = ""
+    if new_countries:
+        for nc in new_countries:
+            recognized = ", ".join(nc.get("recognized_by", [])) or "none"
+            countries_html += f"""<div style="background:#1a1a2e;border:1px solid #4ecdc444;border-radius:4px;padding:8px;margin-bottom:6px">
+                <div style="color:#4ecdc4;font-size:13px;font-weight:bold">{nc["name"]}</div>
+                <div style="color:#888;font-size:10px">Seceded from {nc["parent"].title()} · Pop: {nc["population"]}</div>
+                <div style="color:#666;font-size:10px">Recognized by: {recognized}</div>
+            </div>"""
+    else:
+        countries_html = '<div style="color:#555;font-size:12px">No new countries yet</div>'
+
+    # Sovereignty candidates
+    candidate_html = ""
+    for world, data in candidates.items():
+        cands = data.get("candidates", [])
+        for c in cands:
+            candidate_html += f"""<div style="font-size:11px;margin-bottom:4px">
+                <span style="color:#888">{world.title()}:</span> <span style="color:#f6c343">{c["name"]}</span>
+                <span style="color:#555;font-size:10px">({c["members"]} members, influence: {c["influence"]:.2f})</span>
+            </div>"""
+
+    if not candidate_html:
+        candidate_html = '<div style="color:#555;font-size:11px">No factions meet thresholds</div>'
+
+    cascade_html = ""
+    if cascade_active:
+        cascade_html = f'<div style="background:#f6c34322;border:1px solid #f6c34344;border-radius:4px;padding:8px;margin-top:10px;font-size:11px;color:#f6c343">🔥 Secession Cascade Active — {cascade_ticks} ticks remaining</div>'
+
+    return f"""
+        <div style="display:flex;gap:12px;margin-bottom:12px">
+            <div style="text-align:center;flex:1">
+                <div style="font-size:28px;font-weight:bold;color:#4ecdc4">{total_secessions}</div>
+                <div style="font-size:10px;color:#666;text-transform:uppercase">Secessions</div>
+            </div>
+            <div style="text-align:center;flex:1">
+                <div style="font-size:28px;font-weight:bold;color:#f6c343">{len(new_countries)}</div>
+                <div style="font-size:10px;color:#666;text-transform:uppercase">New Countries</div>
+            </div>
+        </div>
+        {cascade_html}
+        <div style="margin-top:12px">
+            <div style="font-size:11px;color:#888;margin-bottom:6px;text-transform:uppercase">New Countries</div>
+            {countries_html}
+        </div>
+        <div style="margin-top:12px">
+            <div style="font-size:11px;color:#888;margin-bottom:6px;text-transform:uppercase">Declaring Independence</div>
+            {candidate_html}
+        </div>"""
+
+
 def build_dashboard():
     status = STATE.get_status()
     npc_stats = STATE.load_world_npc_stats()
@@ -757,6 +905,11 @@ def build_dashboard():
         "thren": "#4ecdc4", "vorn": "#e87040", "glim": "#9ca3af", "human": "#f6c343"
     }
 
+    # Phase 6 data
+    faction_counts = STATE._load_faction_counts()
+    conflict_state = STATE._load_conflict_state()
+    sovereignty = STATE._load_sovereignty_state()
+
     now = time.time()
 
     # World cards
@@ -767,6 +920,8 @@ def build_dashboard():
         age = info.get("heartbeat_age", 9999)
         ns = npc_stats.get(cid, {"total": 0, "types": {}})
         color = country_colors.get(cid, "#666")
+        fc = faction_counts.get(cid, {"active": 0, "total": 0})
+        cs = conflict_state.get(cid, {"active_conflicts": 0, "max_intensity": 0, "at_war": 0, "total_faction_members": 0})
 
         status_dot = {"online": "#22c55e", "degraded": "#f59e0b", "offline": "#ef4444"}.get(st, "#666")
         age_str = f"{age}s ago" if age < 60 else f"{age//60}m ago" if age < 3600 else "—"
@@ -786,6 +941,14 @@ def build_dashboard():
             if ns["types"].get(t, 0) > 0
         )
 
+        # Phase 6 per-world: conflict intensity bar + faction badge
+        intensity_pct = int(cs.get("max_intensity", 0) * 100)
+        intensity_color = "#22c55e" if intensity_pct < 20 else "#f59e0b" if intensity_pct < 60 else "#ef4444"
+        faction_badge = ""
+        if fc["active"] > 0:
+            badge_color = "#ef4444" if cs.get("at_war", 0) > 0 else "#f59e0b"
+            faction_badge = f'<span style="display:inline-block;background:{badge_color}22;border:1px solid {badge_color}55;border-radius:3px;padding:2px 6px;font-size:11px;color:{badge_color};margin-left:4px">⚔ {fc["active"]}</span>'
+
         world_cards += f"""
         <div style="background:#1a1a2e;border:1px solid {color}33;border-radius:8px;padding:16px;flex:1;min-width:200px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -793,9 +956,23 @@ def build_dashboard():
                 <span style="color:{color};font-size:18px;font-weight:bold">{country_names.get(cid, cid)}</span>
                 <span style="color:#666;font-size:12px;margin-left:auto">{age_str}</span>
             </div>
-            <div style="color:#888;font-size:13px;margin-bottom:8px">NPCs: {ns["total"]}</div>
+            <div style="color:#888;font-size:13px;margin-bottom:8px">
+                NPCs: {ns["total"]} · Factions: {fc["active"]}{faction_badge}
+            </div>
             <div style="border-radius:4px;overflow:hidden;margin-bottom:6px">{type_bar}</div>
             <div style="font-size:11px">{type_labels}</div>
+            <div style="margin-top:10px;border-top:1px solid #2a2a4a;padding-top:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:10px;color:#666;text-transform:uppercase;min-width:60px">Stability</span>
+                    <div style="flex:1;height:6px;background:#1a1a2e;border-radius:3px;overflow:hidden">
+                        <div style="width:{100-intensity_pct}%;height:100%;background:{intensity_color};border-radius:3px"></div>
+                    </div>
+                    <span style="font-size:10px;color:#888">{100-intensity_pct}%</span>
+                </div>
+                <div style="font-size:10px;color:#555;margin-top:4px">
+                    Members: {cs.get("total_faction_members", 0)} · At war: {cs.get("at_war", 0)}
+                </div>
+            </div>
         </div>
         """
 
@@ -888,8 +1065,29 @@ def build_dashboard():
         </table>
     </div>
 
+    <div class="section">
+        <div class="section-title">⚔ Phase 6 — Geopolitics</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+            <!-- Faction Summary Card -->
+            <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;padding:16px;flex:1;min-width:280px">
+                <div style="color:#a78bfa;font-size:13px;font-weight:bold;margin-bottom:12px">Factions</div>
+                {_build_faction_summary(faction_counts, conflict_state, countries_order, country_names, country_colors)}
+            </div>
+            <!-- Conflict Ladder Card -->
+            <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;padding:16px;flex:1;min-width:280px">
+                <div style="color:#f59e0b;font-size:13px;font-weight:bold;margin-bottom:12px">Conflict Ladder</div>
+                {_build_conflict_ladder(conflict_state, countries_order, country_names)}
+            </div>
+            <!-- Sovereignty Card -->
+            <div style="background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;padding:16px;flex:1;min-width:280px">
+                <div style="color:#4ecdc4;font-size:13px;font-weight:bold;margin-bottom:12px">Sovereignty</div>
+                {_build_sovereignty_card(sovereignty, country_colors)}
+            </div>
+        </div>
+    </div>
+
     <div style="color:#444;font-size:11px;margin-top:32px">
-        Aurelia Federation · Thren / Vorn / Glim · {len(currencies)} currencies · Coordinator v1.0
+        Aurelia Federation · Thren / Vorn / Glim · {len(currencies)} currencies · Phase 6 — Emergent Geopolitics
     </div>
 </body>
 </html>"""
