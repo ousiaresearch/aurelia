@@ -628,6 +628,7 @@ def tick(db, hours: float = 1.0) -> dict:
         pass
 
     # ── PHASE 6c: CROSS-BORDER EVENT GENERATORS
+    growth = {}
     try:
         from .event_generators import check_memory_trader, check_ecology_dispute
         # Memory Trader: query coordinator for anomaly count
@@ -661,6 +662,30 @@ def tick(db, hours: float = 1.0) -> dict:
                 title=eco.get("description", "")[:72], description=eco.get("description", ""),
                 importance=0.75, actor_ids=[], tags=["ecology", "dispute", wid],
                 payload=eco, world_time=time_info,
+            ))
+    except Exception:
+        pass
+
+    # ── PHASE 6d: NARRATIVE SEED DECK — probability-modulated extraordinary events
+    try:
+        from .narrative_seeds import draw_seed
+        # Reuse growth data already fetched in 6c, or re-fetch
+        seed_event = draw_seed(wid, growth)
+        if seed_event:
+            # Inject into tick events as a raw dict (will be picked up by federation event builder)
+            from .federation_events import _event as _fevent3
+            pop_events.append(_fevent3(
+                event_id=f"{wid}:tick-{tick_number}:narrative-seed:{seed_event['event_type']}:{int(time.time())}",
+                world_id=wid,
+                event_type=seed_event["event_type"],
+                category=seed_event["category"],
+                title=seed_event["description"][:72],
+                description=seed_event["description"],
+                importance=seed_event.get("importance", 0.7),
+                actor_ids=seed_event.get("actor_ids", []),
+                tags=seed_event.get("tags", []),
+                payload=seed_event.get("payload", {}),
+                world_time=time_info,
             ))
     except Exception:
         pass
