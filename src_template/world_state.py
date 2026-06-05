@@ -439,6 +439,53 @@ def init_world(db_path: Path = DB_PATH) -> sqlite3.Connection:
             tick_number INTEGER,
             created_at REAL NOT NULL
         );
+
+        -- ──────────────────────────────────────────────
+        -- PHASE 6.5 TABLES — reconciliation, discovery, great persons
+        -- ──────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS peace_treaties (
+            treaty_id TEXT PRIMARY KEY,
+            faction_a_id TEXT NOT NULL,
+            faction_b_id TEXT,
+            mediator_world TEXT,
+            terms TEXT DEFAULT '{}',
+            signed_tick INTEGER NOT NULL,
+            durability REAL DEFAULT 1.0,
+            broken INTEGER DEFAULT 0,
+            created_at REAL NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS discoveries (
+            discovery_id TEXT PRIMARY KEY,
+            world_id TEXT NOT NULL,
+            discovery_type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            location_id TEXT,
+            effects TEXT DEFAULT '{}',
+            tick_number INTEGER NOT NULL,
+            created_at REAL NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS great_persons (
+            npc_id TEXT PRIMARY KEY,
+            world_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            impact_level REAL DEFAULT 0.5,
+            tick_number INTEGER NOT NULL,
+            created_at REAL NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS federation_events_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            world_id TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            tick_number INTEGER NOT NULL,
+            created_at REAL NOT NULL
+        );
     """)
 
     return db

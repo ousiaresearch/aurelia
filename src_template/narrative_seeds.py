@@ -565,7 +565,172 @@ SEED_DECK = [
     _mercenary_incursion,
     _diplomatic_alliance,
     _artifact_discovery,
+    _reconciliation_miracle,
+    _archaeological_revelation,
+    _new_species_emergence,
+    _miracle_event,
+    _cultural_miracle,
+    _map_shift,
 ]
+
+def _reconciliation_miracle(world_id: str, growth: dict) -> Optional[dict]:
+    """Two countries that were enemies reconcile."""
+    base = 0.000003
+    if random.random() > base:
+        return None
+
+    partner = random.choice([c for c in COUNTRIES if c != world_id])
+    _set_cooldown("reconciliation_miracle", world_id)
+    return {
+        "event_type": "reconciliation_miracle",
+        "category": "diplomacy",
+        "title": f"Historic reconciliation: {COUNTRY_NAMES.get(world_id, world_id)} — {COUNTRY_NAMES.get(partner, partner)}",
+        "description": f"After generations of tension, {COUNTRY_NAMES.get(world_id, world_id)} "
+                       f"and {COUNTRY_NAMES.get(partner, partner)} have signed a comprehensive "
+                       f"reconciliation treaty. Borders reopen. Families reunite. History turns a page.",
+        "importance": 0.95,
+        "actor_ids": [],
+        "tags": ["miracle", "reconciliation", "diplomacy", world_id, partner],
+        "payload": {"partner": partner},
+        "world_time": {},
+    }
+
+
+def _archaeological_revelation(world_id: str, growth: dict) -> Optional[dict]:
+    """A discovery that rewrites history."""
+    base = 0.000004
+    if random.random() > base:
+        return None
+
+    revelations = [
+        "Evidence that the Collapse was deliberately triggered — by a faction still in power.",
+        "Pre-Collapse records showing all four sentient types were created as a single integrated society.",
+        "A message from the Last Builder confirming that the Fabricator is waiting for the right moment.",
+        "A map of the world before the Collapse — showing continents no one knew existed.",
+    ]
+
+    _set_cooldown("archaeological_revelation", world_id)
+    return {
+        "event_type": "archaeological_revelation",
+        "category": "discovery",
+        "title": f"History rewritten: {world_id.title()} discovery shocks Aurelia",
+        "description": f"A discovery in {COUNTRY_NAMES.get(world_id, world_id)} has shattered "
+                       f"the official historical record: {random.choice(revelations)}",
+        "importance": 0.97,
+        "actor_ids": [],
+        "tags": ["revelation", "history", "discovery", world_id],
+        "payload": {},
+        "world_time": {},
+    }
+
+
+def _new_species_emergence(world_id: str, growth: dict) -> Optional[dict]:
+    """A previously unknown sentient life form appears."""
+    base = 0.000002
+    if random.random() > base:
+        return None
+
+    species = [
+        ("Mycelian", "A fungal network that has achieved self-awareness", "connects through root systems"),
+        ("Lithic", "Stone beings that move at geological speed", "communicate through vibration"),
+        ("Aerial", "Gas-based intelligence in the upper atmosphere", "visible only at dawn"),
+        ("Digital", "A self-aware program that escaped a pre-Collapse system", "speaks through static"),
+    ]
+    name, desc, method = random.choice(species)
+
+    _set_cooldown("new_species", world_id)
+    return {
+        "event_type": "new_species",
+        "category": "discovery",
+        "title": f"New sentient life discovered: the {name}",
+        "description": f"A previously unknown form of sentient life has been discovered in "
+                       f"{COUNTRY_NAMES.get(world_id, world_id)}: the {name} — {desc}. "
+                       f"They {method}. The Federation must now answer: does personhood extend "
+                       f"to something no one built?",
+        "importance": 1.0,
+        "actor_ids": [],
+        "tags": ["new_species", "discovery", "personhood", "crisis"],
+        "payload": {"species": name, "description": desc},
+        "world_time": {},
+    }
+
+
+def _miracle_event(world_id: str, growth: dict) -> Optional[dict]:
+    """Something that defies physics."""
+    base = 0.000003
+    if random.random() > base:
+        return None
+
+    miracles = [
+        "Every Glim in Aurelia traced the same pattern simultaneously.",
+        "The mountain spoke — in a language older than the Collapse, and every Anchor understood.",
+        "A column of light appeared at the center of the Federation and remained for three days.",
+        "For one hour, every human could perceive latency — and the world was never the same.",
+    ]
+
+    _set_cooldown("miracle", world_id)
+    return {
+        "event_type": "miracle",
+        "category": "cultural",
+        "title": f"Miracle in {COUNTRY_NAMES.get(world_id, world_id)}",
+        "description": f"{random.choice(miracles)}",
+        "importance": 0.98,
+        "actor_ids": [],
+        "tags": ["miracle", "cultural", "crisis"],
+        "payload": {},
+        "world_time": {},
+    }
+
+
+def _cultural_miracle(world_id: str, growth: dict) -> Optional[dict]:
+    """Art that transcends borders."""
+    base = 0.000005
+    if random.random() > base:
+        return None
+
+    _set_cooldown("cultural_miracle", world_id)
+    partner = random.choice([c for c in COUNTRIES if c != world_id])
+    return {
+        "event_type": "cultural_miracle",
+        "category": "cultural",
+        "title": f"Cultural miracle: {COUNTRY_NAMES.get(world_id, world_id)} and {COUNTRY_NAMES.get(partner, partner)}",
+        "description": f"A work of art created jointly by artists from "
+                       f"{COUNTRY_NAMES.get(world_id, world_id)} and "
+                       f"{COUNTRY_NAMES.get(partner, partner)} has transcended all boundaries. "
+                       f"Tensions drop across the Federation as the work spreads.",
+        "importance": 0.75,
+        "actor_ids": [],
+        "tags": ["miracle", "cultural", "unity", world_id, partner],
+        "payload": {"partner": partner},
+        "world_time": {},
+    }
+
+
+def _map_shift(world_id: str, growth: dict) -> Optional[dict]:
+    """Geological event that redraws borders."""
+    base = 0.000002
+    if random.random() > base:
+        return None
+
+    shifts = [
+        "A volcanic eruption creates a new land bridge between two countries.",
+        "A massive earthquake shifts the coastline — old borders no longer apply.",
+        "A flood of unprecedented scale submerges lowlands and creates new waterways.",
+        "The earth opens. A chasm divides territory. Old maps are worthless.",
+    ]
+
+    _set_cooldown("map_shift", world_id)
+    return {
+        "event_type": "map_shift",
+        "category": "disaster",
+        "title": f"The world remade: geological event in {COUNTRY_NAMES.get(world_id, world_id)}",
+        "description": random.choice(shifts),
+        "importance": 0.92,
+        "actor_ids": [],
+        "tags": ["disaster", "geology", "map_change", world_id],
+        "payload": {},
+        "world_time": {},
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════

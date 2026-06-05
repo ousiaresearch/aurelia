@@ -774,6 +774,94 @@ def tick(db, hours: float = 1.0) -> dict:
     except Exception:
         pass
 
+    # ── PHASE 6.5a: RECONCILIATION — peace, reform, integration, mediation
+    try:
+        from .reconciliation import check_all_reconciliation
+        recon_events = check_all_reconciliation(db, wid, tick_number, growth)
+        for re in recon_events:
+            from .federation_events import _event as _fevent_r
+            pop_events.append(_fevent_r(
+                event_id=f"{wid}:tick-{tick_number}:reconciliation:{re['event_type']}:{int(time.time())}",
+                world_id=wid,
+                event_type=re["event_type"],
+                category=re["category"],
+                title=re["title"][:72],
+                description=re["description"],
+                importance=re.get("importance", 0.8),
+                actor_ids=re.get("actor_ids", []),
+                tags=re.get("tags", []),
+                payload=re.get("payload", {}),
+                world_time=time_info,
+            ))
+    except Exception:
+        pass
+
+    # ── PHASE 6.5b: DISCOVERY — archaeology, regions, knowledge, Fabricator
+    try:
+        from .discovery import check_all_discoveries
+        disc_events = check_all_discoveries(db, wid, tick_number)
+        for de in disc_events:
+            from .federation_events import _event as _fevent_d
+            pop_events.append(_fevent_d(
+                event_id=f"{wid}:tick-{tick_number}:discovery:{de['event_type']}:{int(time.time())}",
+                world_id=wid,
+                event_type=de["event_type"],
+                category=de["category"],
+                title=de["title"][:72],
+                description=de["description"],
+                importance=de.get("importance", 0.85),
+                actor_ids=de.get("actor_ids", []),
+                tags=de.get("tags", []),
+                payload=de.get("payload", {}),
+                world_time=time_info,
+            ))
+    except Exception:
+        pass
+
+    # ── PHASE 6.5c: FEDERATION DYNAMICS — collapse, unification, reform
+    try:
+        from .federation_dynamics import check_all_federation_dynamics
+        fed_events = check_all_federation_dynamics(db, wid, tick_number, growth)
+        for fe in fed_events:
+            from .federation_events import _event as _fevent_fd
+            pop_events.append(_fevent_fd(
+                event_id=f"{wid}:tick-{tick_number}:federation:{fe['event_type']}:{int(time.time())}",
+                world_id=wid,
+                event_type=fe["event_type"],
+                category=fe["category"],
+                title=fe["title"][:72],
+                description=fe["description"],
+                importance=fe.get("importance", 0.9),
+                actor_ids=fe.get("actor_ids", []),
+                tags=fe.get("tags", []),
+                payload=fe.get("payload", {}),
+                world_time=time_info,
+            ))
+    except Exception:
+        pass
+
+    # ── PHASE 6.5d: GREAT PERSONS — assassination, prophecy, defection, breakthrough
+    try:
+        from .great_persons import check_all_great_persons
+        gp_events = check_all_great_persons(db, wid, tick_number)
+        for ge in gp_events:
+            from .federation_events import _event as _fevent_g
+            pop_events.append(_fevent_g(
+                event_id=f"{wid}:tick-{tick_number}:greatperson:{ge['event_type']}:{int(time.time())}",
+                world_id=wid,
+                event_type=ge["event_type"],
+                category=ge["category"],
+                title=ge["title"][:72],
+                description=ge["description"],
+                importance=ge.get("importance", 0.8),
+                actor_ids=ge.get("actor_ids", []),
+                tags=ge.get("tags", []),
+                payload=ge.get("payload", {}),
+                world_time=time_info,
+            ))
+    except Exception:
+        pass
+
     # ── PHASE 7: CREATIVE OUTPUT ──
     from .creative_output import creative_output_tick
     owl_loc = db.execute("SELECT location_id FROM agents WHERE type = 'player'").fetchone()
