@@ -486,6 +486,16 @@ def init_world(db_path: Path = DB_PATH) -> sqlite3.Connection:
             tick_number INTEGER NOT NULL,
             created_at REAL NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS cross_world_movements (
+            npc_id TEXT NOT NULL,
+            source_world TEXT NOT NULL,
+            target_world TEXT NOT NULL,
+            movement_type TEXT NOT NULL DEFAULT 'migration',
+            tick_number INTEGER NOT NULL,
+            created_at REAL NOT NULL,
+            PRIMARY KEY (npc_id, tick_number)
+        );
     """)
 
     return db

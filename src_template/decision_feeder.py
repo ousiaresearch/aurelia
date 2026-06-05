@@ -50,6 +50,72 @@ def feed_tick_experience(db, npc_id: str, npc_type: str, tick_result: dict, worl
     return state
 
 
+def feed_economy_state(db, npc_id: str, inventory: dict, economy_summary: dict):
+    """Phase 6.6: Set economic_stability from actual resource levels."""
+    # Water is essential — below 1.0 is stress
+    water = inventory.get("water", 0)
+    food_total = sum(inventory.get(r, 0) for r in ["food", "mushrooms", "herbs", "fish", "grain"])
+    firewood = inventory.get("firewood", 0) if economy_summary.get("season") == "winter" else 1.0
+
+    # Economic stability: weighted average of essential resources
+    stability = 0.55  # baseline
+    if water < 0.5:
+        stability -= 0.2
+    elif water < 1.0:
+        stability -= 0.1
+    elif water > 5.0:
+        stability += 0.05
+
+    if food_total < 0.5:
+        stability -= 0.25
+    elif food_total < 1.0:
+        stability -= 0.15
+    elif food_total > 5.0:
+        stability += 0.1
+
+    if firewood < 0.3:
+        stability -= 0.15
+
+    nudge_variable(db, npc_id, "economic_stability", max(0.0, min(1.0, stability)))
+
+
+def feed_weather_impact(db, npc_id: str, weather: dict, season: str):
+    """Phase 6.6: Weather and seasonal effects nudge NPC state."""
+    condition = weather.get("condition", "clear")
+
+    # Extreme weather reduces security and satisfaction
+    if condition in ("storm", "hurricane", "blizzard", "flood"):
+        nudge_variable(db, npc_id, "security", -0.03)
+        nudge_variable(db, npc_id, "satisfaction", -0.02)
+    elif condition in ("fog", "rain"):
+        nudge_variable(db, npc_id, "satisfaction", -0.005)
+
+    # Winter: colder = more restlessness from confinement
+    if season == "winter":
+        nudge_variable(db, npc_id, "restlessness", 0.005)
+    elif season == "spring":
+        nudge_variable(db, npc_id, "satisfaction", 0.005)
+
+
+def feed_memory_impact(db, npc_id: str, recent_memories: list):
+    """Phase 6.6: Recent NPC memories influence decision variables."""
+    if not recent_memories:
+        return
+
+    for mem in recent_memories[-5:]:  # Last 5 memories
+        impact = float(mem.get("impact", 0) or 0)
+        event_type = str(mem.get("event", "") or "")
+
+        if impact > 0.1:
+            nudge_variable(db, npc_id, "satisfaction", impact * 0.5)
+        elif impact < -0.1:
+            nudge_variable(db, npc_id, "satisfaction", impact * 0.5)
+            nudge_variable(db, npc_id, "restlessness", abs(impact) * 0.3)
+
+        if "injustice" in event_type.lower() or "decommission" in event_type.lower():
+            nudge_variable(db, npc_id, "observed_injustice", 0.01)
+
+
 def check_glim_tipping(db, npc_id: str, world_id: str, tick_info: dict) -> Optional[dict]:
     """Check if a Glim crosses the anomaly threshold. Returns an event dict if tipped."""
     from .decision_state import get_decision_state, check_threshold, log_decision

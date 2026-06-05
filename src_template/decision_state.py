@@ -5,11 +5,12 @@ from typing import Dict, Any, Optional
 
 # Variable names and their default values per type
 BASE_STATE = {
-    "security": 0.7,        # How safe the NPC feels
-    "satisfaction": 0.6,    # Contentment with current life
-    "connectedness": 0.5,   # Social bonds strength
-    "restlessness": 0.2,    # Desire for change
+    "security": 0.7,            # How safe the NPC feels
+    "satisfaction": 0.6,        # Contentment with current life
+    "connectedness": 0.5,       # Social bonds strength
+    "restlessness": 0.2,        # Desire for change
     "ideological_alignment": 0.65,  # Agreement with country's governance
+    "economic_stability": 0.55, # Resource security — set by economy wiring (Phase 6.6)
 }
 
 GLIM_BASE = {**BASE_STATE, "anomaly_pressure": 0.0, "observed_injustice": 0.0}

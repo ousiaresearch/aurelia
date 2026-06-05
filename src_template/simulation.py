@@ -627,6 +627,36 @@ def tick(db, hours: float = 1.0) -> dict:
     from .economy import economy_tick
     economy_summary = economy_tick(db)
 
+    # ── PHASE 6.6: ECONOMY → DECISION WIRING — resource levels set economic_stability
+    try:
+        from .decision_feeder import feed_economy_state, feed_weather_impact, feed_memory_impact
+        from .economy import get_inventory
+        import json as _json
+        season = time_info.get("season", "spring")
+        weather = weather_info if isinstance(weather_info, dict) else {}
+        # Sample NPCs (stratified — same 300/tick pool)
+        sampled = db.execute(
+            "SELECT id, type, properties FROM agents WHERE type = 'npc' AND state = 'active' "
+            "ORDER BY RANDOM() LIMIT 300"
+        ).fetchall()
+        for agent in sampled:
+            npc_id = agent["id"]
+            inv = get_inventory(db, npc_id)
+            feed_economy_state(db, npc_id, inv, {"season": season})
+            feed_weather_impact(db, npc_id, weather, season)
+            # Memory feed
+            try:
+                mem_rows = db.execute(
+                    "SELECT event, impact FROM npc_memories WHERE npc_id = ? ORDER BY tick DESC LIMIT 5",
+                    (npc_id,)
+                ).fetchall()
+                memories = [{"event": r[0], "impact": r[1]} for r in mem_rows if r[1] is not None]
+                feed_memory_impact(db, npc_id, memories)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     # ── PHASE 6b: ECONOMIC DRIFT — currency stability affects NPCs
     try:
         from .economic_drift import drift_currency, stability_affects_npcs
@@ -857,6 +887,50 @@ def tick(db, hours: float = 1.0) -> dict:
                 actor_ids=ge.get("actor_ids", []),
                 tags=ge.get("tags", []),
                 payload=ge.get("payload", {}),
+                world_time=time_info,
+            ))
+    except Exception:
+        pass
+
+    # ── PHASE 6.6a: CROSS-WORLD MOVEMENT — border crossings, migration, asylum
+    try:
+        from .cross_world import check_cross_world_movement
+        cw_events = check_cross_world_movement(db, wid, tick_number)
+        for ce in cw_events:
+            from .federation_events import _event as _fevent_cw
+            pop_events.append(_fevent_cw(
+                event_id=f"{wid}:tick-{tick_number}:crossworld:{ce['event_type']}:{int(time.time())}",
+                world_id=wid,
+                event_type=ce["event_type"],
+                category=ce["category"],
+                title=ce["title"][:72],
+                description=ce["description"],
+                importance=ce.get("importance", 0.5),
+                actor_ids=ce.get("actor_ids", []),
+                tags=ce.get("tags", []),
+                payload=ce.get("payload", {}),
+                world_time=time_info,
+            ))
+    except Exception:
+        pass
+
+    # ── PHASE 6.6b: POLICY DRIFT — type policies shift from faction pressure
+    try:
+        from .policy_drift import drift_policies
+        pd_event = drift_policies(db, wid, tick_number, growth)
+        if pd_event:
+            from .federation_events import _event as _fevent_pd
+            pop_events.append(_fevent_pd(
+                event_id=f"{wid}:tick-{tick_number}:policy:{pd_event['event_type']}:{int(time.time())}",
+                world_id=wid,
+                event_type=pd_event["event_type"],
+                category=pd_event["category"],
+                title=pd_event["title"][:72],
+                description=pd_event["description"],
+                importance=pd_event.get("importance", 0.45),
+                actor_ids=pd_event.get("actor_ids", []),
+                tags=pd_event.get("tags", []),
+                payload=pd_event.get("payload", {}),
                 world_time=time_info,
             ))
     except Exception:
