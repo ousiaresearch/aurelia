@@ -112,26 +112,11 @@ def setup_world(world_id: str, db_path: str, src_dir: str, npc_count: int = DEFA
     db.commit()
     db.close()
 
-    # Generate NPCs
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    try:
-        from populate_npcs import main as populate_main
-        import argparse as _ap
-        args = _ap.Namespace()
-        args.world = world_id
-        args.db_path = db_path
-        args.npc_count = npc_count
-        # Call populate directly
-        populate_npcs.generate_npcs(world_id, db_path, npc_count)
-    except Exception as e:
-        print(f"    WARNING: NPC generation failed: {e}. Continuing with seed NPCs.")
+    # Generate NPCs inline — Colab can't use populate_npcs (hardcoded paths)
+    _inline_generate_npcs(db_path, world_id, npc_count)
 
-    # Deep seed
-    try:
-        from deep_seed import deep_seed_world
-        deep_seed_world(world_id, db_path)
-    except Exception as e:
-        print(f"    WARNING: Deep seed failed: {e}")
+    # Deep seed inline
+    _inline_deep_seed(db_path, world_id, npc_count)
 
     # Verify
     db = sqlite3.connect(db_path)
@@ -150,6 +135,119 @@ def setup_world(world_id: str, db_path: str, src_dir: str, npc_count: int = DEFA
 # ═══════════════════════════════════════════════════════════════════
 # ACCELERATED TICK
 # ═══════════════════════════════════════════════════════════════════
+
+def _inline_generate_npcs(db_path: str, world_id: str, npc_count: int):
+    """Inline NPC generation — no hardcoded paths."""
+    src_dir = Path(__file__).parent / "src"
+    sys.path.insert(0, str(src_dir))
+
+    try:
+        from npc_generation import populate_village
+        import world_state
+        old_path = world_state.DB_PATH
+        world_state.DB_PATH = Path(db_path)
+
+        db = sqlite3.connect(db_path)
+        db.row_factory = sqlite3.Row
+        db.execute("PRAGMA journal_mode=WAL")
+        n = populate_village(db, npc_count)
+        db.commit()
+        db.close()
+        world_state.DB_PATH = old_path
+        if n > 0:
+            print(f"    Generated {n} NPCs via populate_village")
+        return
+    except Exception:
+        pass
+
+    # Fallback: minimal NPC generation
+    db = sqlite3.connect(db_path)
+    db.row_factory = sqlite3.Row
+    now = time.time()
+    names = [f"{world_id.capitalize()}_{i:04d}" for i in range(npc_count)]
+    types = ["human", "thren", "vorn", "glim"]
+    locs = [r["id"] for r in db.execute("SELECT id FROM locations LIMIT 20").fetchall()] or ["town_square"]
+    for i in range(npc_count):
+        npc_type = types[i % len(types)]
+        db.execute("""
+            INSERT INTO agents (id, name, type, location_id, state, properties, created_at, updated_at)
+            VALUES (?, ?, 'npc', ?, 'active', ?, ?, ?)
+        """, (f"{world_id}_{i:05d}", names[i], random.choice(locs),
+              json.dumps({"npc_type": npc_type, "occupation": "citizen"}), now, now))
+    db.commit()
+    db.close()
+    print(f"    Generated {npc_count} NPCs (fallback)")
+
+
+def _inline_deep_seed(db_path: str, world_id: str, npc_count: int):
+    """Inline deep seeding — schedules, decision states, relationships."""
+    src_dir = Path(__file__).parent / "src"
+    sys.path.insert(0, str(src_dir))
+
+    db = sqlite3.connect(db_path)
+    db.row_factory = sqlite3.Row
+    db.execute("PRAGMA journal_mode=WAL")
+    now = time.time()
+    npcs = db.execute("SELECT * FROM agents WHERE type='npc'").fetchall()
+
+    try:
+        from npc_generation import generate_npc_schedule
+        import world_state, decision_state
+        old_path = world_state.DB_PATH
+        world_state.DB_PATH = Path(db_path)
+
+        for npc in npcs:
+            try:
+                props = json.loads(npc["properties"]) if isinstance(npc["properties"], str) else npc["properties"]
+            except (json.JSONDecodeError, TypeError):
+                props = {}
+            npc_dict = {"id": npc["id"], "name": npc["name"],
+                        "type": props.get("npc_type", "human"),
+                        "location_id": npc["location_id"], "properties": props}
+
+            # Schedule for waking hours
+            for h in range(6, 22):
+                try:
+                    sched = generate_npc_schedule(npc_dict, h)
+                    if sched:
+                        db.execute("""
+                            INSERT OR IGNORE INTO npc_schedules (npc_id, hour, activity, location_id, description)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (npc["id"], h, sched.get("activity", "idle"),
+                              sched.get("location_id", npc["location_id"]),
+                              sched.get("description", "")))
+                except Exception:
+                    pass
+
+            # Decision state
+            base = decision_state.GLIM_BASE if props.get("npc_type") == "glim" else decision_state.BASE_STATE
+            db.execute("INSERT OR IGNORE INTO npc_decision_state (npc_id, variables, last_updated) VALUES (?, ?, ?)",
+                      (npc["id"], json.dumps(base), now))
+
+        world_state.DB_PATH = old_path
+    except Exception:
+        # Fallback: just decision states
+        from decision_state import BASE_STATE
+        for npc in npcs:
+            db.execute("INSERT OR IGNORE INTO npc_decision_state (npc_id, variables, last_updated) VALUES (?, ?, ?)",
+                      (npc["id"], json.dumps(BASE_STATE), now))
+
+    # Bounded relationships (O(n) per NPC, max 15)
+    all_ids = [n["id"] for n in npcs]
+    for npc in npcs:
+        others = [oid for oid in all_ids if oid != npc["id"]]
+        max_rels = min(10, len(others))
+        chosen = random.sample(others, max_rels)
+        for other in chosen:
+            db.execute("""
+                INSERT OR IGNORE INTO npc_relationships (npc_a, npc_b, relationship, affinity)
+                VALUES (?, ?, 'acquaintance', ?)
+            """, (npc["id"], other, round(random.uniform(0.3, 0.7), 2)))
+
+    db.commit()
+    db.close()
+    print(f"    Deep-seeded {len(npcs)} NPCs: schedules, decision states, {min(10,len(all_ids)-1) if len(all_ids)>1 else 0} relationships/NPC")
+
 
 def run_world_tick(world_id: str, db_path: str, src_dir: str, tick_number: int, tick_start: float) -> Tuple[dict, float]:
     """Run one accelerated tick for one world. Returns (result, duration_seconds)."""
