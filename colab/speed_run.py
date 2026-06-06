@@ -9,7 +9,7 @@ Usage:
   python3 speed_run.py --years 200 --npcs 12000 --output /content/output
 """
 
-import sys, os, time, json, random, argparse, sqlite3, copy
+import sys, os, time, json, random, argparse, sqlite3, copy, shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
@@ -503,11 +503,54 @@ def save_snapshot(out_dir: Path, worlds: List[str], world_dbs: Dict[str, str],
 # MAIN
 # ═══════════════════════════════════════════════════════════════════
 
+def _is_drive_path(path: Path) -> bool:
+    """Colab Drive/FUSE is unsafe for live SQLite WAL writes."""
+    s = str(path)
+    return s.startswith("/content/drive") or "/MyDrive/" in s
+
+
+def _checkpoint_and_copy_dbs(world_dbs: Dict[str, str], out: Path, db_root: Path) -> None:
+    """Checkpoint local SQLite DBs and copy final artifacts to requested output."""
+    if db_root.resolve() == out.resolve():
+        return
+    print("\n── COPY FINAL DBS ──")
+    out.mkdir(parents=True, exist_ok=True)
+    for world_id, db_path in world_dbs.items():
+        src = Path(db_path)
+        try:
+            db = sqlite3.connect(str(src))
+            db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            db.close()
+        except Exception as e:
+            print(f"  {world_id}: checkpoint warning: {e}")
+        dst = out / f"{world_id}.db"
+        for suffix in ("", "-wal", "-shm"):
+            try:
+                Path(str(dst) + suffix).unlink()
+            except FileNotFoundError:
+                pass
+        shutil.copy2(src, dst)
+        print(f"  {world_id}: copied {src.name} → {dst}")
+
+
 def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str = "output",
-              npc_count: int = DEFAULT_NPC, log_interval: int = 50):
+              npc_count: int = DEFAULT_NPC, log_interval: int = 50,
+              db_dir: Optional[str] = None):
     """Run accelerated simulation."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
+
+    # Never run live SQLite DBs on Google Drive/FUSE. It can corrupt WAL-backed
+    # DBs and surface as "database disk image is malformed" after setup. Keep
+    # DBs on Colab local disk, then checkpoint/copy final .db files to Drive.
+    if db_dir:
+        db_root = Path(db_dir)
+    elif _is_drive_path(out):
+        db_root = Path("/content/aurelia_work/dbs")
+    else:
+        db_root = out
+    db_root.mkdir(parents=True, exist_ok=True)
+
     world_dbs = {}
     src = Path(src_dir)
 
@@ -517,13 +560,14 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
     print(f"  Sim-years: {sim_years} ({sim_years * TICKS_PER_YEAR:,} ticks)")
     print(f"  NPCs/world: {npc_count} (total: {npc_count * len(worlds):,})")
     print(f"  Output: {out}")
+    print(f"  DB dir: {db_root}" + (" (local scratch; final DBs copied to output)" if db_root.resolve() != out.resolve() else ""))
     print("=" * 60)
 
     # Phase 1: Setup
     print("\n── SETUP ──")
     t0 = time.time()
     for world_id in worlds:
-        db_path = str(out / f"{world_id}.db")
+        db_path = str(db_root / f"{world_id}.db")
         setup_world(world_id, db_path, src_dir, npc_count)
         world_dbs[world_id] = db_path
     setup_time = time.time() - t0
@@ -606,6 +650,9 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
             print(f"  {w}: pop={ws.get('population',0):,} factions={ws['factions_active']} "
                   f"war={ws['factions_at_war']} integrated={ws['factions_integrated']} "
                   f"discoveries={ws['discoveries']} great={ws['great_persons']}")
+    # Copy local scratch DBs to requested output after all connections are closed.
+    _checkpoint_and_copy_dbs(world_dbs, out, db_root)
+
     print(f"\n  Output: {out}/")
     print(f"  Snapshots: {len(list(out.glob('snapshot_*.json')))} files")
 
@@ -618,6 +665,8 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=str, default="output")
     parser.add_argument("--src-dir", type=str, default="src")
     parser.add_argument("--log-interval", type=int, default=50)
+    parser.add_argument("--db-dir", type=str, default=None,
+                        help="Directory for live SQLite DBs. Defaults to local scratch when output is Google Drive.")
     parser.add_argument("--llm-api-key", type=str, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--llm-base-url", type=str, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--llm-model", type=str, default=None, help=argparse.SUPPRESS)
@@ -629,4 +678,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     worlds = [w.strip() for w in args.worlds.split(",")]
-    speed_run(worlds, args.years, args.src_dir, args.output, args.npcs, args.log_interval)
+    speed_run(worlds, args.years, args.src_dir, args.output, args.npcs, args.log_interval, args.db_dir)
