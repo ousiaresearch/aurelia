@@ -193,6 +193,7 @@ def init_world(db_path: Path = DB_PATH) -> sqlite3.Connection:
             location_id TEXT REFERENCES locations(id),
             state TEXT DEFAULT 'active',
             properties TEXT DEFAULT '{}',
+            travel_state TEXT DEFAULT NULL,
             created_at REAL NOT NULL,
             updated_at REAL NOT NULL
         );
@@ -283,6 +284,7 @@ def init_world(db_path: Path = DB_PATH) -> sqlite3.Connection:
             location_id TEXT DEFAULT NULL,
             state TEXT DEFAULT 'in_progress',
             properties TEXT DEFAULT '{}',
+            reactions_count INTEGER DEFAULT 0,
             created_at REAL NOT NULL,
             updated_at REAL NOT NULL
         );
@@ -335,6 +337,40 @@ def init_world(db_path: Path = DB_PATH) -> sqlite3.Connection:
             cooldown_hours INTEGER DEFAULT 24,
             last_harvested REAL DEFAULT 0,
             properties TEXT DEFAULT '{}',
+            created_at REAL NOT NULL
+        );
+
+        -- Ecology runtime tables (required by update_ecology in speed runs)
+        CREATE TABLE IF NOT EXISTS plants (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            species TEXT,
+            location_id TEXT REFERENCES locations(id),
+            growth_stage TEXT DEFAULT 'seedling',
+            health REAL DEFAULT 1.0,
+            planted_at REAL NOT NULL,
+            last_watered REAL,
+            properties TEXT DEFAULT '{}'
+        );
+
+        CREATE TABLE IF NOT EXISTS animals (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            species TEXT,
+            location_id TEXT REFERENCES locations(id),
+            state TEXT DEFAULT 'alive',
+            health REAL DEFAULT 1.0,
+            born_at REAL NOT NULL,
+            properties TEXT DEFAULT '{}'
+        );
+
+        CREATE TABLE IF NOT EXISTS npc_actions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            npc_id TEXT REFERENCES agents(id),
+            action_type TEXT NOT NULL DEFAULT 'idle',
+            description TEXT DEFAULT '',
+            location_id TEXT REFERENCES locations(id),
+            tick_number INTEGER DEFAULT 0,
             created_at REAL NOT NULL
         );
 
@@ -496,9 +532,124 @@ def init_world(db_path: Path = DB_PATH) -> sqlite3.Connection:
             created_at REAL NOT NULL,
             PRIMARY KEY (npc_id, tick_number)
         );
+
+        CREATE TABLE IF NOT EXISTS npc_departures (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            npc_id TEXT NOT NULL REFERENCES agents(id),
+            origin_location_id TEXT REFERENCES locations(id),
+            destination_location_id TEXT REFERENCES locations(id),
+            reason TEXT DEFAULT '',
+            departed_at REAL NOT NULL,
+            expected_arrival_at REAL,
+            arrived INTEGER DEFAULT 0
+        );
     """)
 
+    _ensure_runtime_tables(db)
     return db
+
+
+def _ensure_runtime_tables(db: sqlite3.Connection) -> None:
+    """Create runtime tables that optional subsystems expect.
+
+    Speed-run DBs are created from this module without daemon boot hooks; these
+    tables must exist before simulation.tick() so optional mechanics do not
+    crash before Phase 6.5/6.6 systems are reached.
+    """
+    now = time.time()
+    db.executescript("""
+        CREATE TABLE IF NOT EXISTS goals (
+            id TEXT PRIMARY KEY,
+            agent_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT DEFAULT '',
+            status TEXT DEFAULT 'active',
+            priority INTEGER DEFAULT 5,
+            category TEXT DEFAULT 'general',
+            context TEXT DEFAULT '',
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL,
+            target_date REAL DEFAULT NULL,
+            completed_at REAL DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS goal_steps (
+            id TEXT PRIMARY KEY,
+            goal_id TEXT NOT NULL,
+            description TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            sort_order INTEGER DEFAULT 0,
+            created_at REAL NOT NULL,
+            completed_at REAL DEFAULT NULL,
+            FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS npc_memories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            npc_id TEXT NOT NULL REFERENCES agents(id),
+            event TEXT NOT NULL DEFAULT '',
+            memory_type TEXT DEFAULT 'observation',
+            emotional_weight REAL DEFAULT 0.0,
+            impact REAL DEFAULT 0.0,
+            tick INTEGER DEFAULT 0,
+            created_at REAL NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS creative_output (
+            id TEXT PRIMARY KEY,
+            creator_id TEXT NOT NULL DEFAULT 'isildur',
+            type TEXT NOT NULL,
+            title TEXT NOT NULL DEFAULT 'Untitled',
+            content TEXT NOT NULL DEFAULT '',
+            location_id TEXT DEFAULT NULL,
+            state TEXT DEFAULT 'completed',
+            properties TEXT DEFAULT '{}',
+            reactions_count INTEGER DEFAULT 0,
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS creative_reactions (
+            id TEXT PRIMARY KEY,
+            output_id TEXT NOT NULL,
+            npc_id TEXT NOT NULL,
+            reaction_type TEXT NOT NULL,
+            comment TEXT DEFAULT '',
+            created_at REAL NOT NULL,
+            FOREIGN KEY (output_id) REFERENCES creative_output(id) ON DELETE CASCADE
+        );
+    """)
+
+    # Backfill columns for DBs whose CREATE TABLE IF NOT EXISTS ran before this fix.
+    for ddl in (
+        "ALTER TABLE agents ADD COLUMN travel_state TEXT DEFAULT NULL",
+        "ALTER TABLE creative_output ADD COLUMN reactions_count INTEGER DEFAULT 0",
+    ):
+        try:
+            db.execute(ddl)
+        except Exception:
+            pass
+
+    # Let subsystem initializers add any richer optional tables. Use lazy imports
+    # so world_state remains importable in both package and flat Colab contexts.
+    for module_name, func_name in (
+        ("ecology", "init_ecology"),
+        ("npc_ai", "init_npc_ai"),
+        ("npc_memory", "init_memory_tables"),
+        ("goals", "init_goals"),
+        ("creative_output", "init_creative_output"),
+        ("rituals", "init_ritual_tables"),
+        ("narrative", "init_narrative_tables"),
+    ):
+        try:
+            try:
+                mod = __import__(f".{module_name}", globals(), locals(), [func_name], 1)
+            except Exception:
+                mod = __import__(module_name, globals(), locals(), [func_name], 0)
+            getattr(mod, func_name)(db)
+        except Exception:
+            pass
+    db.commit()
 
 
 def seed_world(db: sqlite3.Connection, config=None) -> None:

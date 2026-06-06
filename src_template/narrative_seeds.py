@@ -565,12 +565,6 @@ SEED_DECK = [
     _mercenary_incursion,
     _diplomatic_alliance,
     _artifact_discovery,
-    _reconciliation_miracle,
-    _archaeological_revelation,
-    _new_species_emergence,
-    _miracle_event,
-    _cultural_miracle,
-    _map_shift,
 ]
 
 def _reconciliation_miracle(world_id: str, growth: dict) -> Optional[dict]:
@@ -823,3 +817,16 @@ def draw_seed(world_id: str, growth: Optional[dict] = None) -> Optional[dict]:
             return event
     
     return None
+
+# Phase 6.5 black swans are defined after the original registry; append them
+# after definition so flat Colab imports do not raise NameError at module load.
+for _seed in (
+    _reconciliation_miracle,
+    _archaeological_revelation,
+    _new_species_emergence,
+    _miracle_event,
+    _cultural_miracle,
+    _map_shift,
+):
+    if _seed not in SEED_DECK:
+        SEED_DECK.append(_seed)

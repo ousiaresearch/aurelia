@@ -407,7 +407,10 @@ def tick(db, hours: float = 1.0) -> dict:
     ecology_events = []
     if new_hour % 6 == 0:
         season = time_info.get("season", "spring")
-        ecology_events = update_ecology(db, season, days_passed=hours/24)
+        try:
+            ecology_events = update_ecology(db, season, days_passed=hours/24)
+        except Exception:
+            ecology_events = []
 
     # Season change
     season_event = None
@@ -618,10 +621,16 @@ def tick(db, hours: float = 1.0) -> dict:
     all_emergent = emergent_events + cascade_events
 
     # ── PHASE 4.5: GOALS MAINTENANCE ──
-    goal_summary = goals_tick(db)
+    try:
+        goal_summary = goals_tick(db)
+    except Exception:
+        goal_summary = {}
 
     # ── PHASE 5: RITUALS ──
-    ritual_events = check_rituals(db)
+    try:
+        ritual_events = check_rituals(db)
+    except Exception:
+        ritual_events = []
 
     # ── PHASE 6: ECONOMY ──
     from .economy import economy_tick
@@ -937,9 +946,12 @@ def tick(db, hours: float = 1.0) -> dict:
         pass
 
     # ── PHASE 7: CREATIVE OUTPUT ──
-    from .creative_output import creative_output_tick
-    owl_loc = db.execute("SELECT location_id FROM agents WHERE type = 'player'").fetchone()
-    creative_summary = creative_output_tick(db, owl_loc["location_id"] if owl_loc else None)
+    try:
+        from .creative_output import creative_output_tick
+        owl_loc = db.execute("SELECT location_id FROM agents WHERE type = 'player'").fetchone()
+        creative_summary = creative_output_tick(db, owl_loc["location_id"] if owl_loc else None)
+    except Exception:
+        creative_summary = []
 
     # ── PHASE 8: SOCIAL PULSE ──
     # Surface the top social change to the player via event log

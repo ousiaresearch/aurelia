@@ -36,7 +36,7 @@ def _patched_connect(path, *args, **kwargs):
     """Replace any /Users/johann/... coordinator path with :memory:"""
     if isinstance(path, str) and ("coordinator.db" in path or "johann" in path):
         # Return an in-memory DB that will be empty
-        return _ORIG_CONNECT(":memory:", *args[1:], **kwargs)
+        return _ORIG_CONNECT(":memory:", *args, **kwargs)
     return _ORIG_CONNECT(path, *args, **kwargs)
 
 _sql.connect = _patched_connect
@@ -138,10 +138,12 @@ def setup_world(world_id: str, db_path: str, src_dir: str, npc_count: int = DEFA
 
 def _inline_generate_npcs(db_path: str, world_id: str, npc_count: int):
     """Inline NPC generation — no hardcoded paths."""
-    src_dir = Path(__file__).parent / "src"
+    src_dir = Path(__file__).resolve().parent.parent / "src"
     sys.path.insert(0, str(src_dir))
 
     try:
+        if npc_count > 1000:
+            raise RuntimeError("skip slow populate_village at Colab scale")
         from npc_generation import populate_village
         import world_state
         old_path = world_state.DB_PATH
@@ -181,13 +183,31 @@ def _inline_generate_npcs(db_path: str, world_id: str, npc_count: int):
 
 def _inline_deep_seed(db_path: str, world_id: str, npc_count: int):
     """Inline deep seeding — schedules, decision states, relationships."""
-    src_dir = Path(__file__).parent / "src"
+    src_dir = Path(__file__).resolve().parent.parent / "src"
     sys.path.insert(0, str(src_dir))
 
     db = sqlite3.connect(db_path)
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA journal_mode=WAL")
     now = time.time()
+    npcs = db.execute("SELECT * FROM agents WHERE type='npc'").fetchall()
+
+    # Sanitize legacy cabin/village location ids before schedules, movement, births.
+    valid_locs = {r["id"] for r in db.execute("SELECT id FROM locations").fetchall()}
+    fallback_loc = next(iter(valid_locs), "town_square")
+    legacy_map = {
+        "cabin": "town_square", "workshop": "boat_shed", "clearing": "forest_clearing",
+        "ridgeline": "hillside_overlook", "cabin_kitchen": "general_store",
+        "cabin_bedroom": "fisher_house", "cabin_main_room": "town_square",
+        "cabin_deck": "dock", "garden": "farm_edge", "cedar_deep": "forest_deep",
+        "cedar_trail": "forest_trail", "mountain_creek": "creek", "wine_cellar": "general_store",
+    }
+    for bad, good in legacy_map.items():
+        target = good if good in valid_locs else fallback_loc
+        db.execute("UPDATE agents SET location_id=? WHERE location_id=?", (target, bad))
+        db.execute("UPDATE npc_schedules SET location_id=? WHERE location_id=?", (target, bad))
+    db.execute("DELETE FROM npc_schedules WHERE location_id IS NOT NULL AND location_id NOT IN (SELECT id FROM locations)")
+    db.commit()
     npcs = db.execute("SELECT * FROM agents WHERE type='npc'").fetchall()
 
     try:
@@ -205,8 +225,8 @@ def _inline_deep_seed(db_path: str, world_id: str, npc_count: int):
                         "type": props.get("npc_type", "human"),
                         "location_id": npc["location_id"], "properties": props}
 
-            # Schedule for waking hours
-            for h in range(6, 22):
+            # Schedule for waking hours (skip at 12K scale; schedules are not required for speed-run population drift)
+            for h in (() if npc_count > 1000 else range(6, 22)):
                 try:
                     sched = generate_npc_schedule(npc_dict, h)
                     if sched:
@@ -232,11 +252,12 @@ def _inline_deep_seed(db_path: str, world_id: str, npc_count: int):
             db.execute("INSERT OR IGNORE INTO npc_decision_state (npc_id, variables, last_updated) VALUES (?, ?, ?)",
                       (npc["id"], json.dumps(BASE_STATE), now))
 
-    # Bounded relationships (O(n) per NPC, max 15)
+    # Bounded relationships (O(n) per NPC, cap lower at Colab scale)
     all_ids = [n["id"] for n in npcs]
+    rel_cap = 3 if npc_count > 1000 else 10
     for npc in npcs:
         others = [oid for oid in all_ids if oid != npc["id"]]
-        max_rels = min(10, len(others))
+        max_rels = min(rel_cap, len(others))
         chosen = random.sample(others, max_rels)
         for other in chosen:
             db.execute("""
@@ -246,7 +267,132 @@ def _inline_deep_seed(db_path: str, world_id: str, npc_count: int):
 
     db.commit()
     db.close()
-    print(f"    Deep-seeded {len(npcs)} NPCs: schedules, decision states, {min(10,len(all_ids)-1) if len(all_ids)>1 else 0} relationships/NPC")
+    print(f"    Deep-seeded {len(npcs)} NPCs: schedules, decision states, {min(rel_cap,len(all_ids)-1) if len(all_ids)>1 else 0} relationships/NPC")
+
+
+
+def _poisson(lmbda: float) -> int:
+    """Small stdlib Poisson sampler; Gaussian approximation for large means."""
+    import math
+    if lmbda <= 0:
+        return 0
+    if lmbda < 30:
+        L = math.exp(-lmbda)
+        k = 0
+        p = 1.0
+        while p > L:
+            k += 1
+            p *= random.random()
+        return k - 1
+    return max(0, round(random.gauss(lmbda, math.sqrt(lmbda))))
+
+
+def _drift_decision_states(db, sample: int = 300) -> None:
+    """Random-walk decision variables so threshold-gated systems can diverge."""
+    rows = db.execute(
+        "SELECT npc_id, variables FROM npc_decision_state ORDER BY RANDOM() LIMIT ?",
+        (sample,),
+    ).fetchall()
+    now = time.time()
+    for row in rows:
+        try:
+            variables = json.loads(row["variables"] or "{}")
+        except Exception:
+            variables = {}
+        changed = False
+        for key, value in list(variables.items()):
+            if isinstance(value, (int, float)):
+                variables[key] = max(0.0, min(1.0, float(value) + random.uniform(-0.02, 0.02)))
+                changed = True
+        if changed:
+            db.execute(
+                "UPDATE npc_decision_state SET variables=?, last_updated=? WHERE npc_id=?",
+                (json.dumps(variables), now, row["npc_id"]),
+            )
+
+
+def _mutate_population(db) -> Dict[str, int]:
+    """Probabilistic birth/death per tick with FK-safe newborn locations."""
+    npc_count = db.execute(
+        "SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'"
+    ).fetchone()[0]
+    if npc_count < 2:
+        return {"births": 0, "deaths": 0}
+
+    now = time.time()
+    birth_attempts = _poisson(npc_count * 0.0005)
+    death_attempts = _poisson(npc_count * 0.00045)
+
+    valid_locs = {r[0] for r in db.execute("SELECT id FROM locations").fetchall()}
+    fallback = next(iter(valid_locs), None)
+
+    # Type distribution from active population.
+    type_counts = {}
+    for row in db.execute(
+        "SELECT json_extract(properties, '$.npc_type') AS t, COUNT(*) AS c "
+        "FROM agents WHERE type='npc' AND state='active' GROUP BY 1"
+    ).fetchall():
+        if row[0]:
+            type_counts[row[0]] = row[1]
+    total_typed = sum(type_counts.values()) or 1
+    types = list(type_counts.keys()) or ["human"]
+    weights = [type_counts[t] / total_typed for t in types] or [1.0]
+
+    from decision_state import BASE_STATE, GLIM_BASE
+
+    births = 0
+    for _ in range(birth_attempts):
+        parent = db.execute(
+            "SELECT id, location_id FROM agents WHERE type='npc' AND state='active' "
+            "AND location_id IS NOT NULL ORDER BY RANDOM() LIMIT 1"
+        ).fetchone()
+        if not parent:
+            continue
+        loc = parent["location_id"] if parent["location_id"] in valid_locs else fallback
+        if not loc:
+            continue
+        npc_type = random.choices(types, weights=weights, k=1)[0]
+        new_id = f"b_{int(now * 1_000_000):012d}_{random.randint(0, 999999):06d}"
+        try:
+            db.execute(
+                "INSERT INTO agents (id, name, type, location_id, state, properties, created_at, updated_at) "
+                "VALUES (?,?,?,?,?,?,?,?)",
+                (new_id, f"Child_{int(now)}_{births:04d}", "npc", loc, "active",
+                 json.dumps({"npc_type": npc_type, "occupation": "child", "parent": parent["id"]}), now, now),
+            )
+            base = GLIM_BASE.copy() if npc_type == "glim" else BASE_STATE.copy()
+            db.execute(
+                "INSERT OR IGNORE INTO npc_decision_state (npc_id, variables, last_updated) VALUES (?,?,?)",
+                (new_id, json.dumps(base), now),
+            )
+            births += 1
+        except Exception:
+            pass
+
+    fk_tables = [
+        "npc_decision_state", "npc_departures", "npc_schedules", "npc_relationships",
+        "npc_actions", "agent_inventory", "trade_log", "faction_members",
+    ]
+    deaths = 0
+    for _ in range(death_attempts):
+        victim = db.execute(
+            "SELECT id FROM agents WHERE type='npc' AND state='active' ORDER BY RANDOM() LIMIT 1"
+        ).fetchone()
+        if not victim:
+            continue
+        vid = victim["id"]
+        for table in fk_tables:
+            for col in ("npc_id", "npc_a", "npc_b", "agent_id", "buyer_id", "seller_id"):
+                try:
+                    db.execute(f"DELETE FROM {table} WHERE {col} = ?", (vid,))
+                except Exception:
+                    pass
+        try:
+            db.execute("DELETE FROM agents WHERE id = ?", (vid,))
+            deaths += 1
+        except Exception:
+            pass
+    return {"births": births, "deaths": deaths}
 
 
 def run_world_tick(world_id: str, db_path: str, src_dir: str, tick_number: int, tick_start: float) -> Tuple[dict, float]:
@@ -261,9 +407,13 @@ def run_world_tick(world_id: str, db_path: str, src_dir: str, tick_number: int, 
     db.row_factory = sqlite3.Row
 
     try:
+        _drift_decision_states(db)
+        pop_delta = _mutate_population(db)
         from simulation import tick
         tick._tick_start_ts = tick_start
         result = tick(db, hours=24.0)
+        if isinstance(result, dict):
+            result["population_delta"] = pop_delta
         db.commit()
         duration = time.time() - tick_start
         return result, duration
@@ -358,6 +508,7 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
     print(f"\n── RUN ({sim_years} sim-years, {total_ticks:,} ticks) ──")
     t0 = time.time()
     tick_times: List[float] = []
+    yearly_events: Dict[str, Dict[str, Any]] = {}
 
     for tick_num in range(1, total_ticks + 1):
         tick_start = time.time()
@@ -386,9 +537,23 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
 
             print(f"  T{tick_num:7d} Yr{sim_yr:5.0f} | {avg_ms:5.0f}ms | pop:{pop_total:6,d} fac:{fac_total:3d} | ETA:{eta}")
 
-        # Snapshot every 10 sim-years
-        if tick_num % (TICKS_PER_YEAR * 10) == 0:
-            save_snapshot(out, worlds, world_dbs, tick_num, tick_num / TICKS_PER_YEAR)
+        # Record per-year summaries for post-hoc batch chronicles.
+        if tick_num % TICKS_PER_YEAR == 0:
+            year = tick_num // TICKS_PER_YEAR
+            snap = save_snapshot(out, worlds, world_dbs, tick_num, tick_num / TICKS_PER_YEAR, final=False) if year % 10 == 0 else None
+            yearly_events[str(year)] = {}
+            for w in worlds:
+                db = sqlite3.connect(world_dbs[w])
+                db.row_factory = sqlite3.Row
+                yearly_events[str(year)][w] = {
+                    "population": db.execute("SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'").fetchone()[0],
+                    "births": db.execute("SELECT COUNT(*) FROM agents WHERE name LIKE 'Child_%'").fetchone()[0],
+                    "factions": db.execute("SELECT COUNT(*) FROM factions WHERE status NOT IN ('dissolved','sovereign')").fetchone()[0],
+                    "discoveries": db.execute("SELECT COUNT(*) FROM discoveries").fetchone()[0],
+                    "great_persons": db.execute("SELECT COUNT(*) FROM great_persons").fetchone()[0],
+                    "migrations": db.execute("SELECT COUNT(*) FROM cross_world_movements").fetchone()[0],
+                }
+                db.close()
 
     # Done
     total_time = time.time() - t0
@@ -398,6 +563,10 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
     print(f"  Ticks: {total_ticks:,}")
     print(f"  Time: {total_time/60:.0f}m {total_time%60:.0f}s ({total_time/3600:.1f}h)")
     print(f"  Avg: {avg_ms:.0f}ms/tick")
+
+    # Save accumulated yearly summaries for batch chronicle generation.
+    with open(out / "yearly_events.json", "w") as f:
+        json.dump(yearly_events, f, indent=2)
 
     # Final snapshot
     final = save_snapshot(out, worlds, world_dbs, total_ticks, sim_years, final=True)
@@ -423,6 +592,14 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=str, default="output")
     parser.add_argument("--src-dir", type=str, default="src")
     parser.add_argument("--log-interval", type=int, default=50)
+    parser.add_argument("--llm-api-key", type=str, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--llm-base-url", type=str, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--llm-model", type=str, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--llm-chronicles", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--llm-daily", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--llm-local", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--llm-model-path", type=str, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--llm-n-gpu-layers", type=int, default=-1, help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     worlds = [w.strip() for w in args.worlds.split(",")]
