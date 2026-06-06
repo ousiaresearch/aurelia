@@ -252,18 +252,30 @@ def _inline_deep_seed(db_path: str, world_id: str, npc_count: int):
             db.execute("INSERT OR IGNORE INTO npc_decision_state (npc_id, variables, last_updated) VALUES (?, ?, ?)",
                       (npc["id"], json.dumps(BASE_STATE), now))
 
-    # Bounded relationships (O(n) per NPC, cap lower at Colab scale)
+    # Bounded relationships. Important at 120K scale: do NOT build
+    # `others = [oid for oid in all_ids if oid != npc]` per NPC — that is O(n²).
+    # Pick by random index instead and batch INSERT.
     all_ids = [n["id"] for n in npcs]
     rel_cap = 3 if npc_count > 1000 else 10
-    for npc in npcs:
-        others = [oid for oid in all_ids if oid != npc["id"]]
-        max_rels = min(rel_cap, len(others))
-        chosen = random.sample(others, max_rels)
-        for other in chosen:
-            db.execute("""
-                INSERT OR IGNORE INTO npc_relationships (npc_a, npc_b, relationship, affinity)
-                VALUES (?, ?, 'acquaintance', ?)
-            """, (npc["id"], other, round(random.uniform(0.3, 0.7), 2)))
+    rel_rows = []
+    n_ids = len(all_ids)
+    if n_ids > 1:
+        for npc in npcs:
+            max_rels = min(rel_cap, n_ids - 1)
+            chosen = set()
+            attempts = 0
+            while len(chosen) < max_rels and attempts < max_rels * 8:
+                other = all_ids[random.randrange(n_ids)]
+                attempts += 1
+                if other != npc["id"]:
+                    chosen.add(other)
+            for other in chosen:
+                rel_rows.append((npc["id"], other, round(random.uniform(0.3, 0.7), 2)))
+    if rel_rows:
+        db.executemany("""
+            INSERT OR IGNORE INTO npc_relationships (npc_a, npc_b, relationship, affinity)
+            VALUES (?, ?, 'acquaintance', ?)
+        """, rel_rows)
 
     db.commit()
     db.close()
