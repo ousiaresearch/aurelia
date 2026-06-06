@@ -86,6 +86,16 @@ def setup_world(world_id: str, db_path: str, src_dir: str, npc_count: int = DEFA
     """Initialize fresh world DB with schema, world identity, NPCs, and deep seeding."""
     print(f"  Setting up {world_id}...")
 
+    # Always start from a clean DB. Colab/Drive output dirs often persist across
+    # reruns; deterministic NPC ids (e.g. solara_00000) will otherwise collide
+    # with a previous partial run and raise UNIQUE constraint failed: agents.id.
+    db_file = Path(db_path)
+    for suffix in ("", "-wal", "-shm"):
+        try:
+            Path(str(db_file) + suffix).unlink()
+        except FileNotFoundError:
+            pass
+
     src = Path(src_dir)
     sys.path.insert(0, str(src))
 
