@@ -21,6 +21,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 COUNTRIES = ["solara", "valdris", "mirithane", "arkos", "verge"]
 TICKS_PER_YEAR = 360  # 1 tick = 1 day
+FAST_TICKS_PER_YEAR = 12  # fast-monthly mode: 1 tick = 1 sim-month / 30 days
 DEFAULT_NPC = 12000
 OUTPUT_DIR = Path("output")
 
@@ -334,8 +335,8 @@ def _drift_decision_states(db, sample: int = 300) -> None:
             )
 
 
-def _mutate_population(db) -> Dict[str, int]:
-    """Probabilistic birth/death per tick with FK-safe newborn locations."""
+def _mutate_population(db, days: float = 1.0) -> Dict[str, int]:
+    """Probabilistic birth/death over a configurable number of simulated days."""
     npc_count = db.execute(
         "SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'"
     ).fetchone()[0]
@@ -343,8 +344,10 @@ def _mutate_population(db) -> Dict[str, int]:
         return {"births": 0, "deaths": 0}
 
     now = time.time()
-    birth_attempts = _poisson(npc_count * 0.0005)
-    death_attempts = _poisson(npc_count * 0.00045)
+    # Daily calibrated rates. In fast-monthly mode we multiply by ~30 days so
+    # a 200-year run keeps comparable demographic pressure with 30x fewer ticks.
+    birth_attempts = _poisson(npc_count * 0.0005 * days)
+    death_attempts = _poisson(npc_count * 0.00045 * days)
 
     valid_locs = {r[0] for r in db.execute("SELECT id FROM locations").fetchall()}
     fallback = next(iter(valid_locs), None)
@@ -368,13 +371,12 @@ def _mutate_population(db) -> Dict[str, int]:
     from decision_state import BASE_STATE, GLIM_BASE
 
     births = 0
-    for _ in range(birth_attempts):
-        parent = db.execute(
-            "SELECT id, location_id FROM agents WHERE type='npc' AND state='active' "
-            "AND location_id IS NOT NULL ORDER BY RANDOM() LIMIT 1"
-        ).fetchone()
-        if not parent:
-            continue
+    parents = db.execute(
+        "SELECT id, location_id FROM agents WHERE type='npc' AND state='active' "
+        "AND location_id IS NOT NULL ORDER BY RANDOM() LIMIT ?",
+        (birth_attempts,),
+    ).fetchall() if birth_attempts > 0 else []
+    for parent in parents:
         loc = parent["location_id"] if parent["location_id"] in valid_locs else fallback
         if not loc:
             continue
@@ -401,12 +403,11 @@ def _mutate_population(db) -> Dict[str, int]:
         "npc_actions", "agent_inventory", "trade_log", "faction_members",
     ]
     deaths = 0
-    for _ in range(death_attempts):
-        victim = db.execute(
-            "SELECT id FROM agents WHERE type='npc' AND state='active' ORDER BY RANDOM() LIMIT 1"
-        ).fetchone()
-        if not victim:
-            continue
+    victims = db.execute(
+        "SELECT id FROM agents WHERE type='npc' AND state='active' ORDER BY RANDOM() LIMIT ?",
+        (death_attempts,),
+    ).fetchall() if death_attempts > 0 else []
+    for victim in victims:
         vid = victim["id"]
         for table in fk_tables:
             for col in ("npc_id", "npc_a", "npc_b", "agent_id", "buyer_id", "seller_id"):
@@ -459,6 +460,63 @@ def run_world_tick_conn(world_id: str, db, db_path: str, src_dir: str, tick_numb
     except Exception as e:
         db.rollback()
         return {"error": str(e), "world": world_id, "tick": tick_number}, time.time() - tick_start
+
+
+def run_world_tick_monthly_conn(world_id: str, db, db_path: str, src_dir: str, tick_number: int, tick_start: float) -> Tuple[dict, float]:
+    """Run one fast-monthly tick: one simulation call represents ~30 days.
+
+    This is the high-scale Colab path. It reduces a 200-year run from 72,000
+    daily ticks/world to 2,400 monthly ticks/world while scaling demographic
+    drift by the skipped days. Full daemon mechanics still get called once per
+    month, so factions/discoveries/great-person hooks remain reachable.
+    """
+    src = Path(src_dir)
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+
+    import world_state
+    world_state.DB_PATH = Path(db_path)
+
+    try:
+        pop = db.execute("SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'").fetchone()[0]
+        _drift_decision_states(db, sample=min(max(300, pop // 8), 5000))
+        pop_delta = _mutate_population(db, days=30.0)
+        from simulation import tick
+        tick._tick_start_ts = tick_start
+        result = tick(db, hours=24.0 * 30.0)
+        if isinstance(result, dict):
+            result["population_delta"] = pop_delta
+            result["tick_mode"] = "fast-monthly"
+        try:
+            logged = db.execute("SELECT COUNT(*) FROM tick_log WHERE tick_number = ?", (tick_number,)).fetchone()[0]
+            if not logged:
+                wt = db.execute("SELECT year, month, day, hour, minute, season, time_of_day FROM world_time WHERE id=1").fetchone()
+                db.execute("""
+                    INSERT INTO tick_log (
+                        tick_number, real_timestamp,
+                        world_year, world_month, world_day, world_hour, world_minute,
+                        season, time_of_day,
+                        npc_moves, npc_ai_actions, npc_conversations,
+                        social_changes, emergent_events, ecology_events,
+                        narrative_moments, ritual_events,
+                        economy_produced, economy_consumed, economy_traded,
+                        creative_outputs, duration_ms, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ?, ?)
+                """, (
+                    tick_number, time.time(),
+                    wt["year"] if wt else 0, wt["month"] if wt else 0, wt["day"] if wt else 0,
+                    wt["hour"] if wt else 0, wt["minute"] if wt else 0,
+                    wt["season"] if wt else "", wt["time_of_day"] if wt else "",
+                    int((time.time() - tick_start) * 1000), time.time(),
+                ))
+        except Exception:
+            pass
+        db.commit()
+        duration = time.time() - tick_start
+        return result, duration
+    except Exception as e:
+        db.rollback()
+        return {"error": str(e), "world": world_id, "tick": tick_number, "tick_mode": "fast-monthly"}, time.time() - tick_start
 
 
 def run_world_tick(world_id: str, db_path: str, src_dir: str, tick_number: int, tick_start: float) -> Tuple[dict, float]:
@@ -573,7 +631,7 @@ def _year_summary(db) -> Dict[str, Any]:
 
 def _run_one_world_full(args_tuple):
     """Worker entrypoint: setup + run one world in a separate Python process."""
-    world_id, db_path, src_dir, npc_count, total_ticks, log_interval = args_tuple
+    world_id, db_path, src_dir, npc_count, total_ticks, log_interval, fast_monthly = args_tuple
     if src_dir not in sys.path:
         sys.path.insert(0, src_dir)
     setup_world(world_id, db_path, src_dir, npc_count)
@@ -587,16 +645,18 @@ def _run_one_world_full(args_tuple):
     tick_times = []
     yearly = {}
     t0 = time.time()
+    ticks_per_year = FAST_TICKS_PER_YEAR if fast_monthly else TICKS_PER_YEAR
+    tick_func = run_world_tick_monthly_conn if fast_monthly else run_world_tick_conn
     for tick_num in range(1, total_ticks + 1):
         tick_start = time.time()
-        run_world_tick_conn(world_id, db, db_path, src_dir, tick_num, tick_start)
+        tick_func(world_id, db, db_path, src_dir, tick_num, tick_start)
         tick_times.append(time.time() - tick_start)
-        if tick_num % TICKS_PER_YEAR == 0:
-            yearly[str(tick_num // TICKS_PER_YEAR)] = _year_summary(db)
+        if tick_num % ticks_per_year == 0:
+            yearly[str(tick_num // ticks_per_year)] = _year_summary(db)
         if log_interval and (tick_num % log_interval == 0 or tick_num == 1):
             avg_ms = sum(tick_times[-min(log_interval, len(tick_times)):]) / min(log_interval, len(tick_times)) * 1000
             pop = db.execute("SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'").fetchone()[0]
-            print(f"  [{world_id}] T{tick_num:7d} Yr{tick_num / TICKS_PER_YEAR:5.0f} | {avg_ms:5.0f}ms | pop:{pop:6,d}", flush=True)
+            print(f"  [{world_id}] T{tick_num:7d} Yr{tick_num / ticks_per_year:5.0f} | {avg_ms:5.0f}ms | pop:{pop:6,d}", flush=True)
     final = _year_summary(db)
     db.commit()
     db.close()
@@ -613,15 +673,17 @@ def _run_one_world_full(args_tuple):
 
 def _speed_run_parallel(worlds: List[str], sim_years: int, src_dir: str, out: Path,
                         db_root: Path, npc_count: int, log_interval: int,
-                        workers: int) -> None:
+                        workers: int, fast_monthly: bool = False) -> None:
     """Run each world in a separate process; best Colab Phase-1 CPU utilization."""
-    total_ticks = sim_years * TICKS_PER_YEAR
+    ticks_per_year = FAST_TICKS_PER_YEAR if fast_monthly else TICKS_PER_YEAR
+    total_ticks = sim_years * ticks_per_year
     world_dbs = {w: str(db_root / f"{w}.db") for w in worlds}
-    print(f"\n── PARALLEL RUN ({len(worlds)} processes, {sim_years} sim-years, {total_ticks:,} ticks/world) ──")
+    mode_label = "fast-monthly" if fast_monthly else "daily"
+    print(f"\n── PARALLEL RUN ({len(worlds)} processes, {sim_years} sim-years, {total_ticks:,} {mode_label} ticks/world) ──")
     t0 = time.time()
     results = []
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        futs = [pool.submit(_run_one_world_full, (w, world_dbs[w], src_dir, npc_count, total_ticks, log_interval)) for w in worlds]
+        futs = [pool.submit(_run_one_world_full, (w, world_dbs[w], src_dir, npc_count, total_ticks, log_interval, fast_monthly)) for w in worlds]
         for fut in as_completed(futs):
             res = fut.result()
             results.append(res)
@@ -654,7 +716,7 @@ def _speed_run_parallel(worlds: List[str], sim_years: int, src_dir: str, out: Pa
 def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str = "output",
               npc_count: int = DEFAULT_NPC, log_interval: int = 50,
               db_dir: Optional[str] = None, parallel_worlds: bool = False,
-              workers: Optional[int] = None):
+              workers: Optional[int] = None, fast_monthly: bool = False):
     """Run accelerated simulation."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -673,19 +735,20 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
     world_dbs = {}
     src = Path(src_dir)
 
+    ticks_per_year = FAST_TICKS_PER_YEAR if fast_monthly else TICKS_PER_YEAR
     print("=" * 60)
     print(f"AURELIA SPEED RUN")
     print(f"  Worlds: {worlds}")
-    print(f"  Sim-years: {sim_years} ({sim_years * TICKS_PER_YEAR:,} ticks)")
+    print(f"  Sim-years: {sim_years} ({sim_years * ticks_per_year:,} {'monthly' if fast_monthly else 'daily'} ticks)")
     print(f"  NPCs/world: {npc_count} (total: {npc_count * len(worlds):,})")
     print(f"  Output: {out}")
     print(f"  DB dir: {db_root}" + (" (local scratch; final DBs copied to output)" if db_root.resolve() != out.resolve() else ""))
-    print(f"  Mode: {'process-parallel worlds' if parallel_worlds and len(worlds) > 1 else 'sequential worlds, persistent DB connections'}")
+    print(f"  Mode: {'fast-monthly, process-parallel worlds' if fast_monthly and parallel_worlds and len(worlds) > 1 else 'fast-monthly sequential' if fast_monthly else 'process-parallel worlds' if parallel_worlds and len(worlds) > 1 else 'sequential worlds, persistent DB connections'}")
     print("=" * 60)
 
     if parallel_worlds and len(worlds) > 1:
         n_workers = workers or min(len(worlds), os.cpu_count() or len(worlds))
-        _speed_run_parallel(worlds, sim_years, str(Path(src_dir)), out, db_root, npc_count, log_interval, n_workers)
+        _speed_run_parallel(worlds, sim_years, str(Path(src_dir)), out, db_root, npc_count, log_interval, n_workers, fast_monthly=fast_monthly)
         return
 
     # Phase 1: Setup
@@ -711,24 +774,25 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
         db_conns[world_id] = db
 
     # Phase 2: Speed run
-    total_ticks = sim_years * TICKS_PER_YEAR
-    print(f"\n── RUN ({sim_years} sim-years, {total_ticks:,} ticks) ──")
+    total_ticks = sim_years * ticks_per_year
+    print(f"\n── RUN ({sim_years} sim-years, {total_ticks:,} {'monthly' if fast_monthly else 'daily'} ticks) ──")
     t0 = time.time()
     tick_times: List[float] = []
     yearly_events: Dict[str, Dict[str, Any]] = {}
 
+    tick_func = run_world_tick_monthly_conn if fast_monthly else run_world_tick_conn
     for tick_num in range(1, total_ticks + 1):
         tick_start = time.time()
 
         for world_id in worlds:
-            run_world_tick_conn(world_id, db_conns[world_id], world_dbs[world_id], src_dir, tick_num, tick_start)
+            tick_func(world_id, db_conns[world_id], world_dbs[world_id], src_dir, tick_num, tick_start)
 
         tick_times.append(time.time() - tick_start)
 
         if tick_num % log_interval == 0 or tick_num == 1:
             elapsed = time.time() - t0
             avg_ms = sum(tick_times[-min(log_interval, len(tick_times)):]) / min(log_interval, len(tick_times)) * 1000
-            sim_yr = tick_num / TICKS_PER_YEAR
+            sim_yr = tick_num / ticks_per_year
             remaining = total_ticks - tick_num
             eta_sec = remaining * (sum(tick_times[-min(50, len(tick_times)):]) / min(50, len(tick_times)))
             eta = f"{eta_sec/60:.0f}m" if eta_sec < 3600 else f"{eta_sec/3600:.1f}h"
@@ -744,9 +808,9 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
             print(f"  T{tick_num:7d} Yr{sim_yr:5.0f} | {avg_ms:5.0f}ms | pop:{pop_total:6,d} fac:{fac_total:3d} | ETA:{eta}")
 
         # Record per-year summaries for post-hoc batch chronicles.
-        if tick_num % TICKS_PER_YEAR == 0:
-            year = tick_num // TICKS_PER_YEAR
-            snap = save_snapshot(out, worlds, world_dbs, tick_num, tick_num / TICKS_PER_YEAR, final=False) if year % 10 == 0 else None
+        if tick_num % ticks_per_year == 0:
+            year = tick_num // ticks_per_year
+            snap = save_snapshot(out, worlds, world_dbs, tick_num, tick_num / ticks_per_year, final=False) if year % 10 == 0 else None
             yearly_events[str(year)] = {}
             for w in worlds:
                 db = db_conns[w]
@@ -813,6 +877,8 @@ if __name__ == "__main__":
                         help="Run each world in a separate Python process for better Colab CPU utilization.")
     parser.add_argument("--workers", type=int, default=None,
                         help="Number of world worker processes; default=min(worlds, CPU count).")
+    parser.add_argument("--fast-monthly", action="store_true",
+                        help="Use 12 monthly ticks/year instead of 360 daily ticks/year; intended for high-scale 200-year Colab runs.")
     parser.add_argument("--llm-api-key", type=str, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--llm-base-url", type=str, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--llm-model", type=str, default=None, help=argparse.SUPPRESS)
@@ -825,4 +891,4 @@ if __name__ == "__main__":
 
     worlds = [w.strip() for w in args.worlds.split(",")]
     speed_run(worlds, args.years, args.src_dir, args.output, args.npcs, args.log_interval,
-              args.db_dir, args.parallel_worlds, args.workers)
+              args.db_dir, args.parallel_worlds, args.workers, args.fast_monthly)
