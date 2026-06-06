@@ -334,9 +334,13 @@ def _mutate_population(db) -> Dict[str, int]:
     ).fetchall():
         if row[0]:
             type_counts[row[0]] = row[1]
-    total_typed = sum(type_counts.values()) or 1
-    types = list(type_counts.keys()) or ["human"]
-    weights = [type_counts[t] / total_typed for t in types] or [1.0]
+    if type_counts:
+        total_typed = sum(type_counts.values()) or 1
+        types = list(type_counts.keys())
+        weights = [type_counts[t] / total_typed for t in types]
+    else:
+        types = ["human"]
+        weights = [1.0]
 
     from decision_state import BASE_STATE, GLIM_BASE
 
