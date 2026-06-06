@@ -13,6 +13,7 @@ import sys, os, time, json, random, argparse, sqlite3, copy, shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # ═══════════════════════════════════════════════════════════════════
 # CONFIG
@@ -421,16 +422,28 @@ def _mutate_population(db) -> Dict[str, int]:
     return {"births": births, "deaths": deaths}
 
 
-def run_world_tick(world_id: str, db_path: str, src_dir: str, tick_number: int, tick_start: float) -> Tuple[dict, float]:
-    """Run one accelerated tick for one world. Returns (result, duration_seconds)."""
+def _configure_fast_sqlite(db) -> None:
+    """Speed-run pragmas: safe on local scratch, much faster than durable WAL defaults."""
+    for pragma in (
+        "PRAGMA synchronous=OFF",
+        "PRAGMA temp_store=MEMORY",
+        "PRAGMA cache_size=-524288",  # ~512MB page cache when available
+        "PRAGMA mmap_size=1073741824",  # 1GB mmap window
+    ):
+        try:
+            db.execute(pragma)
+        except Exception:
+            pass
+
+
+def run_world_tick_conn(world_id: str, db, db_path: str, src_dir: str, tick_number: int, tick_start: float) -> Tuple[dict, float]:
+    """Run one accelerated tick on an already-open SQLite connection."""
     src = Path(src_dir)
-    sys.path.insert(0, str(src))
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
 
     import world_state
     world_state.DB_PATH = Path(db_path)
-
-    db = world_state.get_db(Path(db_path))
-    db.row_factory = sqlite3.Row
 
     try:
         _drift_decision_states(db)
@@ -446,6 +459,20 @@ def run_world_tick(world_id: str, db_path: str, src_dir: str, tick_number: int, 
     except Exception as e:
         db.rollback()
         return {"error": str(e), "world": world_id, "tick": tick_number}, time.time() - tick_start
+
+
+def run_world_tick(world_id: str, db_path: str, src_dir: str, tick_number: int, tick_start: float) -> Tuple[dict, float]:
+    """Compatibility wrapper: open/close for one tick."""
+    src = Path(src_dir)
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    import world_state
+    world_state.DB_PATH = Path(db_path)
+    db = world_state.get_db(Path(db_path))
+    db.row_factory = sqlite3.Row
+    _configure_fast_sqlite(db)
+    try:
+        return run_world_tick_conn(world_id, db, db_path, src_dir, tick_number, tick_start)
     finally:
         db.close()
 
@@ -533,9 +560,101 @@ def _checkpoint_and_copy_dbs(world_dbs: Dict[str, str], out: Path, db_root: Path
         print(f"  {world_id}: copied {src.name} → {dst}")
 
 
+def _year_summary(db) -> Dict[str, Any]:
+    return {
+        "population": db.execute("SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'").fetchone()[0],
+        "births": db.execute("SELECT COUNT(*) FROM agents WHERE name LIKE 'Child_%'").fetchone()[0],
+        "factions": db.execute("SELECT COUNT(*) FROM factions WHERE status NOT IN ('dissolved','sovereign')").fetchone()[0],
+        "discoveries": db.execute("SELECT COUNT(*) FROM discoveries").fetchone()[0],
+        "great_persons": db.execute("SELECT COUNT(*) FROM great_persons").fetchone()[0],
+        "migrations": db.execute("SELECT COUNT(*) FROM cross_world_movements").fetchone()[0],
+    }
+
+
+def _run_one_world_full(args_tuple):
+    """Worker entrypoint: setup + run one world in a separate Python process."""
+    world_id, db_path, src_dir, npc_count, total_ticks, log_interval = args_tuple
+    if src_dir not in sys.path:
+        sys.path.insert(0, src_dir)
+    setup_world(world_id, db_path, src_dir, npc_count)
+
+    import world_state
+    world_state.DB_PATH = Path(db_path)
+    db = world_state.get_db(Path(db_path))
+    db.row_factory = sqlite3.Row
+    _configure_fast_sqlite(db)
+
+    tick_times = []
+    yearly = {}
+    t0 = time.time()
+    for tick_num in range(1, total_ticks + 1):
+        tick_start = time.time()
+        run_world_tick_conn(world_id, db, db_path, src_dir, tick_num, tick_start)
+        tick_times.append(time.time() - tick_start)
+        if tick_num % TICKS_PER_YEAR == 0:
+            yearly[str(tick_num // TICKS_PER_YEAR)] = _year_summary(db)
+        if log_interval and (tick_num % log_interval == 0 or tick_num == 1):
+            avg_ms = sum(tick_times[-min(log_interval, len(tick_times)):]) / min(log_interval, len(tick_times)) * 1000
+            pop = db.execute("SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'").fetchone()[0]
+            print(f"  [{world_id}] T{tick_num:7d} Yr{tick_num / TICKS_PER_YEAR:5.0f} | {avg_ms:5.0f}ms | pop:{pop:6,d}", flush=True)
+    final = _year_summary(db)
+    db.commit()
+    db.close()
+    avg_ms = (sum(tick_times) / len(tick_times) * 1000) if tick_times else 0
+    return {
+        "world_id": world_id,
+        "db_path": db_path,
+        "yearly": yearly,
+        "final": final,
+        "avg_ms": avg_ms,
+        "seconds": time.time() - t0,
+    }
+
+
+def _speed_run_parallel(worlds: List[str], sim_years: int, src_dir: str, out: Path,
+                        db_root: Path, npc_count: int, log_interval: int,
+                        workers: int) -> None:
+    """Run each world in a separate process; best Colab Phase-1 CPU utilization."""
+    total_ticks = sim_years * TICKS_PER_YEAR
+    world_dbs = {w: str(db_root / f"{w}.db") for w in worlds}
+    print(f"\n── PARALLEL RUN ({len(worlds)} processes, {sim_years} sim-years, {total_ticks:,} ticks/world) ──")
+    t0 = time.time()
+    results = []
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        futs = [pool.submit(_run_one_world_full, (w, world_dbs[w], src_dir, npc_count, total_ticks, log_interval)) for w in worlds]
+        for fut in as_completed(futs):
+            res = fut.result()
+            results.append(res)
+            print(f"  [{res['world_id']}] done in {res['seconds']/60:.1f}m avg={res['avg_ms']:.0f}ms/tick", flush=True)
+
+    yearly_events: Dict[str, Dict[str, Any]] = {}
+    for res in results:
+        for year, data in res["yearly"].items():
+            yearly_events.setdefault(year, {})[res["world_id"]] = data
+    with open(out / "yearly_events.json", "w") as f:
+        json.dump(yearly_events, f, indent=2)
+
+    final = save_snapshot(out, worlds, world_dbs, total_ticks, sim_years, final=True)
+    _checkpoint_and_copy_dbs(world_dbs, out, db_root)
+
+    total_time = time.time() - t0
+    print(f"\n── DONE ──")
+    print(f"  Time: {total_time/60:.0f}m {total_time%60:.0f}s ({total_time/3600:.1f}h)")
+    print(f"\n── FINAL STATE (Year {sim_years}) ──")
+    for w in worlds:
+        ws = final["worlds"].get(w, {})
+        if "error" in ws:
+            print(f"  {w}: ERROR - {ws['error']}")
+        else:
+            print(f"  {w}: pop={ws.get('population',0):,} factions={ws['factions_active']} discoveries={ws['discoveries']} great={ws['great_persons']}")
+    print(f"\n  Output: {out}/")
+    print(f"  Snapshots: {len(list(out.glob('snapshot_*.json')))} files")
+
+
 def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str = "output",
               npc_count: int = DEFAULT_NPC, log_interval: int = 50,
-              db_dir: Optional[str] = None):
+              db_dir: Optional[str] = None, parallel_worlds: bool = False,
+              workers: Optional[int] = None):
     """Run accelerated simulation."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -561,7 +680,13 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
     print(f"  NPCs/world: {npc_count} (total: {npc_count * len(worlds):,})")
     print(f"  Output: {out}")
     print(f"  DB dir: {db_root}" + (" (local scratch; final DBs copied to output)" if db_root.resolve() != out.resolve() else ""))
+    print(f"  Mode: {'process-parallel worlds' if parallel_worlds and len(worlds) > 1 else 'sequential worlds, persistent DB connections'}")
     print("=" * 60)
+
+    if parallel_worlds and len(worlds) > 1:
+        n_workers = workers or min(len(worlds), os.cpu_count() or len(worlds))
+        _speed_run_parallel(worlds, sim_years, str(Path(src_dir)), out, db_root, npc_count, log_interval, n_workers)
+        return
 
     # Phase 1: Setup
     print("\n── SETUP ──")
@@ -572,6 +697,18 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
         world_dbs[world_id] = db_path
     setup_time = time.time() - t0
     print(f"  Setup: {setup_time:.0f}s")
+
+    # Keep SQLite connections open for the whole run. Reopening 5 DBs every tick
+    # means 360,000 connects over a 200-year/5-world run; persistent connections
+    # let Colab's RAM cache and mmap actually help.
+    db_conns = {}
+    for world_id, db_path in world_dbs.items():
+        import world_state
+        world_state.DB_PATH = Path(db_path)
+        db = world_state.get_db(Path(db_path))
+        db.row_factory = sqlite3.Row
+        _configure_fast_sqlite(db)
+        db_conns[world_id] = db
 
     # Phase 2: Speed run
     total_ticks = sim_years * TICKS_PER_YEAR
@@ -584,7 +721,7 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
         tick_start = time.time()
 
         for world_id in worlds:
-            run_world_tick(world_id, world_dbs[world_id], src_dir, tick_num, tick_start)
+            run_world_tick_conn(world_id, db_conns[world_id], world_dbs[world_id], src_dir, tick_num, tick_start)
 
         tick_times.append(time.time() - tick_start)
 
@@ -600,10 +737,9 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
             pop_total = 0
             fac_total = 0
             for w in worlds:
-                db = sqlite3.connect(world_dbs[w])
+                db = db_conns[w]
                 pop_total += db.execute("SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'").fetchone()[0]
                 fac_total += db.execute("SELECT COUNT(*) FROM factions WHERE status NOT IN ('dissolved','sovereign')").fetchone()[0]
-                db.close()
 
             print(f"  T{tick_num:7d} Yr{sim_yr:5.0f} | {avg_ms:5.0f}ms | pop:{pop_total:6,d} fac:{fac_total:3d} | ETA:{eta}")
 
@@ -613,8 +749,7 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
             snap = save_snapshot(out, worlds, world_dbs, tick_num, tick_num / TICKS_PER_YEAR, final=False) if year % 10 == 0 else None
             yearly_events[str(year)] = {}
             for w in worlds:
-                db = sqlite3.connect(world_dbs[w])
-                db.row_factory = sqlite3.Row
+                db = db_conns[w]
                 yearly_events[str(year)][w] = {
                     "population": db.execute("SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'").fetchone()[0],
                     "births": db.execute("SELECT COUNT(*) FROM agents WHERE name LIKE 'Child_%'").fetchone()[0],
@@ -623,7 +758,6 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
                     "great_persons": db.execute("SELECT COUNT(*) FROM great_persons").fetchone()[0],
                     "migrations": db.execute("SELECT COUNT(*) FROM cross_world_movements").fetchone()[0],
                 }
-                db.close()
 
     # Done
     total_time = time.time() - t0
@@ -650,6 +784,14 @@ def speed_run(worlds: List[str], sim_years: int, src_dir: str, output_dir: str =
             print(f"  {w}: pop={ws.get('population',0):,} factions={ws['factions_active']} "
                   f"war={ws['factions_at_war']} integrated={ws['factions_integrated']} "
                   f"discoveries={ws['discoveries']} great={ws['great_persons']}")
+
+    for db in db_conns.values():
+        try:
+            db.commit()
+            db.close()
+        except Exception:
+            pass
+
     # Copy local scratch DBs to requested output after all connections are closed.
     _checkpoint_and_copy_dbs(world_dbs, out, db_root)
 
@@ -667,6 +809,10 @@ if __name__ == "__main__":
     parser.add_argument("--log-interval", type=int, default=50)
     parser.add_argument("--db-dir", type=str, default=None,
                         help="Directory for live SQLite DBs. Defaults to local scratch when output is Google Drive.")
+    parser.add_argument("--parallel-worlds", action="store_true",
+                        help="Run each world in a separate Python process for better Colab CPU utilization.")
+    parser.add_argument("--workers", type=int, default=None,
+                        help="Number of world worker processes; default=min(worlds, CPU count).")
     parser.add_argument("--llm-api-key", type=str, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--llm-base-url", type=str, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--llm-model", type=str, default=None, help=argparse.SUPPRESS)
@@ -678,4 +824,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     worlds = [w.strip() for w in args.worlds.split(",")]
-    speed_run(worlds, args.years, args.src_dir, args.output, args.npcs, args.log_interval, args.db_dir)
+    speed_run(worlds, args.years, args.src_dir, args.output, args.npcs, args.log_interval,
+              args.db_dir, args.parallel_worlds, args.workers)
