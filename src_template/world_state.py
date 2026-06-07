@@ -340,29 +340,8 @@ def init_world(db_path: Path = DB_PATH) -> sqlite3.Connection:
             created_at REAL NOT NULL
         );
 
-        -- Ecology runtime tables (required by update_ecology in speed runs)
-        CREATE TABLE IF NOT EXISTS plants (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            species TEXT,
-            location_id TEXT REFERENCES locations(id),
-            growth_stage TEXT DEFAULT 'seedling',
-            health REAL DEFAULT 1.0,
-            planted_at REAL NOT NULL,
-            last_watered REAL,
-            properties TEXT DEFAULT '{}'
-        );
-
-        CREATE TABLE IF NOT EXISTS animals (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            species TEXT,
-            location_id TEXT REFERENCES locations(id),
-            state TEXT DEFAULT 'alive',
-            health REAL DEFAULT 1.0,
-            born_at REAL NOT NULL,
-            properties TEXT DEFAULT '{}'
-        );
+        -- Ecology tables are created by ecology.init_ecology() via _ensure_runtime_tables
+        -- (removed stub plants/animals tables — ecology.py owns the schema)
 
         CREATE TABLE IF NOT EXISTS npc_actions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
