@@ -398,6 +398,8 @@ CREATE TABLE IF NOT EXISTS body_state (
 
 CREATE TABLE IF NOT EXISTS internal_state (
     id INTEGER PRIMARY KEY CHECK (id = 1),
+    mood TEXT DEFAULT 'calm',
+    energy REAL DEFAULT 0.7,
     creative_urge REAL DEFAULT 0.5,
     dominant_interest TEXT DEFAULT 'observation',
     social_need REAL DEFAULT 0.3,
@@ -510,7 +512,7 @@ def create_world_from_config(config_path: str):
 
     # ── 3. Body + Internal state ───────────────────────────────────
     db.execute("INSERT INTO body_state (id, updated_at) VALUES (1, ?)", (now,))
-    db.execute("INSERT INTO internal_state (id, created_at, updated_at) VALUES (1, ?, ?)", (now, now))
+    db.execute("INSERT INTO internal_state (id, mood, energy, creative_urge, dominant_interest, social_need, restlessness, created_at, updated_at) VALUES (1, 'calm', 0.7, 0.5, 'the water', 0.3, 0.2, ?, ?)", (now, now))
 
     # ── 4. Locations ───────────────────────────────────────────────
     locations = cfg.get("locations", [])
