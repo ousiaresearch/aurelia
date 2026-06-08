@@ -11,7 +11,8 @@ BASE_URL = "https://hermes-state-worker.plntrprotocol.workers.dev"
 SECRET_FILE = os.path.expanduser("~/.hermes/profiles/palantir/cf-worker/.secret")
 WORLDS = ["solara", "arkos", "mirithane", "valdris", "verge"]
 DAEMON_DB = os.path.expanduser("~/.hermes/agents/{w}/aurelia-world/world/world.db")
-SPEEDRUN_DB = "/tmp/aurelia_run/output/{w}.db"
+SPEEDRUN_DB = "/tmp/aurelia-run/output/{w}.db"
+SEQRUN_DB = "/tmp/aurelia-seq-run/output/{w}.db"
 
 
 def load_secret():
@@ -39,15 +40,43 @@ def call(method, path, body=None):
 
 
 def find_db(world_id):
-    paths = [DAEMON_DB.format(w=world_id), SPEEDRUN_DB.format(w=world_id)]
+    # Prefer seq-run (freshest) over speed-run, over daemon (stale)
+    paths = [SEQRUN_DB.format(w=world_id), SPEEDRUN_DB.format(w=world_id), DAEMON_DB.format(w=world_id)]
     for p in paths:
         if os.path.exists(p):
             return p
     return None
 
 
+def table_exists(db, table_name):
+    return db.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
+    ).fetchone() is not None
+
+
+def count_table(db, table_name, where_clause=""):
+    """Safe count — returns 0 if table missing or empty."""
+    try:
+        return db.execute(f"SELECT COUNT(*) FROM {table_name} {where_clause}").fetchone()[0]
+    except sqlite3.OperationalError:
+        return 0
+
+
+def count_npcs(db):
+    """Count NPCs: prefer npc_decision_state, fall back to agents."""
+    n = count_table(db, "npc_decision_state")
+    if n > 0:
+        return n
+    n = count_table(db, "agents")
+    if n <= 1:
+        return 0  # Just the world registry agent
+    return n
+
+
 def get_world_ident(db):
     """Read world_registry handling 4-col (factory JSON blob) and 10-col schemas."""
+    if not table_exists(db, "world_registry"):
+        return {}
     row = db.execute("SELECT * FROM world_registry LIMIT 1").fetchone()
     if not row:
         return {}
@@ -71,32 +100,56 @@ def register_worlds():
         db.row_factory = sqlite3.Row
         ident = get_world_ident(db)
         time_row = db.execute("SELECT year FROM world_time WHERE id=1").fetchone()
-        pop = db.execute("SELECT COUNT(*) FROM agents").fetchone()[0]
+        pop = count_npcs(db)
+        faction_ct = count_table(db, "factions")
+        settlement_ct = count_table(db, "settlements")
         s, b = call("POST", "/aurelia/worlds", {
             "world_id": w,
             "name": ident.get("name", w.title()),
             "current_year": time_row["year"] if time_row else 2126,
             "population_count": pop,
             "species_breakdown": {"human": 0, "thren": 0, "vorn": 0, "glim": 0},
+            "faction_count": faction_ct,
+            "settlement_count": settlement_ct,
         })
-        print(f"  {w}: {s}")
+        print(f"  {w}: {s} (pop={pop} factions={faction_ct})")
         db.close()
 
 
 def push_yearly(world_id, db):
+    if not table_exists(db, "tick_log"):
+        return 0
     ticks = db.execute(
         "SELECT world_year, COUNT(*) as ct FROM tick_log "
         "WHERE world_year IS NOT NULL GROUP BY world_year ORDER BY world_year"
     ).fetchall()
+    if not ticks:
+        # Fallback: push single snapshot from world_time
+        time_row = db.execute("SELECT year, month FROM world_time WHERE id=1").fetchone()
+        if not time_row:
+            return 0
+        pop = count_npcs(db)
+        faction_ct = count_table(db, "factions")
+        settlement_ct = count_table(db, "settlements")
+        s, b = call("POST", f"/aurelia/worlds/{world_id}/yearly", {
+            "year": int(time_row["year"]), "population_count": pop or 0,
+            "births": 0, "deaths": 0,
+            "immigration": 0, "emigration": 0,
+            "tick_count": 0, "notable_events": [],
+            "faction_count": faction_ct, "settlement_count": settlement_ct,
+        })
+        return 1 if s in (200, 201) else 0
     pushed = 0
     for year, tc in ticks:
-        pop = db.execute("SELECT COUNT(*) FROM agents WHERE state='active'").fetchone()[0]
+        pop = count_npcs(db)
+        faction_ct = count_table(db, "factions")
+        settlement_ct = count_table(db, "settlements")
         s, b = call("POST", f"/aurelia/worlds/{world_id}/yearly", {
             "year": int(year), "population_count": pop or 0,
             "births": 0, "deaths": 0,
             "immigration": 0, "emigration": 0,
             "tick_count": tc, "notable_events": [],
-            "faction_count": 0, "settlement_count": 0,
+            "faction_count": faction_ct, "settlement_count": settlement_ct,
         })
         if s in (200, 201):
             pushed += 1
@@ -166,11 +219,56 @@ def push_federation_events(world_id, db):
     return b.get("ingested", 0)
 
 
+def push_chronicles(world_id):
+    """Upload chronicle .txt files to CF R2 — batched with concurrency."""
+    import glob as _glob
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import threading
+    
+    chronicle_globs = [
+        f"/tmp/aurelia-seq-run/output/chronicles/{world_id}_Y*.txt",
+        f"/tmp/aurelia-run/output/chronicles/{world_id}_Y*.txt",
+        f"{os.path.expanduser('~/.openclaw/workspace/aurelia-colab')}/output/chronicles/{world_id}_Y*.txt",
+    ]
+    files = []
+    for pattern in chronicle_globs:
+        for fpath in sorted(_glob.glob(pattern)):
+            files.append(fpath)
+    if not files:
+        return 0
+    
+    pushed = [0]
+    lock = threading.Lock()
+    
+    def upload_one(fpath):
+        try:
+            basename = os.path.basename(fpath)
+            year_str = basename.split("_Y")[1].replace(".txt", "")
+            year = int(year_str)
+            with open(fpath, "r") as f:
+                text = f.read()
+            s, b = call("POST", f"/aurelia/worlds/{world_id}/chronicles?year={year}", {
+                "text": text, "year": year, "filename": basename
+            })
+            if s in (200, 201):
+                with lock:
+                    pushed[0] += 1
+                return True
+        except Exception:
+            pass
+        return False
+    
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        list(ex.map(upload_one, files))
+    
+    return pushed[0]
+
+
 def push_all():
     print(f"Pushing to {BASE_URL}\n")
     register_worlds()
     print()
-    totals = {"yearly": 0, "discoveries": 0, "great_persons": 0, "fed_events": 0}
+    totals = {"yearly": 0, "discoveries": 0, "great_persons": 0, "fed_events": 0, "chronicles": 0}
     for w in WORLDS:
         db_path = find_db(w)
         if not db_path:
@@ -181,11 +279,13 @@ def push_all():
         d = push_discoveries(w, db)
         g = push_great_persons(w, db)
         f = push_federation_events(w, db)
-        print(f"  {w}: yearly={y} discoveries={d} great_persons={g} fed_events={f}")
+        c = push_chronicles(w)
+        print(f"  {w}: yearly={y} discoveries={d} great_persons={g} fed_events={f} chronicles={c}")
         totals["yearly"] += y
         totals["discoveries"] += d
         totals["great_persons"] += g
         totals["fed_events"] += f
+        totals["chronicles"] += c
         db.close()
     print(f"\nTotals: {json.dumps(totals)}")
     s, b = call("GET", "/aurelia/dashboard")
