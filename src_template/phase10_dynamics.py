@@ -137,7 +137,7 @@ def latest_metrics(db, world_id: str) -> dict[str, Any]:
 
 def _agent_demographics(db) -> dict[str, float]:
     rows = db.execute(
-        "SELECT properties FROM agents WHERE type='npc' AND state='active' LIMIT 5000"
+        "SELECT id, properties FROM agents WHERE type='npc' AND state='active' LIMIT 5000"
     ).fetchall()
     if not rows:
         return {"education": 0.25, "urban": 0.25, "youth_bulge": 0.0, "population": 0}
@@ -145,12 +145,18 @@ def _agent_demographics(db) -> dict[str, float]:
     urban = 0
     young_male = 0
     prime_male = 0
-    for row in rows:
+    for idx, row in enumerate(rows):
         props = _loads(row["properties"], {})
-        age = int(props.get("age", props.get("approx_age", 28)) or 28)
-        sex = props.get("sex", props.get("gender", "unknown"))
-        education.append(float(props.get("education", props.get("literacy", 0.25)) or 0.25))
-        if props.get("urban") or props.get("settlement_type") == "urban":
+        # Most seeded Aurelia NPCs predate Phase 10 and lack explicit age/sex/
+        # urban fields. Use stable deterministic cohorts from row order instead
+        # of treating everyone as age-28/sex-unknown, otherwise youth bulge and
+        # urbanization stay falsely zero.
+        age = int(props.get("age", props.get("approx_age", 16 + (idx % 55))) or (16 + (idx % 55)))
+        sex = props.get("sex", props.get("gender", "male" if idx % 2 == 0 else "female"))
+        default_education = 0.20 + (idx % 8) * 0.035
+        education.append(float(props.get("education", props.get("literacy", default_education)) or default_education))
+        default_urban = idx % 4 == 0
+        if props.get("urban", default_urban) or props.get("settlement_type") == "urban":
             urban += 1
         if sex == "male" and 15 <= age <= 30:
             young_male += 1
