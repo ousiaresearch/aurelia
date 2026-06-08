@@ -12,6 +12,8 @@ SECRET_FILE = os.path.expanduser("~/.hermes/profiles/palantir/cf-worker/.secret"
 WORLDS = ["solara", "arkos", "mirithane", "valdris", "verge"]
 DAEMON_DB = os.path.expanduser("~/.hermes/agents/{w}/aurelia-world/world/world.db")
 CAUSALRUN_DB = "/tmp/aurelia-causal-run/output/{w}.db"
+PHASE8_DB = "/tmp/aurelia-phase8-50y/{w}.db"
+PHASE8_SUMMARY = "/tmp/aurelia-phase8-50y/causal_summary.json"
 SPEEDRUN_DB = "/tmp/aurelia-run/output/{w}.db"
 SEQRUN_DB = "/tmp/aurelia-seq-run/output/{w}.db"
 CAUSAL_SUMMARY = "/tmp/aurelia-causal-run/output/causal_summary.json"
@@ -42,8 +44,9 @@ def call(method, path, body=None):
 
 
 def find_db(world_id):
-    # Prefer causal-run, then seq-run, then speed-run, then daemon (freshest first)
+    # Prefer phase8, then causal-run, then seq-run, then speed-run, then daemon (freshest first)
     paths = [
+        PHASE8_DB.format(w=world_id),
         CAUSALRUN_DB.format(w=world_id),
         SEQRUN_DB.format(w=world_id),
         SPEEDRUN_DB.format(w=world_id),

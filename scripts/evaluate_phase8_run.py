@@ -97,8 +97,8 @@ def evaluate_summary(summary: dict) -> dict:
     faction_gate_ok = len(all_outcome_classes & REQUIRED_OUTCOME_CLASSES) >= 4
 
     # Reporting gate
-    report_gate_ok = any(
-        r.get("macro_regime") and r.get("migration_flows") and r.get("resilience_events") and r.get("faction_outcomes")
+    report_gate_ok = all(
+        "macro_regime" in r and "migration_flows" in r and "resilience_events" in r and "faction_outcomes" in r
         for r in reports[-5:]
     )
 
