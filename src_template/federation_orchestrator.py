@@ -220,21 +220,18 @@ def run_causal_simulation(
     fed = sqlite3.connect(output_dir / "federation.db")
     fed.row_factory = sqlite3.Row
     causal_ledger.ensure_schema(fed)
-    # Phase 9: seed cultural traits from world profiles with amplified divergence
+    # Phase 9: seed cultural traits from world profiles
     for world_id in worlds:
         profile = world_profiles.profile(world_id)
         macro_baseline = profile.get("macro_baseline", {})
         resilience = profile.get("resilience", {})
         migration = profile.get("migration", {})
-        # Amplify differences: map [0,1] profile values to wider trait ranges
-        openness = 0.9 - migration.get("border_friction", 0.5)  # high friction = closed
-        inst_mem = resilience.get("shock_absorption", 0.5)
         seed = {
-            "openness_to_trade": max(0.1, min(0.9, 0.2 + openness * 0.8)),
-            "institutional_memory": max(0.1, min(0.9, 0.2 + inst_mem * 0.8)),
-            "xenophobia": max(0.1, min(0.9, 0.9 - migration.get("refugee_tolerance", 0.5) * 0.8)),
-            "innovation_culture": max(0.05, min(0.9, resilience.get("recovery_rate", 0.01) * 50.0)),
-            "governance_norms": max(0.2, min(0.9, macro_baseline.get("legitimacy", 0.5) * 0.9 + 0.1)),
+            "openness_to_trade": migration.get("border_friction", 0.5),
+            "institutional_memory": resilience.get("shock_absorption", 0.5),
+            "xenophobia": 1.0 - migration.get("refugee_tolerance", 0.5),
+            "innovation_culture": resilience.get("recovery_rate", 0.01) * 10.0,
+            "governance_norms": macro_baseline.get("legitimacy", 0.5),
         }
         cultural_diffusion.seed_traits(fed, world_id, seed)
     for a in worlds:
