@@ -96,9 +96,9 @@ def test_faction_lifecycle_creates_or_changes_consequences(tmp_path):
     meso_aggregator.ensure_schema(db)
     db.execute("""
         INSERT INTO meso_signals (signal_id, tick_number, world_id, location_id, signal_type, magnitude, source_event_count, payload, created_at)
-        VALUES ('sig1', 3, 'solara', 'town_square', 'labor_unrest', 0.9, 20, '{}', ?)
+        VALUES ('sig1', 3, 'solara', 'town_square', 'labor_unrest', 5.0, 80, '{}', ?)
     """, (time.time(),))
-    counts = faction_lifecycle.run_faction_lifecycle(db, world_id="solara", tick_number=3, rng=random.Random(4))
+    counts = faction_lifecycle.run_faction_lifecycle(db, world_id="solara", tick_number=3, rng=random.Random(1))
     db.commit()
     assert counts["formed"] >= 1
     assert db.execute("SELECT COUNT(*) FROM factions WHERE world_id='solara'").fetchone()[0] >= 1

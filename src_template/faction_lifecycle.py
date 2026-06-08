@@ -53,8 +53,21 @@ def run_faction_lifecycle(
     ).fetchall()
     total_pressure = sum(float(r["mag"] or 0.0) for r in pressure_rows)
 
-    # Formation from accumulated pressure, not timer. Keep probability bounded for smoke tests.
-    if total_pressure > 0.15 and rng.random() < min(0.75, total_pressure * 1.2):
+    # Formation from accumulated pressure, not timer. Keep movements scarce:
+    # a world should not spawn hundreds of factions just because micro pressure
+    # exists every tick. Existing active/armed/ultimatum factions absorb pressure.
+    pop = db.execute("SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'").fetchone()[0]
+    open_factions = db.execute(
+        "SELECT COUNT(*) FROM factions WHERE world_id=? AND status NOT IN ('dissolved','integrated','sovereign')",
+        (world_id,),
+    ).fetchone()[0]
+    recent_formation = db.execute(
+        "SELECT COUNT(*) FROM causal_events WHERE world_id=? AND event_type='faction_formed' AND tick_number BETWEEN ? AND ?",
+        (world_id, max(0, tick_number - 6), tick_number),
+    ).fetchone()[0]
+    max_open_factions = max(3, pop // 250)
+    can_form = open_factions < max_open_factions and recent_formation == 0
+    if can_form and total_pressure > 0.30 and rng.random() < min(0.18, (total_pressure - 0.30) * 0.20):
         grievance = max(pressure_rows, key=lambda r: float(r["mag"] or 0.0))["signal_type"]
         faction_id = f"{world_id}:faction:{grievance}:{tick_number}:{uuid.uuid4().hex[:8]}"
         members = max(3, int(total_pressure * 80))

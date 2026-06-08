@@ -19,15 +19,15 @@ def test_barrier_runner_produces_causal_smoke(tmp_path):
     summary = federation_orchestrator.run_causal_simulation(
         output_dir=out,
         worlds=["solara", "valdris", "arkos"],
-        years=2,
-        npc_count=180,
+        years=4,
+        npc_count=300,
         ticks_per_year=6,
         seed=42,
-        max_interactions=80,
+        max_interactions=250,
         birth_scale=20.0,
         death_scale=8.0,
     )
-    assert summary["ticks"] == 12
+    assert summary["ticks"] == 24
     assert summary["effects_scheduled"] > 0
     assert summary["effects_imported"] > 0
     assert summary["yearly_reports"]

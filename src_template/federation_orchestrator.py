@@ -104,6 +104,26 @@ def initialize_worlds(output_dir: Path, worlds: Iterable[str], npc_count: int) -
     return conns
 
 
+def _advance_world_time(db, tick_number: int, ticks_per_year: int) -> None:
+    """Advance world_time on the shared historical frontier."""
+    base_year = 2026
+    month = ((tick_number - 1) % ticks_per_year) + 1
+    # Map arbitrary ticks/year into 12 calendar months for reporting.
+    calendar_month = max(1, min(12, int(((month - 1) / max(1, ticks_per_year)) * 12) + 1))
+    year = base_year + (tick_number - 1) // ticks_per_year
+    seasons = {3: "spring", 4: "spring", 5: "spring", 6: "summer", 7: "summer", 8: "summer",
+               9: "autumn", 10: "autumn", 11: "autumn", 12: "winter", 1: "winter", 2: "winter"}
+    now = time.time()
+    db.execute(
+        """
+        UPDATE world_time
+        SET year=?, month=?, day=15, hour=12, minute=0, season=?, time_of_day='midday', updated_at=?
+        WHERE id=1
+        """,
+        (year, calendar_month, seasons.get(calendar_month, "spring"), now),
+    )
+
+
 def run_world_barrier_tick(
     db,
     *,
@@ -117,6 +137,7 @@ def run_world_barrier_tick(
 ) -> dict:
     rng = random.Random(_seed_int(seed, world_id, tick_number))
     imported_effects = 0  # populated by orchestrator before call
+    _advance_world_time(db, tick_number, ticks_per_year)
     micro_ids = micro_interactions.run_micro_interactions(
         db, world_id=world_id, tick_number=tick_number, max_interactions=max_interactions, rng=rng
     )
