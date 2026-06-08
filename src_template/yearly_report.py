@@ -4,10 +4,11 @@ from __future__ import annotations
 import json
 
 try:
-    from . import demography, macro_dynamics
+    from . import demography, macro_dynamics, capital_economy
 except Exception:
     import demography
     import macro_dynamics
+    import capital_economy
 
 
 def classify_macro_regime(macro: dict[str, float]) -> str:
@@ -96,6 +97,46 @@ def build_yearly_report(db, *, world_id: str, year_number: int, start_tick: int,
         pass
 
     macro = macro_dynamics.latest_state(db, world_id)
+
+    # Phase 9: capital economy snapshot
+    capital_snapshot = {}
+    try:
+        pool = capital_economy.get_pool(db, world_id)
+        capital_snapshot = {
+            "stock": round(pool["stock"], 3),
+            "gdp_flow": round(pool["gdp_flow"], 4),
+            "investment_rate": round(pool["investment_rate"], 3),
+            "tech_level": round(pool["tech_level"], 3),
+            "innovation_stock": round(pool["innovation_stock"], 3),
+        }
+    except Exception:
+        pass
+
+    # Phase 9: institutions snapshot
+    institutions_snapshot = []
+    try:
+        inst_rows = db.execute(
+            "SELECT institution_id, type, status, durability, influence FROM institutions WHERE world_id=? AND status='active'",
+            (world_id,),
+        ).fetchall()
+        institutions_snapshot = [
+            {"type": r["type"], "durability": round(r["durability"], 2), "influence": round(r["influence"], 2)}
+            for r in inst_rows
+        ]
+    except Exception:
+        pass
+
+    # Phase 9: regime events in this year
+    regime_events_yr = []
+    try:
+        re_rows = db.execute(
+            "SELECT event_type, resolution_path FROM regime_events WHERE world_id=? AND tick_number BETWEEN ? AND ?",
+            (world_id, start_tick, end_tick),
+        ).fetchall()
+        regime_events_yr = [{"event_type": r["event_type"], "path": r["resolution_path"]} for r in re_rows]
+    except Exception:
+        pass
+
     return {
         "world_id": world_id,
         "year": year_number,
@@ -114,6 +155,9 @@ def build_yearly_report(db, *, world_id: str, year_number: int, start_tick: int,
         "resilience_events": resilience_events,
         "macro_state": macro,
         "macro_regime": classify_macro_regime(macro),
+        "capital": capital_snapshot,
+        "institutions": institutions_snapshot,
+        "regime_events": regime_events_yr,
         "causal_highlights": causal_highlights,
     }
 

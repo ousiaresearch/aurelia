@@ -7,9 +7,10 @@ import time
 import uuid
 
 try:
-    from . import causal_ledger, macro_dynamics, meso_aggregator, world_profiles
+    from . import causal_ledger, institutions, macro_dynamics, meso_aggregator, world_profiles
 except Exception:
     import causal_ledger
+    import institutions
     import macro_dynamics
     import meso_aggregator
     import world_profiles
@@ -323,5 +324,17 @@ def run_faction_lifecycle(
             valence=OUTCOME_VALENCE.get(outcome, -0.2),
             payload={"faction_id": fac["faction_id"], "members": member_count, "pressure": total_pressure, **payload_extra},
         )
+        # Phase 9: constructive outcomes can crystallize into durable institutions
+        if outcome in {"legalized", "governing_coalition", "victorious", "integrated"}:
+            grievance = fac["primary_grievance"] or "general"
+            institutions.process_faction_outcome(
+                db,
+                world_id=world_id,
+                tick_number=tick_number,
+                faction_id=fac["faction_id"],
+                outcome=outcome,
+                grievance=grievance,
+                rng=rng,
+            )
 
     return counts

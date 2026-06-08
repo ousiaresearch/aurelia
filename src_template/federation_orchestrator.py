@@ -29,6 +29,7 @@ try:
         micro_interactions,
         migration_flows,
         regime_transitions,
+        world_profiles,
         world_state,
         yearly_report,
     )
@@ -46,6 +47,7 @@ except Exception:
     import micro_interactions
     import migration_flows
     import regime_transitions
+    import world_profiles
     import world_state
     import yearly_report
 
@@ -212,12 +214,31 @@ def run_causal_simulation(
     birth_scale: float = 1.0,
     death_scale: float = 1.0,
 ) -> dict:
-    worlds = worlds or list(DEFAULT_WORLDS)
+    worlds = sorted(worlds or list(DEFAULT_WORLDS))
     output_dir = Path(output_dir)
     conns = initialize_worlds(output_dir, worlds, npc_count)
     fed = sqlite3.connect(output_dir / "federation.db")
     fed.row_factory = sqlite3.Row
     causal_ledger.ensure_schema(fed)
+    # Phase 9: seed cultural traits from world profiles and ensure borders
+    for world_id in worlds:
+        profile = world_profiles.profile(world_id)
+        macro_baseline = profile.get("macro_baseline", {})
+        resilience = profile.get("resilience", {})
+        migration = profile.get("migration", {})
+        seed = {
+            "openness_to_trade": migration.get("border_friction", 0.5),
+            "institutional_memory": resilience.get("shock_absorption", 0.5),
+            "xenophobia": 1.0 - migration.get("refugee_tolerance", 0.5),
+            "innovation_culture": resilience.get("recovery_rate", 0.01) * 10.0,
+            "governance_norms": macro_baseline.get("legitimacy", 0.5),
+        }
+        cultural_diffusion.seed_traits(fed, world_id, seed)
+    for a in worlds:
+        for b in worlds:
+            if a != b:
+                cultural_diffusion.ensure_borders(fed, a, b)
+                federation_diplomacy.ensure_borders(fed, a, b)
     total_ticks = years * ticks_per_year
     yearly_reports = []
     per_tick = []

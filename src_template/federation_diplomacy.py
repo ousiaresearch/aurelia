@@ -179,7 +179,7 @@ def _maintain_relations(db, tick_number):
     for rel in rows:
         state_a = _macro_state(db, rel["world_a"])
         state_b = _macro_state(db, rel["world_b"])
-        decay = 0.008
+        decay = 0.002  # slower decay — relations last many ticks
         new_strength = max(0.0, rel["strength"] - decay)
         should_dissolve = new_strength <= 0.0
 
