@@ -15,6 +15,7 @@ import federation_orchestrator
 import macro_dynamics
 import phase10_dynamics
 import world_state
+import yearly_report
 
 
 def make_world(tmp_path, world_id="mirithane", npc_count=80):
@@ -185,6 +186,30 @@ def test_counterfactual_branch_runs_independent_scenario(tmp_path):
     db = sqlite3.connect(result["db_path"])
     db.row_factory = sqlite3.Row
     assert db.execute("SELECT COUNT(*) FROM counterfactual_events").fetchone()[0] >= 1
+
+
+def test_civic_processes_create_goals_rituals_reconciliation_peace_and_sovereignty(tmp_path):
+    db = make_world(tmp_path, "mirithane", npc_count=90)
+    capital_economy.seed_pool(db, "mirithane", stock=0.65, innovation=0.55, tech=0.35)
+    seed_macro(db, "mirithane", 4, legitimacy=0.72, repression=0.12, war_pressure=0.18, type_tension=0.42, fiscal_capacity=0.62)
+    phase10_dynamics.apply_civilization_tick(db, world_id="mirithane", tick_number=5, rng_seed=55)
+    assert db.execute("SELECT COUNT(*) FROM goals WHERE category IN ('education','public_health','infrastructure','reconciliation')").fetchone()[0] >= 1
+    event_types = {r[0] for r in db.execute("SELECT DISTINCT event_type FROM causal_events WHERE tick_number=5").fetchall()}
+    assert {"civic_ritual_observed", "reconciliation_process", "npc_dialogue_exchange", "goal_progress"}.issubset(event_types)
+    assert db.execute("SELECT COUNT(*) FROM peace_treaties").fetchone()[0] >= 1
+    assert db.execute("SELECT COUNT(*) FROM sovereignty_events").fetchone()[0] >= 1
+
+
+def test_yearly_report_includes_phase10_metrics(tmp_path):
+    db = make_world(tmp_path, "solara", npc_count=80)
+    capital_economy.seed_pool(db, "solara", stock=0.55, innovation=0.35, tech=0.28)
+    seed_macro(db, "solara", 1, legitimacy=0.58, repression=0.24, war_pressure=0.22, fiscal_capacity=0.52)
+    phase10_dynamics.apply_civilization_tick(db, world_id="solara", tick_number=2, rng_seed=20)
+    report = yearly_report.build_yearly_report(db, world_id="solara", year_number=1, start_tick=1, end_tick=4)
+    assert "phase10" in report
+    assert report["phase10"]["education_level"] >= 0
+    assert report["phase10"]["state_capacity_type"] in {"patrimonial", "bureaucratic", "prebendal", "developmental"}
+    assert report["phase10"]["causal_edges"] >= 1
 
 
 def test_phase10_integrated_smoke_produces_nonzero_causal_gap_signals(tmp_path):

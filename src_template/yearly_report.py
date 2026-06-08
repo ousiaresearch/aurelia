@@ -4,11 +4,12 @@ from __future__ import annotations
 import json
 
 try:
-    from . import demography, macro_dynamics, capital_economy
+    from . import demography, macro_dynamics, capital_economy, phase10_dynamics
 except Exception:
     import demography
     import macro_dynamics
     import capital_economy
+    import phase10_dynamics
 
 
 def classify_macro_regime(macro: dict[str, float]) -> str:
@@ -137,6 +138,39 @@ def build_yearly_report(db, *, world_id: str, year_number: int, start_tick: int,
     except Exception:
         pass
 
+    # Phase 10: civilizational causal-gap metrics
+    phase10_snapshot = {}
+    try:
+        m = phase10_dynamics.latest_metrics(db, world_id)
+        causal_edges = db.execute("SELECT COUNT(*) FROM causal_edges").fetchone()[0]
+        discoveries = db.execute("SELECT COUNT(*) FROM discoveries WHERE world_id=? AND tick_number BETWEEN ? AND ?", (world_id, start_tick, end_tick)).fetchone()[0]
+        great_persons = db.execute("SELECT COUNT(*) FROM great_persons WHERE world_id=? AND tick_number BETWEEN ? AND ?", (world_id, start_tick, end_tick)).fetchone()[0]
+        civic_events = db.execute(
+            """SELECT event_type, COUNT(*) FROM causal_events
+               WHERE world_id=? AND tick_number BETWEEN ? AND ?
+                 AND event_type IN ('goal_progress','civic_ritual_observed','reconciliation_process','npc_dialogue_exchange','npc_depth_signal','sovereignty_charter')
+               GROUP BY event_type""",
+            (world_id, start_tick, end_tick),
+        ).fetchall()
+        phase10_snapshot = {
+            "education_level": round(float(m["education_level"]), 3),
+            "urbanization": round(float(m["urbanization"]), 3),
+            "youth_bulge": round(float(m["youth_bulge"]), 3),
+            "disease_pressure": round(float(m["disease_pressure"]), 3),
+            "resource_stock": round(float(m["resource_stock"]), 3),
+            "property_rights": round(float(m["property_rights"]), 3),
+            "state_capacity_type": m["state_capacity_type"],
+            "repression_type": m["repression_type"],
+            "conflict_type": m["conflict_type"],
+            "path_lock_in": round(float(m["path_lock_in"]), 3),
+            "causal_edges": causal_edges,
+            "discoveries": discoveries,
+            "great_persons": great_persons,
+            "civic_events": {row[0]: row[1] for row in civic_events},
+        }
+    except Exception:
+        pass
+
     return {
         "world_id": world_id,
         "year": year_number,
@@ -158,6 +192,7 @@ def build_yearly_report(db, *, world_id: str, year_number: int, start_tick: int,
         "capital": capital_snapshot,
         "institutions": institutions_snapshot,
         "regime_events": regime_events_yr,
+        "phase10": phase10_snapshot,
         "causal_highlights": causal_highlights,
     }
 
