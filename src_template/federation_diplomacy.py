@@ -72,12 +72,17 @@ def ensure_borders(db, world_a, world_b):
         BORDERS[world_b].append(world_a)
 
 
-def seed_world_diplo_state(db, world_id, state):
-    """Store a macro snapshot for diplomacy evaluation (since we operate on federation DB)."""
+def seed_world_diplo_state(db, world_id, state, tick_number: int = 0):
+    """Store a current macro snapshot for diplomacy evaluation.
+
+    Phase 9 accidentally wrote every snapshot with tick_number=0, which made
+    diplomacy time-blind. Phase 10 keeps the live tick so relations can derive
+    trust from duration and reports can reconstruct foreign-policy history.
+    """
     ensure_schema(db)
     db.execute(
         "INSERT OR REPLACE INTO world_macro_snapshot (world_id, tick_number, state, created_at) VALUES (?, ?, ?, ?)",
-        (world_id, 0, json.dumps(state, sort_keys=True), time.time()),
+        (world_id, int(tick_number), json.dumps(state, sort_keys=True), time.time()),
     )
 
 
@@ -172,28 +177,35 @@ def _eval_pair(db, world_a, world_b, tick_number):
 
 
 def _maintain_relations(db, tick_number):
-    """Decay strength, dissolve if conditions fail or strength hits 0."""
+    """Update diplomatic trust; dissolve only when capacity/conditions truly fail."""
     rows = db.execute(
         "SELECT * FROM diplomatic_relations WHERE dissolved_tick IS NULL"
     ).fetchall()
     for rel in rows:
         state_a = _macro_state(db, rel["world_a"])
         state_b = _macro_state(db, rel["world_b"])
-        decay = 0.002  # slower decay — relations last many ticks
-        new_strength = max(0.0, rel["strength"] - decay)
-        should_dissolve = new_strength <= 0.0
+        age_bonus = min(0.010, max(0, int(tick_number) - int(rel["established_tick"])) * 0.0004)
+        peace_bonus = max(0.0, 0.35 - max(state_a.get("war_pressure", 0.0), state_b.get("war_pressure", 0.0))) * 0.010
+        trade_bonus = min(state_a.get("gdp_proxy", 0.0), state_b.get("gdp_proxy", 0.0)) * 0.004
+        repression_drag = max(state_a.get("repression", 0.0), state_b.get("repression", 0.0)) * 0.003
+        crisis_drag = 0.010 if (state_a.get("gdp_proxy", 0.5) < 0.08 or state_b.get("gdp_proxy", 0.5) < 0.08) else 0.0
+        new_strength = max(0.0, min(1.0, rel["strength"] + age_bonus + peace_bonus + trade_bonus - repression_drag - crisis_drag))
+        should_dissolve = new_strength <= 0.03
 
-        # Also dissolve if conditions no longer met
         if rel["relation_type"] == "trade_agreement":
-            if state_a.get("gdp_proxy", 0.5) < 0.15 or state_b.get("gdp_proxy", 0.5) < 0.15:
+            # Truly failed states break trade immediately; strong accumulated
+            # trade trust can survive only temporary downturns.
+            failed = lambda s: s.get("gdp_proxy", 0.5) < 0.02 and s.get("legitimacy", 0.5) < 0.02
+            if failed(state_a) or failed(state_b):
+                should_dissolve = True
+            elif new_strength < 0.35 and (state_a.get("gdp_proxy", 0.5) < 0.12 or state_b.get("gdp_proxy", 0.5) < 0.12):
                 should_dissolve = True
         elif rel["relation_type"] == "aid_pact":
-            # Dissolve only if both parties are truly failed states
             failed = lambda s: s.get("gdp_proxy", 0.5) < 0.02 and s.get("legitimacy", 0.5) < 0.02
             if failed(state_a) or failed(state_b):
                 should_dissolve = True
         elif rel["relation_type"] == "mutual_defense":
-            if state_a.get("war_pressure", 0.5) < 0.20 and state_b.get("war_pressure", 0.5) < 0.20:
+            if new_strength < 0.25 and state_a.get("war_pressure", 0.5) < 0.15 and state_b.get("war_pressure", 0.5) < 0.15:
                 should_dissolve = True
         elif rel["relation_type"] == "research_cooperation":
             if state_a.get("tech_level", 0.1) < 0.05 or state_b.get("tech_level", 0.1) < 0.05:
@@ -208,10 +220,16 @@ def _maintain_relations(db, tick_number):
                 db, tick_number=tick_number, world_id="federation", layer="federation",
                 event_type="diplomatic_relation_dissolved", scope="federation",
                 actor_ids=[rel["world_a"], rel["world_b"]], magnitude=0.3, valence=-0.15,
-                payload={"relation_type": rel["relation_type"], "world_a": rel["world_a"], "world_b": rel["world_b"]},
+                payload={"relation_type": rel["relation_type"], "world_a": rel["world_a"], "world_b": rel["world_b"], "strength": new_strength},
             )
         else:
             db.execute("UPDATE diplomatic_relations SET strength=? WHERE relation_id=?", (new_strength, rel["relation_id"]))
+            causal_ledger.emit_event(
+                db, tick_number=tick_number, world_id="federation", layer="federation",
+                event_type="diplomatic_trust_accumulated", scope="federation",
+                actor_ids=[rel["world_a"], rel["world_b"]], magnitude=new_strength, valence=0.15,
+                payload={"relation_type": rel["relation_type"], "world_a": rel["world_a"], "world_b": rel["world_b"], "strength": new_strength},
+            )
 
 
 def evaluate_and_update_relations(db, *, worlds, tick_number):

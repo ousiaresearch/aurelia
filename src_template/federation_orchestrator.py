@@ -29,6 +29,7 @@ try:
         micro_interactions,
         migration_flows,
         regime_transitions,
+        phase10_dynamics,
         world_profiles,
         world_state,
         yearly_report,
@@ -47,6 +48,7 @@ except Exception:
     import micro_interactions
     import migration_flows
     import regime_transitions
+    import phase10_dynamics
     import world_profiles
     import world_state
     import yearly_report
@@ -186,6 +188,17 @@ def run_world_barrier_tick(
     faction_counts = faction_lifecycle.run_faction_lifecycle(db, world_id=world_id, tick_number=tick_number, rng=rng)
     # Phase 9: institutions provide ongoing macro benefits from constructive faction outcomes
     institutions.apply_institution_benefits(db, world_id=world_id, tick_number=tick_number)
+    # Phase 10: close missing causal factors — ecology/resources, demographics,
+    # education, urbanization, inequality/infrastructure/water dynamics,
+    # repression/conflict/state-capacity types, discoveries, great persons, and
+    # path dependence. Then link same-tick causes to effects.
+    phase10_dynamics.apply_civilization_tick(
+        db,
+        world_id=world_id,
+        tick_number=tick_number,
+        rng_seed=_seed_int(seed, world_id, "phase10", tick_number),
+    )
+    phase10_dynamics.link_tick_causality(db, world_id=world_id, tick_number=tick_number)
     db.commit()
     return {
         "world_id": world_id,
@@ -220,6 +233,7 @@ def run_causal_simulation(
     fed = sqlite3.connect(output_dir / "federation.db")
     fed.row_factory = sqlite3.Row
     causal_ledger.ensure_schema(fed)
+    phase10_dynamics.ensure_federation_schema(fed)
     # Phase 9: seed cultural traits from world profiles
     for world_id in worlds:
         profile = world_profiles.profile(world_id)
@@ -265,16 +279,21 @@ def run_causal_simulation(
             tick_outputs.append(out)
         scheduled = federation_effects.resolve_outbound_effects(fed, tick_number=tick, worlds=worlds)
         effects_scheduled += scheduled
-        # Phase 9: cultural learning and institution diffusion across federation
+        # Phase 10: turn migration cohorts into actual cross-world NPC carriers.
+        phase10_dynamics.process_migration_carriers(fed, conns, tick_number=tick)
+        # Phase 9/10: cultural learning and institution diffusion across federation.
         diffusion_rng = random.Random(_seed_int(seed, "federation", tick))
         cultural_diffusion.apply_diffusion_tick(fed, worlds=worlds, tick_number=tick, rng=diffusion_rng)
-        # Phase 9: federation diplomacy — trade, aid, defense, sanctions
-        # Seed world macro snapshots for diplomacy evaluation
+        phase10_dynamics.ensure_contact_diffusion(fed, worlds=worlds, tick_number=tick)
+        # Phase 9/10: federation diplomacy — trade, aid, defense, sanctions, strategy
+        # Seed world macro snapshots for diplomacy evaluation.
         for world_id in worlds:
             world_state_cur = macro_dynamics.latest_state(conns[world_id], world_id)
-            federation_diplomacy.seed_world_diplo_state(fed, world_id, world_state_cur)
+            federation_diplomacy.seed_world_diplo_state(fed, world_id, world_state_cur, tick_number=tick)
         federation_diplomacy.ensure_schema(fed)
         federation_diplomacy.evaluate_and_update_relations(fed, worlds=worlds, tick_number=tick)
+        phase10_dynamics.apply_foreign_strategy(fed, worlds=worlds, tick_number=tick)
+        phase10_dynamics.link_tick_causality(fed, world_id="federation", tick_number=tick)
         fed.commit()
         per_tick.append({"tick": tick, "worlds": tick_outputs, "effects_scheduled": scheduled})
 
