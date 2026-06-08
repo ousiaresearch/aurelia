@@ -512,6 +512,55 @@ def init_world(db_path: Path = DB_PATH) -> sqlite3.Connection:
             PRIMARY KEY (npc_id, tick_number)
         );
 
+        -- ──────────────────────────────────────────────
+        -- CAUSAL FEDERATION TABLES (Phase 7)
+        -- ──────────────────────────────────────────────
+        CREATE TABLE IF NOT EXISTS causal_events (
+            event_id TEXT PRIMARY KEY,
+            tick_number INTEGER NOT NULL,
+            world_id TEXT NOT NULL,
+            layer TEXT NOT NULL CHECK(layer IN ('micro','meso','macro','federation')),
+            event_type TEXT NOT NULL,
+            actor_ids TEXT NOT NULL DEFAULT '[]',
+            target_ids TEXT NOT NULL DEFAULT '[]',
+            scope TEXT NOT NULL,
+            magnitude REAL NOT NULL DEFAULT 0.0,
+            valence REAL NOT NULL DEFAULT 0.0,
+            confidence REAL NOT NULL DEFAULT 1.0,
+            payload TEXT NOT NULL DEFAULT '{}',
+            created_at REAL NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_causal_events_tick_world
+            ON causal_events(tick_number, world_id);
+        CREATE INDEX IF NOT EXISTS idx_causal_events_layer_type
+            ON causal_events(layer, event_type);
+
+        CREATE TABLE IF NOT EXISTS delayed_effects (
+            effect_id TEXT PRIMARY KEY,
+            source_event_id TEXT NOT NULL,
+            apply_tick INTEGER NOT NULL,
+            target_world_id TEXT NOT NULL,
+            target_scope TEXT NOT NULL,
+            target_id TEXT,
+            effect_type TEXT NOT NULL,
+            magnitude REAL NOT NULL DEFAULT 0.0,
+            payload TEXT NOT NULL DEFAULT '{}',
+            applied INTEGER NOT NULL DEFAULT 0,
+            created_at REAL NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_delayed_effects_apply
+            ON delayed_effects(apply_tick, target_world_id, applied);
+
+        CREATE TABLE IF NOT EXISTS causal_edges (
+            parent_event_id TEXT NOT NULL,
+            child_event_id TEXT NOT NULL,
+            relation TEXT NOT NULL,
+            weight REAL NOT NULL DEFAULT 1.0,
+            PRIMARY KEY(parent_event_id, child_event_id)
+        );
+
         CREATE TABLE IF NOT EXISTS npc_departures (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             npc_id TEXT NOT NULL REFERENCES agents(id),
