@@ -23,6 +23,7 @@ try:
         macro_dynamics,
         meso_aggregator,
         micro_interactions,
+        migration_flows,
         world_state,
         yearly_report,
     )
@@ -34,6 +35,7 @@ except Exception:
     import macro_dynamics
     import meso_aggregator
     import micro_interactions
+    import migration_flows
     import world_state
     import yearly_report
 
@@ -151,6 +153,12 @@ def run_world_barrier_tick(
     )
     meso_ids = meso_aggregator.aggregate_meso_signals(db, world_id=world_id, tick_number=tick_number)
     macro_id = macro_dynamics.apply_macro_dynamics(db, world_id=world_id, tick_number=tick_number)
+    migration = migration_flows.run_migration_flows(
+        db,
+        world_id=world_id,
+        tick_number=tick_number,
+        rng=rng,
+    )
     demo = demography.run_demography(
         db,
         world_id=world_id,
@@ -169,6 +177,8 @@ def run_world_barrier_tick(
         "macro_event": macro_id,
         "births": demo["births"],
         "deaths": demo["deaths"],
+        "immigration": migration["immigration"],
+        "emigration": migration["emigration"],
         "factions": faction_counts,
         "imported_effects": imported_effects,
     }

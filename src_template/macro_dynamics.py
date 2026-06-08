@@ -203,12 +203,12 @@ def apply_macro_dynamics(db, *, world_id: str, tick_number: int) -> str:
     for effect in causal_ledger.due_effects(db, tick_number, world_id):
         et = effect["effect_type"]
         mag = float(effect["magnitude"] or 0.0)
+        if et in {"refugee_inflow", "labor_inflow", "refugee_outflow", "labor_outflow"}:
+            # Migration flow module consumes these; keep macro from marking them here.
+            continue
         if et == "trade_shock":
             raw_changes["gdp_proxy"] -= mag
             raw_changes["food_security"] -= mag * 0.25
-        elif et == "refugee_inflow":
-            raw_changes["border_openness"] -= mag * 0.08
-            raw_changes["fiscal_capacity"] -= mag * 0.05
         elif et == "ideology_diffusion":
             raw_changes["war_pressure"] += mag * 0.1
             raw_changes["legitimacy"] -= mag * 0.05

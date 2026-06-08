@@ -29,6 +29,21 @@ def ensure_schema(db) -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_demographic_events_world_tick
             ON demographic_events(world_id, tick_number, event_type);
+        CREATE TABLE IF NOT EXISTS migration_cohorts (
+            cohort_id TEXT PRIMARY KEY,
+            tick_number INTEGER NOT NULL,
+            world_id TEXT NOT NULL,
+            direction TEXT NOT NULL,
+            source_world TEXT NOT NULL,
+            target_world TEXT NOT NULL,
+            migration_type TEXT NOT NULL,
+            cohort_size INTEGER NOT NULL,
+            cause TEXT DEFAULT '',
+            payload TEXT NOT NULL DEFAULT '{}',
+            created_at REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_migration_cohorts_world_tick
+            ON migration_cohorts(world_id, tick_number, direction);
     """)
 
 
