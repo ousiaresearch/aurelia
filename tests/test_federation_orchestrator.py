@@ -1,3 +1,4 @@
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -33,6 +34,13 @@ def test_barrier_runner_produces_causal_smoke(tmp_path):
     assert summary["yearly_reports"]
     assert any(r["births"] + r["deaths"] > 0 for r in summary["yearly_reports"])
     assert any(sum(d.values()) > 0 for r in summary["yearly_reports"] for d in [r["factions"]])
+    for world_id in ["solara", "valdris", "arkos"]:
+        db = sqlite3.connect(out / f"{world_id}.db")
+        row = db.execute("SELECT year, month FROM world_time WHERE id=1").fetchone()
+        assert row is not None
+        assert row[0] == 2029
+        assert row[1] == 11
+        db.close()
     assert (out / "causal_summary.json").exists()
 
 

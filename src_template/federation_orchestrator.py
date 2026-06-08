@@ -60,6 +60,14 @@ def _seed_world(db, world_id: str, npc_count: int) -> None:
         """,
         (world_id, world_id.title(), now, now),
     )
+    db.execute(
+        """
+        INSERT OR IGNORE INTO world_time
+            (id, year, month, day, hour, minute, season, time_of_day, created_at, updated_at)
+        VALUES (1, 2026, 1, 15, 12, 0, 'winter', 'midday', ?, ?)
+        """,
+        (now, now),
+    )
     existing = db.execute("SELECT COUNT(*) FROM agents WHERE type='npc'").fetchone()[0]
     if existing >= npc_count:
         return
