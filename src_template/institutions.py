@@ -163,16 +163,18 @@ def apply_institution_benefits(db, *, world_id: str, tick_number: int) -> dict[s
     deltas = {}
     war = state.get("war_pressure", 0.0)
     repression = state.get("repression", 0.0)
+    legitimacy = state.get("legitimacy", 0.5)
 
     for inst in institutions_rows:
         benefits = json.loads(inst["benefits"] or "{}")
         for key, delta in benefits.items():
             deltas[key] = deltas.get(key, 0.0) + float(delta)
 
-        # Durability decay
-        decay = 0.005 + war * 0.015 + repression * 0.008
-        new_durability = max(0.0, inst["durability"] - decay)
-        if new_durability <= 0.05:
+        # Durability: low base decay, scaled by war/repression; passive gain when stable
+        decay = 0.001 + war * 0.006 + repression * 0.003
+        gain = max(0.0, (legitimacy - 0.30)) * 0.004
+        new_durability = max(0.0, min(1.0, inst["durability"] + gain - decay))
+        if new_durability <= 0.02:
             db.execute("UPDATE institutions SET status='dissolved', durability=0.0 WHERE institution_id=?",
                        (inst["institution_id"],))
             causal_ledger.emit_event(

@@ -99,9 +99,9 @@ def _in_crisis(state):
 
 
 def _can_form(relation_type, state_a, state_b, world_a, world_b):
-    # Failed states cannot form or maintain any relation
-    failed_a = state_a.get("gdp_proxy", 0.5) < 0.05 or state_a.get("legitimacy", 0.5) < 0.05
-    failed_b = state_b.get("gdp_proxy", 0.5) < 0.05 or state_b.get("legitimacy", 0.5) < 0.05
+    # Only block formation when both parties are failed states (truly no capacity)
+    failed_a = state_a.get("gdp_proxy", 0.5) < 0.02 and state_a.get("legitimacy", 0.5) < 0.02
+    failed_b = state_b.get("gdp_proxy", 0.5) < 0.02 and state_b.get("legitimacy", 0.5) < 0.02
     if failed_a or failed_b:
         return False, {}
     if relation_type == "aid_pact":
@@ -188,8 +188,8 @@ def _maintain_relations(db, tick_number):
             if state_a.get("gdp_proxy", 0.5) < 0.15 or state_b.get("gdp_proxy", 0.5) < 0.15:
                 should_dissolve = True
         elif rel["relation_type"] == "aid_pact":
-            # Dissolve if either party is a failed state (can't function in the relationship)
-            failed = lambda s: s.get("gdp_proxy", 0.5) < 0.05 or s.get("legitimacy", 0.5) < 0.05
+            # Dissolve only if both parties are truly failed states
+            failed = lambda s: s.get("gdp_proxy", 0.5) < 0.02 and s.get("legitimacy", 0.5) < 0.02
             if failed(state_a) or failed(state_b):
                 should_dissolve = True
         elif rel["relation_type"] == "mutual_defense":

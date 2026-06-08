@@ -191,10 +191,11 @@ def _diffuse_institution(db, *, source_world: str, target_world: str, tick_numbe
     return True
 
 
-def apply_diffusion_tick(db, *, worlds: list[str], tick_number: int) -> dict:
+def apply_diffusion_tick(db, *, worlds: list[str], tick_number: int, rng: random.Random | None = None) -> dict:
     """Run one tick of cultural diffusion across the federation."""
     ensure_schema(db)
     results = {"adopted": 0, "resisted": 0, "institutions_diffused": 0}
+    rng = rng or random.Random()
 
     # Seed any worlds missing traits
     for world_id in worlds:
@@ -209,8 +210,7 @@ def apply_diffusion_tick(db, *, worlds: list[str], tick_number: int) -> dict:
             if target not in worlds or target == source:
                 continue
             # Diffuse one random trait per pair per tick
-            import random as _random
-            trait = _random.choice(CULTURAL_TRAITS)
+            trait = rng.choice(CULTURAL_TRAITS)
             if _diffuse_one_trait(db, source_world=source, target_world=target, trait=trait, tick_number=tick_number):
                 results["adopted"] += 1
             else:

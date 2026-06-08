@@ -266,7 +266,8 @@ def run_causal_simulation(
         scheduled = federation_effects.resolve_outbound_effects(fed, tick_number=tick, worlds=worlds)
         effects_scheduled += scheduled
         # Phase 9: cultural learning and institution diffusion across federation
-        cultural_diffusion.apply_diffusion_tick(fed, worlds=worlds, tick_number=tick)
+        diffusion_rng = random.Random(_seed_int(seed, "federation", tick))
+        cultural_diffusion.apply_diffusion_tick(fed, worlds=worlds, tick_number=tick, rng=diffusion_rng)
         # Phase 9: federation diplomacy — trade, aid, defense, sanctions
         # Seed world macro snapshots for diplomacy evaluation
         for world_id in worlds:

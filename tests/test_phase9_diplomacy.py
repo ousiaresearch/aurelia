@@ -89,8 +89,8 @@ def test_relation_dissolves_when_conditions_fail(tmp_path):
     federation_diplomacy.evaluate_and_update_relations(fed, worlds=["solara", "valdris"], tick_number=4)
     rel = fed.execute("SELECT * FROM diplomatic_relations WHERE world_a='solara' AND world_b='valdris' AND dissolved_tick IS NULL").fetchone()
     assert rel is not None
-    # Now collapse valdris GDP
-    seed_macro(fed, "valdris", {"gdp_proxy": 0.02, "border_openness": 0.10, "legitimacy": 0.08, "repression": 0.60, "war_pressure": 0.60})
+    # Now collapse valdris GDP to a truly failed state
+    seed_macro(fed, "valdris", {"gdp_proxy": 0.01, "border_openness": 0.10, "legitimacy": 0.01, "repression": 0.60, "war_pressure": 0.60})
     federation_diplomacy.evaluate_and_update_relations(fed, worlds=["solara", "valdris"], tick_number=8)
     rel2 = fed.execute("SELECT * FROM diplomatic_relations WHERE world_a='solara' AND world_b='valdris' AND dissolved_tick IS NULL").fetchone()
     assert rel2 is None
