@@ -115,7 +115,7 @@ def _diffuse_one_trait(db, *, source_world: str, target_world: str,
     sv = trait_value(db, source_world, trait)
     tv = trait_value(db, target_world, trait)
     diff = abs(sv - tv)
-    if diff < 0.12:
+    if diff < 0.06:
         return False  # Too similar, no diffusion pressure
 
     xenophobia = trait_value(db, target_world, "xenophobia")
@@ -209,12 +209,21 @@ def apply_diffusion_tick(db, *, worlds: list[str], tick_number: int, rng: random
         for target in neighbors:
             if target not in worlds or target == source:
                 continue
-            # Diffuse one random trait per pair per tick
-            trait = rng.choice(CULTURAL_TRAITS)
-            if _diffuse_one_trait(db, source_world=source, target_world=target, trait=trait, tick_number=tick_number):
-                results["adopted"] += 1
-            else:
-                results["resisted"] += 1
+            # Try all traits, diffuse the one with the largest difference
+            best_trait = None
+            best_diff = 0.06  # minimum threshold
+            for trait in CULTURAL_TRAITS:
+                sv = trait_value(db, source, trait)
+                tv = trait_value(db, target, trait)
+                d = abs(sv - tv)
+                if d > best_diff:
+                    best_diff = d
+                    best_trait = trait
+            if best_trait:
+                if _diffuse_one_trait(db, source_world=source, target_world=target, trait=best_trait, tick_number=tick_number):
+                    results["adopted"] += 1
+                else:
+                    results["resisted"] += 1
 
             # Also attempt institution diffusion (every 4 ticks to be slower)
             if tick_number % 4 == 0:
