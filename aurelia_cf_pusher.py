@@ -11,8 +11,10 @@ BASE_URL = "https://hermes-state-worker.plntrprotocol.workers.dev"
 SECRET_FILE = os.path.expanduser("~/.hermes/profiles/palantir/cf-worker/.secret")
 WORLDS = ["solara", "arkos", "mirithane", "valdris", "verge"]
 DAEMON_DB = os.path.expanduser("~/.hermes/agents/{w}/aurelia-world/world/world.db")
+CAUSALRUN_DB = "/tmp/aurelia-causal-run/output/{w}.db"
 SPEEDRUN_DB = "/tmp/aurelia-run/output/{w}.db"
 SEQRUN_DB = "/tmp/aurelia-seq-run/output/{w}.db"
+CAUSAL_SUMMARY = "/tmp/aurelia-causal-run/output/causal_summary.json"
 
 
 def load_secret():
@@ -40,8 +42,13 @@ def call(method, path, body=None):
 
 
 def find_db(world_id):
-    # Prefer seq-run (freshest) over speed-run, over daemon (stale)
-    paths = [SEQRUN_DB.format(w=world_id), SPEEDRUN_DB.format(w=world_id), DAEMON_DB.format(w=world_id)]
+    # Prefer causal-run, then seq-run, then speed-run, then daemon (freshest first)
+    paths = [
+        CAUSALRUN_DB.format(w=world_id),
+        SEQRUN_DB.format(w=world_id),
+        SPEEDRUN_DB.format(w=world_id),
+        DAEMON_DB.format(w=world_id),
+    ]
     for p in paths:
         if os.path.exists(p):
             return p
@@ -116,7 +123,41 @@ def register_worlds():
         db.close()
 
 
+def load_causal_reports(world_id):
+    """Return causal yearly reports from the latest causal runner output."""
+    if not os.path.exists(CAUSAL_SUMMARY):
+        return []
+    try:
+        with open(CAUSAL_SUMMARY) as f:
+            summary = json.load(f)
+        return [r for r in summary.get("yearly_reports", []) if r.get("world_id") == world_id]
+    except Exception:
+        return []
+
+
 def push_yearly(world_id, db):
+    causal_reports = load_causal_reports(world_id)
+    if causal_reports:
+        pushed = 0
+        for report in causal_reports:
+            year = 2026 + int(report.get("year", 1)) - 1
+            fac_count = sum(int(v) for v in report.get("factions", {}).values())
+            notable = report.get("causal_highlights", [])[:10]
+            s, b = call("POST", f"/aurelia/worlds/{world_id}/yearly", {
+                "year": year,
+                "population_count": int(report.get("population", 0)),
+                "births": int(report.get("births", 0)),
+                "deaths": int(report.get("deaths", 0)),
+                "immigration": int(report.get("immigration", 0)),
+                "emigration": int(report.get("emigration", 0)),
+                "tick_count": 12,
+                "notable_events": notable,
+                "faction_count": fac_count,
+                "settlement_count": count_table(db, "locations"),
+            })
+            if s in (200, 201):
+                pushed += 1
+        return pushed
     if not table_exists(db, "tick_log"):
         return 0
     ticks = db.execute(
