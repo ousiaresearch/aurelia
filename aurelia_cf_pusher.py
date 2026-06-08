@@ -16,6 +16,8 @@ PHASE8_DB = "/tmp/aurelia-phase8-50y/{w}.db"
 PHASE8_SUMMARY = "/tmp/aurelia-phase8-50y/causal_summary.json"
 PHASE9_DB = "/tmp/aurelia-phase9-50y-final/{w}.db"
 PHASE9_SUMMARY = "/tmp/aurelia-phase9-50y-final/causal_summary.json"
+PHASE10_DB = "/tmp/aurelia-phase10-50y/{w}.db"
+PHASE10_SUMMARY = "/tmp/aurelia-phase10-50y/causal_summary.json"
 SPEEDRUN_DB = "/tmp/aurelia-run/output/{w}.db"
 SEQRUN_DB = "/tmp/aurelia-seq-run/output/{w}.db"
 CAUSAL_SUMMARY = "/tmp/aurelia-causal-run/output/causal_summary.json"
@@ -46,8 +48,9 @@ def call(method, path, body=None):
 
 
 def find_db(world_id):
-    # Prefer phase9, then phase8, then causal-run, then seq-run, then speed-run, then daemon (freshest first)
+    # Prefer phase10, then phase9, then phase8, then causal-run, then seq-run, then speed-run, then daemon (freshest first)
     paths = [
+        PHASE10_DB.format(w=world_id),
         PHASE9_DB.format(w=world_id),
         PHASE8_DB.format(w=world_id),
         CAUSALRUN_DB.format(w=world_id),
@@ -103,16 +106,19 @@ def get_world_ident(db):
 
 
 def load_causal_world_summary(world_id):
-    """Return final living population/faction totals from causal_summary.json, if present."""
-    if not os.path.exists(CAUSAL_SUMMARY):
-        return None
-    try:
-        with open(CAUSAL_SUMMARY) as f:
-            summary = json.load(f)
-        world = (summary.get("worlds") or {}).get(world_id)
-        return world if isinstance(world, dict) else None
-    except Exception:
-        return None
+    """Return final living population/faction totals from the newest causal summary."""
+    for summary_path in (PHASE10_SUMMARY, PHASE9_SUMMARY, PHASE8_SUMMARY, CAUSAL_SUMMARY):
+        if not os.path.exists(summary_path):
+            continue
+        try:
+            with open(summary_path) as f:
+                summary = json.load(f)
+            world = (summary.get("worlds") or {}).get(world_id)
+            if isinstance(world, dict):
+                return world
+        except Exception:
+            continue
+    return None
 
 
 def register_worlds():
