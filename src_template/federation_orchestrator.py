@@ -19,11 +19,16 @@ try:
         causal_ledger,
         demography,
         faction_lifecycle,
+        federation_diplomacy,
         federation_effects,
+        capital_economy,
+        institutions,
+        cultural_diffusion,
         macro_dynamics,
         meso_aggregator,
         micro_interactions,
         migration_flows,
+        regime_transitions,
         world_state,
         yearly_report,
     )
@@ -31,11 +36,16 @@ except Exception:
     import causal_ledger
     import demography
     import faction_lifecycle
+    import federation_diplomacy
     import federation_effects
+    import capital_economy
+    import institutions
+    import cultural_diffusion
     import macro_dynamics
     import meso_aggregator
     import micro_interactions
     import migration_flows
+    import regime_transitions
     import world_state
     import yearly_report
 
@@ -152,7 +162,11 @@ def run_world_barrier_tick(
         db, world_id=world_id, tick_number=tick_number, max_interactions=max_interactions, rng=rng
     )
     meso_ids = meso_aggregator.aggregate_meso_signals(db, world_id=world_id, tick_number=tick_number)
+    # Phase 9: capital economy converts micro productive events into persistent value
+    capital_economy.apply_capital_flows(db, world_id=world_id, tick_number=tick_number)
     macro_id = macro_dynamics.apply_macro_dynamics(db, world_id=world_id, tick_number=tick_number)
+    # Phase 9: regime transitions when world is in sustained collapse
+    regime_transitions.check_and_resolve_crisis(db, world_id=world_id, tick_number=tick_number, rng=rng)
     migration = migration_flows.run_migration_flows(
         db,
         world_id=world_id,
@@ -168,6 +182,8 @@ def run_world_barrier_tick(
         death_scale=death_scale,
     )
     faction_counts = faction_lifecycle.run_faction_lifecycle(db, world_id=world_id, tick_number=tick_number, rng=rng)
+    # Phase 9: institutions provide ongoing macro benefits from constructive faction outcomes
+    institutions.apply_institution_benefits(db, world_id=world_id, tick_number=tick_number)
     db.commit()
     return {
         "world_id": world_id,
@@ -228,6 +244,15 @@ def run_causal_simulation(
             tick_outputs.append(out)
         scheduled = federation_effects.resolve_outbound_effects(fed, tick_number=tick, worlds=worlds)
         effects_scheduled += scheduled
+        # Phase 9: cultural learning and institution diffusion across federation
+        cultural_diffusion.apply_diffusion_tick(fed, worlds=worlds, tick_number=tick)
+        # Phase 9: federation diplomacy — trade, aid, defense, sanctions
+        # Seed world macro snapshots for diplomacy evaluation
+        for world_id in worlds:
+            world_state_cur = macro_dynamics.latest_state(conns[world_id], world_id)
+            federation_diplomacy.seed_world_diplo_state(fed, world_id, world_state_cur)
+        federation_diplomacy.ensure_schema(fed)
+        federation_diplomacy.evaluate_and_update_relations(fed, worlds=worlds, tick_number=tick)
         fed.commit()
         per_tick.append({"tick": tick, "worlds": tick_outputs, "effects_scheduled": scheduled})
 
