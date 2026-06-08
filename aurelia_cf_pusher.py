@@ -96,6 +96,19 @@ def get_world_ident(db):
     return {"world_id": row["world_id"], "name": row["name"] or row["world_id"]}
 
 
+def load_causal_world_summary(world_id):
+    """Return final living population/faction totals from causal_summary.json, if present."""
+    if not os.path.exists(CAUSAL_SUMMARY):
+        return None
+    try:
+        with open(CAUSAL_SUMMARY) as f:
+            summary = json.load(f)
+        world = (summary.get("worlds") or {}).get(world_id)
+        return world if isinstance(world, dict) else None
+    except Exception:
+        return None
+
+
 def register_worlds():
     print("=== Register Worlds ===")
     for w in WORLDS:
@@ -107,8 +120,13 @@ def register_worlds():
         db.row_factory = sqlite3.Row
         ident = get_world_ident(db)
         time_row = db.execute("SELECT year FROM world_time WHERE id=1").fetchone()
-        pop = count_npcs(db)
-        faction_ct = count_table(db, "factions")
+        causal_world = load_causal_world_summary(w)
+        if causal_world:
+            pop = int(causal_world.get("population", 0))
+            faction_ct = int(causal_world.get("factions", 0))
+        else:
+            pop = count_npcs(db)
+            faction_ct = count_table(db, "factions")
         settlement_ct = count_table(db, "settlements")
         s, b = call("POST", "/aurelia/worlds", {
             "world_id": w,
