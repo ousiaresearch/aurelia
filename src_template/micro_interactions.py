@@ -66,17 +66,19 @@ def run_micro_interactions(
     """Run bounded mundane interactions and return emitted event IDs."""
     causal_ledger.ensure_schema(db)
     rng = rng or random.Random()
-    rows = db.execute(
+    candidates = db.execute(
         """
         SELECT a.id, a.name, a.location_id, ds.variables
         FROM agents a
         JOIN npc_decision_state ds ON ds.npc_id = a.id
         WHERE a.type = 'npc' AND a.state = 'active'
-        ORDER BY RANDOM()
-        LIMIT ?
-        """,
-        (int(max_interactions),),
+        ORDER BY a.id
+        """
     ).fetchall()
+    if len(candidates) > max_interactions:
+        rows = rng.sample(list(candidates), int(max_interactions))
+    else:
+        rows = list(candidates)
 
     event_ids: list[str] = []
     now = time.time()

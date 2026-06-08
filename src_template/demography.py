@@ -67,13 +67,16 @@ def run_demography(
     births = min(births, max(25, pop // 40))
     deaths = min(deaths, max(25, pop // 40))
 
-    now = time.time()
-    active_rows = db.execute(
-        "SELECT id, location_id, properties FROM agents WHERE type='npc' AND state='active' ORDER BY RANDOM() LIMIT ?",
-        (max(births, deaths, 1),),
-    ).fetchall()
-
     event_counts = {"births": 0, "deaths": 0}
+    now = time.time()
+    candidates = db.execute(
+        "SELECT id, location_id, properties FROM agents WHERE type='npc' AND state='active' ORDER BY id"
+    ).fetchall()
+    if not candidates:
+        return event_counts
+    sample_n = min(len(candidates), max(births, deaths, 1))
+    active_rows = rng.sample(list(candidates), sample_n)
+
     for i in range(births):
         parent = active_rows[i % len(active_rows)]
         npc_id = f"{world_id}:child:{tick_number}:{uuid.uuid4().hex[:10]}"

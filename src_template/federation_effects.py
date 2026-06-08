@@ -118,4 +118,5 @@ def import_due_effects(federation_db, world_db, *, world_id: str, tick_number: i
                 "effect_type", "magnitude", "payload", "created_at"
             ]),
         )
+        causal_ledger.mark_effect_applied(federation_db, row["effect_id"])
     return len(rows)
