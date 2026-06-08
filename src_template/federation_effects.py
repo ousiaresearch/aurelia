@@ -30,10 +30,9 @@ EVENT_EFFECTS = {
     "economic_stress": ("trade_shock", 0.04),
     "public_health_risk": ("disease_alert", 0.04),
     "migration_pressure": ("refugee_inflow", 0.05),
-    "migration_outflow": ("refugee_inflow", 0.03),
 }
 
-MIGRATION_SOURCE_EVENTS = {"migration_pressure", "faction_repressed", "faction_exiled", "migration_outflow"}
+MIGRATION_SOURCE_EVENTS = {"migration_pressure", "faction_repressed", "faction_exiled"}
 
 
 def _targets_for(source: str, worlds: list[str]) -> list[str]:
