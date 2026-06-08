@@ -182,9 +182,15 @@ def _resource_stock(db, world_id: str, tick_number: int, state: dict[str, float]
         stock = float(row["stock"])
         last_tick = int(row["last_tick"])
     elapsed = max(1, int(tick_number) - last_tick)
-    depletion = elapsed * (0.0015 + state.get("gdp_proxy", 0.5) * 0.001 + state.get("war_pressure", 0) * 0.0015)
-    climate_shock = rng.random() * 0.006
-    regeneration = elapsed * (state.get("infrastructure", 0.6) * 0.0008 + (1.0 - state.get("repression", 0.3)) * 0.0004)
+    depletion = elapsed * (0.00055 + state.get("gdp_proxy", 0.5) * 0.00025 + state.get("war_pressure", 0) * 0.00045)
+    climate_shock = rng.random() * 0.0025
+    regeneration = elapsed * (
+        state.get("infrastructure", 0.6) * 0.0012
+        + state.get("fiscal_capacity", 0.5) * 0.0009
+        + (1.0 - state.get("repression", 0.3)) * 0.0005
+    )
+    if stock < 0.35:
+        regeneration += elapsed * (0.0035 + state.get("fiscal_capacity", 0.5) * 0.0015)
     new_stock = _clamp(stock - depletion - climate_shock + regeneration)
     db.execute(
         "INSERT OR REPLACE INTO civilization_resource_stock (world_id, stock, last_tick, updated_at) VALUES (?, ?, ?, ?)",
@@ -222,8 +228,14 @@ def _classify_repression(state: dict[str, float], rng: random.Random) -> str:
 def _classify_conflict(state: dict[str, float], youth_bulge: float) -> str:
     war = state.get("war_pressure", 0.0)
     tension = state.get("type_tension", 0.3)
+    repression = state.get("repression", 0.3)
+    water = state.get("water_security", 0.6)
     if war > 0.80:
         return "civil_war"
+    if water < 0.20 and youth_bulge > 0.65:
+        return "insurgency"
+    if repression > 0.70 and (tension > 0.38 or youth_bulge > 0.75):
+        return "terrorism"
     if war > 0.55 and youth_bulge > 0.75:
         return "insurgency"
     if war > 0.38 and tension > 0.55:
@@ -706,7 +718,12 @@ def apply_foreign_strategy(fed, *, worlds: list[str], tick_number: int) -> int:
     for target, state in states.items():
         if not state:
             continue
-        crisis = state.get("gdp_proxy", 0.5) < 0.12 or state.get("war_pressure", 0.0) > 0.65
+        crisis = (
+            state.get("gdp_proxy", 0.5) < 0.12
+            or state.get("war_pressure", 0.0) > 0.65
+            or state.get("water_security", 0.6) < 0.25
+            or state.get("public_health", 0.7) < 0.35
+        )
         if not crisis:
             continue
         donors = [w for w, s in states.items() if w != target and s.get("gdp_proxy", 0.0) > 0.35 and s.get("legitimacy", 0.0) > 0.25]

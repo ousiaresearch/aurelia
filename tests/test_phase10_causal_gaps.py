@@ -212,6 +212,29 @@ def test_yearly_report_includes_phase10_metrics(tmp_path):
     assert report["phase10"]["causal_edges"] >= 1
 
 
+def test_foreign_strategy_intervenes_in_environmental_crisis(tmp_path):
+    fed = sqlite3.connect(tmp_path / "fed_strategy.db")
+    fed.row_factory = sqlite3.Row
+    federation_diplomacy.ensure_schema(fed)
+    phase10_dynamics.ensure_federation_schema(fed)
+    federation_diplomacy.seed_world_diplo_state(
+        fed,
+        "arkos",
+        {"gdp_proxy": 0.22, "legitimacy": 0.20, "repression": 0.55, "war_pressure": 0.30, "water_security": 0.10, "public_health": 0.28},
+        tick_number=14,
+    )
+    federation_diplomacy.seed_world_diplo_state(
+        fed,
+        "mirithane",
+        {"gdp_proxy": 0.70, "legitimacy": 0.65, "repression": 0.12, "war_pressure": 0.05, "water_security": 0.62, "public_health": 0.72},
+        tick_number=14,
+    )
+    acted = phase10_dynamics.apply_foreign_strategy(fed, worlds=["arkos", "mirithane"], tick_number=14)
+    assert acted >= 1
+    assert fed.execute("SELECT COUNT(*) FROM federation_strategy_events WHERE strategy_type='stabilization_aid'").fetchone()[0] >= 1
+    assert fed.execute("SELECT COUNT(*) FROM causal_events WHERE event_type='foreign_strategy_intervention'").fetchone()[0] >= 1
+
+
 def test_phase10_integrated_smoke_produces_nonzero_causal_gap_signals(tmp_path):
     out = tmp_path / "run"
     summary = federation_orchestrator.run_causal_simulation(
