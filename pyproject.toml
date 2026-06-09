@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aurelia-simulation"
+version = "0.1.0"
+description = "Causal multi-world civilization simulation operated by Hermes Agent."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Ousia Research", email = "research@ousia.ai" }
+]
+keywords = [
+  "simulation",
+  "civilization",
+  "causal-graph",
+  "multi-agent",
+  "sqlite",
+  "cloudflare",
+  "hermes-agent"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ousiaresearch/aurelia"
+Repository = "https://github.com/ousiaresearch/aurelia"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.setuptools]
+py-modules = [
+  "aurelia_cf_pusher",
+  "aurelia_coordinator",
+  "aurelia_diplomacy",
+  "aurelia_factory",
+  "causal_run",
+  "deep_seed",
+  "migrate_schema",
+  "populate_npcs",
+  "world_daemon_template",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src_template*"]

@@ -1,5 +1,51 @@
+# Python bytecode / caches
 __pycache__/
-*.pyc
-coordinator.db
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments / packaging
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Aurelia runtime databases and generated runs
+*.db
 *.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+coordinator.db
+worlds/
+runs/
+out/
+output/
+artifacts/
+checkpoints/
+chronicles/
+
+# Secrets / local configuration
+.env
+.env.*
+!.env.example
+*.secret
+
+# Editor / OS / temporary files
 .DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Jupyter
+.ipynb_checkpoints/

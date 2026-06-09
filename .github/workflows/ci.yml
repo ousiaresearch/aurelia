@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Tests and causal smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: PYTHONPATH=. python -m pytest tests -q
+
+      - name: Run deterministic causal smoke
+        run: |
+          PYTHONPATH=. python causal_run.py \
+            --clean \
+            --output /tmp/aurelia-ci-smoke \
+            --years 2 \
+            --npcs 50 \
+            --ticks-per-year 4 \
+            --max-interactions 25 \
+            --seed 1234
+
+      - name: Verify smoke output
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          out = Path('/tmp/aurelia-ci-smoke')
+          summary = json.loads((out / 'causal_summary.json').read_text())
+          assert summary['years'] == 2
+          assert summary['ticks'] == 8
+          assert len(summary['worlds']) == 5
+          assert summary['yearly_reports']
+          for world_id, data in summary['worlds'].items():
+              assert data['population'] >= 0, world_id
+              assert (out / f'{world_id}.db').exists(), world_id
+          assert (out / 'federation.db').exists()
+          print('smoke ok:', summary['worlds'])
+          PY
