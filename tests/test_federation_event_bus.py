@@ -1,4 +1,6 @@
 import json
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -6,6 +8,32 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+
+def test_coordinator_uses_loaded_module_directory_for_default_database(tmp_path):
+    shutil.copy(ROOT / "aurelia_coordinator.py", tmp_path / "aurelia_coordinator.py")
+    shutil.copy(ROOT / "aurelia_diplomacy.py", tmp_path / "aurelia_diplomacy.py")
+
+    code = """
+import json
+from pathlib import Path
+import aurelia_coordinator as coordinator
+print(json.dumps({
+    'root': str(coordinator.AURELIA_ROOT),
+    'db_parent': str(coordinator.COORDINATOR_DB.parent),
+    'expected': str(Path(coordinator.__file__).resolve().parent),
+}))
+"""
+    proc = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    data = json.loads(proc.stdout)
+    assert data["root"] == data["expected"]
+    assert data["db_parent"] == data["expected"]
 
 
 def test_coordinator_persists_and_deduplicates_federation_events(tmp_path):

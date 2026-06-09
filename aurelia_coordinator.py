@@ -25,9 +25,9 @@ from urllib.parse import urlparse, parse_qs
 from aurelia_diplomacy import BASELINE_RELATIONS, apply_relation_deltas, classify_diplomatic_event
 
 PORT = 9001
-AGENTS_HOME = Path("/Users/johann/.hermes/agents")
-AURELIA_ROOT = Path("/Users/johann/aurelia")
-COORDINATOR_DB = AURELIA_ROOT / "coordinator.db"
+AGENTS_HOME = Path(os.environ.get("AURELIA_AGENTS_HOME", "/Users/johann/.hermes/agents"))
+AURELIA_ROOT = Path(os.environ.get("AURELIA_ROOT", Path(__file__).resolve().parent)).expanduser().resolve()
+COORDINATOR_DB = Path(os.environ.get("AURELIA_COORDINATOR_DB", AURELIA_ROOT / "coordinator.db")).expanduser().resolve()
 
 # ── World Registry (in-memory + persisted) ────────────────────────────
 
@@ -534,6 +534,7 @@ class CoordinatorState:
         return self.get_currency_cached()
 
     def init_db(self):
+        COORDINATOR_DB.parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(str(COORDINATOR_DB))
         db.executescript("""
             CREATE TABLE IF NOT EXISTS worlds (
