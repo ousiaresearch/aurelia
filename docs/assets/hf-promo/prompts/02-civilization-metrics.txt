@@ -1,0 +1,6 @@
+Risomorphism 1911 style poster. A vertical (portrait, 9:16) promo image for a HuggingFace dataset called "Aurelia Civilization Metrics".
+
+Subject: a single tall waterclock-like column rendered in faded sepia ink and watercolor, the column made of 12,000 stacked circular cells like a page of an antiquarian ledger. The column rises through a navy #0B1224 background into a warm cream sky the color of #F7EDE3. Each cell is hand-numbered in a vintage typeface. Five narrow rivers of color — gold #F6C65A, indigo #0B1224, teal #0E2723, burnt orange #C15811, and a final inky teal — flow horizontally into the column at different heights, like tributaries feeding a civilization's metric stream. The base of the column sits in a watercolor wash of cream and gold. Around the column: torn-paper fragments showing tiny abstract hand-drawn charts (line, bar, scatter) in ink, with no actual numbers. Halftone grain, soft vignette, deckle-edge paper border. NO Earth maps, NO real continents. No text overlays.
+
+Do not run keep.
+Save as civilization-metrics-raw-gptimage-candidate-2.png to /tmp/hf-promo/output/

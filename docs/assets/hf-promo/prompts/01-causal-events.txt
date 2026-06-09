@@ -1,0 +1,6 @@
+Risomorphism 1911 style poster. A vertical (portrait, 9:16) promo image for a HuggingFace dataset called "Aurelia Causal Events".
+
+Subject: a glowing golden thread, the color of solar gold #F6C65A, weaving vertically through a deep indigo night sky the color of #0B1224, with paper-textured halftone grain. The thread is the causal event stream — 560,000 events across five fictional civilizations. Where the thread bends, tiny paper-cut silhouettes of ancient cities, parchment scrolls, and ink-drawn compasses appear in a vintage scrapbook style. At the very top, a five-pointed compass rose in faded gold ink. The thread culminates near the bottom in a small unfurled paper map of an invented world with no real Earth continents. Faint watercolor washes of burnt orange #C15811 in the lower third evoke candlelight. Analog film texture, soft vignette, faded deckle-edge paper border. NO Earth maps, NO real continents, NO recognizable coastlines. No text overlays.
+
+Do not run keep.
+Save as causal-events-raw-gptimage-candidate-2.png to /tmp/hf-promo/output/

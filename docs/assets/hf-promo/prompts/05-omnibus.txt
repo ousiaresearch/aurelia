@@ -1,0 +1,6 @@
+Risomorphism 1911 style poster. A vertical (portrait, 9:16) omnibus promo image covering all four Aurelia HuggingFace datasets as a single artwork.
+
+Subject: a single tall hand-drawn nautilus-spiral-cum-causal-graph composition rising from a cream #F7EDE3 base into a deep indigo #0B1224 sky. The outer edge of the spiral is rendered in aged paper-cut collage in cream and sepia, with deckle-edge torn-paper texture. As the spiral tightens inward, paper gives way to ink and watercolor: indigo, teal #0E2723, solar gold #F6C65A, burnt orange #C15811. Inside the spiral's innermost chamber: a small glowing ember-like node in solar gold, the heart of the dataset. Five narrow ink rivers flow into the spiral at different points along its outer edge, each river a different color and faintly labeled with a hand-drawn world-marker in scrapbook style (abstract city silhouettes — NO real Earth continents). Tiny halftone dots, ink scribbles, vintage naturalist-style marginalia, and a faded compass rose at the top. A single red wax seal in burnt orange sits at the base. Soft vignette, paper grain, no real coastlines or Earth topology. No text overlays.
+
+Do not run keep.
+Save as omnibus-raw-gptimage-candidate-3.png to /tmp/hf-promo/output_v2/omnibus/

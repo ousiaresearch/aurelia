@@ -1,0 +1,6 @@
+Risomorphism 1911 style poster. A vertical (portrait, 9:16) promo image for a HuggingFace dataset called "Aurelia NPC Population".
+
+Subject: a single tall profile silhouette of a person, drawn in vintage scrapbook style with mixed paper-collage and ink line work, set against a deep teal #0E2723 background. The silhouette is empty inside — instead of a body, it is filled with thousands of tiny dots, each dot a different warm Risomorphism tone (cream, gold, burnt orange, sepia). The dots cluster densely — around the head, the hands, the heart — and thin out near the edges of the figure, like a star map forming a person. Around the silhouette: a soft cream #F7EDE3 glow, and faded ink annotations in an antiquarian naturalist's hand — small lines pointing to clusters of dots, with tiny illegible pseudo-handwriting. Below the figure, a small torn-paper scroll in cream, with a single red wax seal in burnt orange #C15811. Halftone grain, soft vignette, deckle-edge paper border. No text overlays.
+
+Do not run keep.
+Save as npc-population-raw-gptimage-candidate-3.png to /tmp/hf-promo/output_v2/npc/

@@ -1,0 +1,6 @@
+Risomorphism 1911 style poster. A vertical (portrait, 9:16) promo image for a HuggingFace dataset called "Aurelia Federation Causal Graph".
+
+Subject: five abstract city-markers arranged in a loose pentagon at the center of the image, each a small scrapbook-collage city in different Risomorphism 1911 tones: one in solar gold #F6C65A, one in deep indigo #0B1224, one in teal #0E2723, one in burnt orange #C15811, one in cream #F7EDE3. From each city, several hand-drawn ink lines extend toward the others — some carrying tiny stamp-like glyphs at the midpoint, some branching midway to form a node, some fading like telegraph lines. The lines form a small dense causal graph at the center, with a faint glow like a hot ember in the graph's middle. The background is aged parchment in cream #F7EDE3 with subtle paper grain, halftone dots, and faded ink. Around the pentagon: a thin hand-drawn ring with five cardinal-point tick marks. NO Earth maps, NO real continents. No text overlays.
+
+Do not run keep.
+Save as federation-causal-raw-gptimage-candidate-3.png to /tmp/hf-promo/output_v2/federation/
