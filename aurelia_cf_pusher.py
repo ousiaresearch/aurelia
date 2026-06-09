@@ -6,6 +6,7 @@ Works with both live daemon DBs and speed_run output DBs.
 """
 import os, sys, json, sqlite3
 import urllib.request
+import urllib.error
 
 BASE_URL = "https://hermes-state-worker.plntrprotocol.workers.dev"
 SECRET_FILE = os.path.expanduser("~/.hermes/profiles/palantir/cf-worker/.secret")
@@ -42,10 +43,20 @@ def call(method, path, body=None):
         req.add_header("Content-Type", "application/json")
     try:
         resp = urllib.request.urlopen(req, timeout=30)
-        return resp.status, json.loads(resp.read())
-    except urllib.request.HTTPError as e:
-        return e.code, json.loads(e.read())
-    except Exception as e:
+        return resp.status, json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        try:
+            body = e.read().decode()
+        except Exception:
+            body = ""
+        if body and body.lstrip().startswith(("{", "[")):
+            return e.code, json.loads(body)
+        return e.code, {"_raw": body[:400], "_error": True}
+    except urllib.error.URLError as e:
+        return 0, {"_error": True, "_reason": str(e)}
+    except json.JSONDecodeError as e:
+        return 200, {"_error": True, "_decode": str(e)}
+
         return 0, {"error": str(e)}
 
 

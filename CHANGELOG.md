@@ -2,6 +2,41 @@
 
 All notable changes to Aurelia are documented here.
 
+## 0.1.3-phase11-targeted-runs — 2026-06-09
+
+### Phase 11: targeted runs and density-diversification knob
+
+- Added a real `density_diversification` parameter to `run_causal_simulation` (default `0.0`, additive, `[0, 1]`) that biases the federation migration layer to balance world populations.
+- Added `_balance_migration_pair` and the `density_balance` carrier in `phase10_dynamics.process_migration_carriers`.
+- Added tests for the diversification knob in `tests/test_density_diversification.py`.
+- Added `scripts/compare_run_demographics.py` for side-by-side run comparison.
+- Added `scripts/backfill_federation_tables.py` for partial-ingest recovery.
+
+### Targeted runs executed (this commit)
+
+| run id | years | ticks | seed | diversification | mean pop | stddev | range | cv |
+|---|---|---|---|---|---|---|---|---|
+| `phase11-100y-seed1001` | 100 | 600 | 1001 | 0.0 | 74.0 | 49.9 | 142 | 0.674 |
+| `phase11-200y-seed2002` | 200 | 1200 | 2002 | 0.0 | 49.4 | 54.1 | 142 | 1.096 |
+| `phase11-density-100y-d07-seed3003` | 100 | 600 | 3003 | 0.7 | 66.8 | 0.4 | 1 | 0.006 |
+
+The diversification knob reduced population coefficient of variation by **99.1%** vs the 100y baseline. Artifacts:
+
+- `docs/reports/phase11-100y-report.md`
+- `docs/reports/phase11-200y-report.md`
+- `docs/reports/phase11-density-100y-report.md`
+- `docs/reports/phase11-100y-quality.json`
+- `docs/reports/phase11-200y-quality.json`
+- `docs/reports/phase11-density-100y-quality.json`
+- `docs/reports/phase11-runs-comparison.md`
+
+### Cloudflare notes
+
+- All three runs were pushed to Cloudflare D1.
+- D1 database hit the **500MB Free plan hard cap** during the upload. Causal events, edges, civilization metrics, run manifests, and diplomatic relations are complete; cross-world movements and diffusion for the 100y and 200y runs are partial.
+- D1 currently holds 4 runs (`phase11-bolster-scan-y5-seed4242`, `phase11-100y-seed1001`, `phase11-200y-seed2002`, `phase11-density-100y-d07-seed3003`) and is at exactly 500MB. To expand observability, upgrade to a paid D1 plan or split the database.
+- The local SQLite run directories are the source of truth for full detail; the Cloudflare layer is for public observability.
+
 ## 0.1.2-phase11-observatory — 2026-06-09
 
 ### Phase 11: public observability

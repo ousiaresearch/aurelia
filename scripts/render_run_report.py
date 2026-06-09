@@ -17,13 +17,16 @@ def _fmt_top(items: list[tuple[str, int]], empty: str = "none") -> str:
     return ", ".join(f"{name} ({count})" for name, count in items[:6])
 
 
-def render_report(run_dir: str | Path) -> str:
+def render_report(run_dir: str | Path, *, run_id: str | None = None) -> str:
     data = inspect_run(run_dir)
     summary: dict[str, Any] = data["summary"]
     totals: dict[str, int] = data["totals"]
     lines: list[str] = []
     lines.append("# Aurelia Run Report")
     lines.append("")
+    if run_id:
+        lines.append(f"**Run ID:** `{run_id}`")
+        lines.append("")
     lines.append("## Run")
     lines.append("")
     lines.append(f"- run_dir: `{Path(run_dir)}`")
@@ -80,9 +83,10 @@ def render_report(run_dir: str | Path) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument("--run-id", type=str, default="")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    report = render_report(args.run_dir)
+    report = render_report(args.run_dir, run_id=args.run_id or None)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(report)

@@ -226,8 +226,19 @@ def run_causal_simulation(
     max_interactions: int = 500,
     birth_scale: float = 1.0,
     death_scale: float = 1.0,
+    density_diversification: float = 0.0,
 ) -> dict:
+    """Run the causal federation simulation.
+
+    density_diversification in [0.0, 1.0] controls how aggressively the
+    federation migration layer balances world populations. At 0.0 the
+    simulation behaves exactly as before. At >0, an extra migration
+    carrier is scheduled each tick that pulls from the most overpopulated
+    world to the most underpopulated world, scaled by the knob.
+    """
     worlds = sorted(worlds or list(DEFAULT_WORLDS))
+    if density_diversification < 0 or density_diversification > 1:
+        raise ValueError("density_diversification must be in [0.0, 1.0]")
     output_dir = Path(output_dir)
     conns = initialize_worlds(output_dir, worlds, npc_count)
     fed = sqlite3.connect(output_dir / "federation.db")
@@ -280,7 +291,10 @@ def run_causal_simulation(
         scheduled = federation_effects.resolve_outbound_effects(fed, tick_number=tick, worlds=worlds)
         effects_scheduled += scheduled
         # Phase 10: turn migration cohorts into actual cross-world NPC carriers.
-        phase10_dynamics.process_migration_carriers(fed, conns, tick_number=tick)
+        phase10_dynamics.process_migration_carriers(
+            fed, conns, tick_number=tick,
+            density_diversification=density_diversification,
+        )
         # Phase 9/10: cultural learning and institution diffusion across federation.
         diffusion_rng = random.Random(_seed_int(seed, "federation", tick))
         cultural_diffusion.apply_diffusion_tick(fed, worlds=worlds, tick_number=tick, rng=diffusion_rng)

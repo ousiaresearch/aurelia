@@ -1,0 +1,19 @@
+{
+  "causal_richness": 1.0,
+  "civilization_richness": 1.0,
+  "counts": {
+    "causal_edges": 152031,
+    "causal_events": 197182,
+    "cross_world_movements": 3629,
+    "diffusion_events": 1200,
+    "diplomatic_relations": 10,
+    "discoveries": 68,
+    "great_persons": 19,
+    "worlds": 5
+  },
+  "engine_health": 1.0,
+  "federation_richness": 1.0,
+  "narrative_richness": 1.0,
+  "overall_score": 1.0,
+  "warnings": []
+}

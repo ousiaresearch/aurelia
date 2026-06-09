@@ -622,7 +622,40 @@ def transfer_migration_cohort(fed, source_db, target_db, *, source_world: str, t
     return moved
 
 
-def process_migration_carriers(fed, conns: dict[str, Any], *, tick_number: int, max_per_pair: int = 3) -> int:
+def _world_active_pop(db) -> int:
+    try:
+        return int(db.execute("SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'").fetchone()[0])
+    except Exception:
+        return 0
+
+
+def _balance_migration_pair(conns: dict[str, Any]) -> tuple[str, str] | None:
+    """Pick the (source, target) pair that would most reduce population variance."""
+    pops = {w: _world_active_pop(db) for w, db in conns.items()}
+    if len(pops) < 2:
+        return None
+    worlds = sorted(pops)
+    mean = sum(pops.values()) / len(pops)
+    # Source = most over the mean; target = most under the mean.
+    source = max(worlds, key=lambda w: pops[w])
+    target = min(worlds, key=lambda w: pops[w])
+    if pops[source] - mean <= max(2, mean * 0.02):
+        return None
+    if pops[target] >= mean:
+        return None
+    if source == target:
+        return None
+    return source, target
+
+
+def process_migration_carriers(
+    fed,
+    conns: dict[str, Any],
+    *,
+    tick_number: int,
+    max_per_pair: int = 3,
+    density_diversification: float = 0.0,
+) -> int:
     ensure_federation_schema(fed)
     total = 0
     for source_world, source_db in conns.items():
@@ -649,6 +682,25 @@ def process_migration_carriers(fed, conns: dict[str, Any], *, tick_number: int, 
                 cohort_size=size,
                 movement_type=cohort["migration_type"] or "refugee",
             )
+    if density_diversification > 0:
+        pair = _balance_migration_pair(conns)
+        if pair is not None:
+            source_world, target_world = pair
+            balance_size = max(1, int(round(max_per_pair * density_diversification)))
+            try:
+                total += transfer_migration_cohort(
+                    fed,
+                    conns[source_world],
+                    conns[target_world],
+                    source_world=source_world,
+                    target_world=target_world,
+                    tick_number=tick_number,
+                    cohort_size=balance_size,
+                    movement_type="density_balance",
+                )
+            except Exception:
+                pass
+        return total
     if total == 0 and len(conns) >= 2 and tick_number % 4 == 0:
         worlds = sorted(conns)
         source_world, target_world = worlds[0], worlds[-1]
