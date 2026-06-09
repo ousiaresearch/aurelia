@@ -25,6 +25,7 @@ Five abstract worlds, runnable for any number of years, persisted live to Cloudf
 - [Federation and cross-world dynamics](#federation-and-cross-world-dynamics)
 - [Causal edges, not comments](#causal-edges-not-comments)
 - [Cloudflare persistence](#cloudflare-persistence)
+- [HuggingFace datasets](#huggingface-datasets)
 - [Tests](#tests)
 - [Documentation map](#documentation-map)
 - [Roadmap](#roadmap)
@@ -160,7 +161,7 @@ pip install -U pip pytest
 
 # Run the test suite
 PYTHONPATH=. pytest tests/ -q
-# 70 passed in ~13s
+# 90 passed in ~11s
 ```
 
 ## Running a simulation
@@ -311,11 +312,69 @@ Operator endpoints:
 - Authenticated dashboard: `https://hermes-state-worker.plntrprotocol.workers.dev/aurelia/dashboard`
 - Project: `~/.hermes/profiles/palantir/cf-worker/` (D1 + R2, R2 for chronicle artifacts, D1 for indexed queries)
 
+## HuggingFace datasets
+
+The same run artifacts that flow into Cloudflare are also exported as four
+HuggingFace-ready Parquet datasets, published under the
+[`ousiaresearch`](https://huggingface.co/ousiaresearch) namespace:
+
+| repo | content | rows | size |
+|---|---|---|---|
+| [`ousiaresearch/aurelia-causal-events`](https://huggingface.co/datasets/ousiaresearch/aurelia-causal-events) | per-world causal event stream | 560,428 | 27 MB |
+| [`ousiaresearch/aurelia-civilization-metrics`](https://huggingface.co/datasets/ousiaresearch/aurelia-civilization-metrics) | yearly world state trajectories | 12,600 | 1.1 MB |
+| [`ousiaresearch/aurelia-federation-causal`](https://huggingface.co/datasets/ousiaresearch/aurelia-federation-causal) | federation events + causal edges | 114,133 | 4.7 MB |
+| [`ousiaresearch/aurelia-npc-population`](https://huggingface.co/datasets/ousiaresearch/aurelia-npc-population) | NPC snapshots at end of run | 25,799 | 1.9 MB |
+
+All four are released under **CC-BY-4.0** (synthetic data, no privacy concerns).
+The on-disk layout is `data/<run_id>/train.parquet` with one directory per
+simulation run, so you can grab a specific run with `data_files`:
+
+```python
+from datasets import load_dataset
+ds = load_dataset(
+    "parquet",
+    data_files="ousiaresearch/aurelia-civilization-metrics/data/phase11-200y/train.parquet",
+)["train"]
+```
+
+The five runs currently included are described in the
+[Phase 11 runs comparison report](docs/reports/phase11-runs-comparison.md):
+
+| run_id | config | years |
+|---|---|---|
+| `phase11-bolster-scan-y5` | baseline 5-year | 5 |
+| `phase11-100y` | baseline 100-year | 100 |
+| `phase11-200y` | baseline 200-year | 200 |
+| `phase11-density-100y` | density-diversification knob (0.7) | 100 |
+| `phase11-cf-solara-aid` | counterfactual: solara federation aid early | 5 |
+
+To reproduce the exports from local runs:
+
+```bash
+export HF_OUT=/tmp/hf-export
+mkdir -p $HF_OUT
+for pair in "causal_events:causal-events" \
+            "civilization_metrics:civilization-metrics" \
+            "federation_causal:federation-causal" \
+            "npc_population:npc-population"; do
+  ds_key=${pair%%:*}; slug=${pair##*:}
+  PYTHONPATH=. python3 scripts/export_hf_dataset.py \
+    --dataset "$ds_key" --auto \
+    --out "$HF_OUT/aurelia-$slug" \
+    --format parquet --manifest
+  PYTHONPATH=. python3 scripts/render_hf_readme.py \
+    --dataset "$ds_key" --export-root "$HF_OUT"
+done
+```
+
+Uploading requires a write token; the full procedure is in
+[`docs/HUGGINGFACE_PUBLISH.md`](docs/HUGGINGFACE_PUBLISH.md).
+
 ## Tests
 
 ```bash
 PYTHONPATH=. pytest tests/ -q
-# 70 passed in ~13s
+# 90 passed in ~11s
 ```
 
 Coverage focuses on:

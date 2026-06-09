@@ -2,6 +2,67 @@
 
 All notable changes to Aurelia are documented here.
 
+## 0.1.4-phase11-hf-datasets — 2026-06-09
+
+### Phase 11: HuggingFace dataset publication
+
+Aurelia's run artifacts are now exportable as four HuggingFace-ready Parquet
+datasets, targeted at the `ousiaresearch/` namespace:
+
+| repo | content | rows | size |
+|---|---|---|---|
+| `ousiaresearch/aurelia-causal-events` | per-world causal event stream | 560,428 | 27 MB |
+| `ousiaresearch/aurelia-civilization-metrics` | yearly world state trajectories | 12,600 | 1.1 MB |
+| `ousiaresearch/aurelia-federation-causal` | federation events + causal edges | 114,133 | 4.7 MB |
+| `ousiaresearch/aurelia-npc-population` | NPC snapshots at end of run | 25,799 | 1.9 MB |
+
+All four are released under **CC-BY-4.0**. Layout per repo: `data/<run_id>/train.parquet`
+(or `events.parquet` + `edges.parquet` for the federation-causal repo), one
+directory per simulation run, with a per-run README that includes the schema
+table and a loadable example.
+
+The five runs currently exported are the Phase 11 runs: 5y baseline, 100y
+baseline, 200y baseline, 100y density-diversification, and the 5y Solara-aid
+counterfactual.
+
+### Added
+
+- `scripts/export_hf_dataset.py` — generic SQLite→Parquet/JSONL exporter with
+  `--auto` (discovers standard run dirs) and `--runs` (explicit selection).
+  Supports four dataset shapes: `causal_events`, `civilization_metrics`,
+  `federation_causal`, `npc_population`. Pure offline — never reads HF_TOKEN.
+- `scripts/render_hf_readme.py` — emits HF card with valid frontmatter
+  (`license`, `task_categories`, `size_categories`, `tags`, `language`,
+  `pretty_name`, `configs`), schema table, per-run row counts, provenance map,
+  loading example, and limitations section.
+- `tests/test_hf_export.py` — 10 tests covering row count, JSONL round-trip,
+  Parquet round-trip, schema completeness, and frontmatter invariants. Uses an
+  in-test SQLite fixture so CI is offline.
+- `docs/HUGGINGFACE_PUBLISH.md` — operator handoff with token handling, repo
+  creation, upload commands, and per-run incremental update procedure.
+- Top-level README "HuggingFace datasets" section linking to the four repos
+  with row-counts, load example, and a copy-pasteable re-export block.
+
+### Verification
+
+- All 90 tests pass (10 new + 80 existing), including a real Parquet
+  round-trip on a 139,476-row causal_events file.
+- Sample export size totals: ~35 MB Parquet across 4 datasets, 41 files.
+- Schema validated against the live 100y causal_events table.
+
+### Why four separate repos (not one)
+
+- Per-dataset discoverability on HF search
+- Per-dataset versioning and release cadence
+- Cleaner cards: each README is focused on one schema
+- Researchers can grab just the metrics without the 27 MB causal stream
+
+### Token / publishing handoff
+
+The exporter and README renderer are offline. The actual `hf upload` step is
+documented in `docs/HUGGINGFACE_PUBLISH.md` and requires a write token to be
+supplied by the operator. No token is committed.
+
 ## 0.1.3-phase11-targeted-runs — 2026-06-09
 
 ### Phase 11: targeted runs and density-diversification knob
