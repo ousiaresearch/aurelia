@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aurelia Observatory</title>
+  <meta name="description" content="Live public observatory for the Aurelia causal civilization simulation." />
+  <style>
+    :root {
+      --ink: #f7ede3;
+      --muted: #b8a99a;
+      --bg: #0e2723;
+      --panel: #13342f;
+      --panel2: #0b1d1a;
+      --line: rgba(247, 237, 227, 0.16);
+      --accent: #c15811;
+      --gold: #e2a64d;
+      --good: #7fbf7b;
+      --bad: #dd6b53;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(193,88,17,.28), transparent 32rem),
+        radial-gradient(circle at bottom right, rgba(226,166,77,.12), transparent 28rem),
+        var(--bg);
+      min-height: 100vh;
+    }
+    header, main { max-width: 1180px; margin: 0 auto; padding: 28px; }
+    header { padding-top: 44px; }
+    .eyebrow { color: var(--gold); letter-spacing: .18em; text-transform: uppercase; font: 700 12px ui-sans-serif, system-ui; }
+    h1 { margin: 10px 0 8px; font-size: clamp(42px, 8vw, 92px); line-height: .9; letter-spacing: -.05em; }
+    h2 { margin: 0 0 14px; font-size: 24px; letter-spacing: -.02em; }
+    p { color: var(--muted); line-height: 1.55; }
+    a { color: var(--gold); }
+    .hero { display: grid; grid-template-columns: 1.35fr .65fr; gap: 24px; align-items: stretch; }
+    .card, .world, .panel {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(247,237,227,.055), rgba(247,237,227,.025));
+      border-radius: 22px;
+      box-shadow: 0 20px 80px rgba(0,0,0,.24);
+    }
+    .card { padding: 24px; }
+    .status { display: inline-flex; gap: 8px; align-items: center; padding: 7px 10px; border: 1px solid var(--line); border-radius: 99px; background: rgba(0,0,0,.18); color: var(--muted); font: 600 12px ui-sans-serif, system-ui; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 18px var(--gold); }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin: 28px 0; }
+    .metric { padding: 18px; border-radius: 18px; background: rgba(0,0,0,.18); border: 1px solid var(--line); }
+    .metric .value { font: 800 30px ui-sans-serif, system-ui; letter-spacing: -.04em; }
+    .metric .label { color: var(--muted); font: 700 11px ui-sans-serif, system-ui; text-transform: uppercase; letter-spacing: .12em; margin-top: 4px; }
+    .grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 14px; }
+    .world { padding: 16px; min-height: 150px; }
+    .world h3 { margin: 0 0 10px; font-size: 22px; }
+    .world .pop { font: 800 28px ui-sans-serif, system-ui; }
+    .world .year { color: var(--gold); font: 700 12px ui-sans-serif, system-ui; text-transform: uppercase; letter-spacing: .12em; }
+    .sections { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; }
+    .panel { padding: 20px; overflow: hidden; }
+    .bars { display: grid; gap: 10px; }
+    .bar { display: grid; grid-template-columns: 150px 1fr 72px; gap: 10px; align-items: center; font: 700 13px ui-sans-serif, system-ui; color: var(--muted); }
+    .bar-track { height: 10px; border-radius: 99px; background: rgba(0,0,0,.3); overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold)); border-radius: inherit; }
+    pre { white-space: pre-wrap; color: var(--muted); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: rgba(0,0,0,.22); border-radius: 14px; padding: 14px; border: 1px solid var(--line); max-height: 320px; overflow: auto; }
+    .footer { color: var(--muted); font: 12px ui-sans-serif, system-ui; text-align: center; padding: 30px 0 50px; }
+    @media (max-width: 900px) { .hero, .sections { grid-template-columns: 1fr; } .grid, .metrics { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { header, main { padding: 18px; } .grid, .metrics { grid-template-columns: 1fr; } .bar { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hero">
+      <section class="card">
+        <div class="eyebrow">Aurelia Observatory</div>
+        <h1>Five worlds, one causal archive.</h1>
+        <p>Aurelia is a live, agent-operated civilization simulation. Every migration, diffusion event, discovery, treaty, and macro pressure is stored as queryable state in Cloudflare.</p>
+        <div class="status"><span class="dot"></span><span id="status">connecting to Cloudflare…</span></div>
+      </section>
+      <aside class="card">
+        <h2>Run</h2>
+        <p id="runName">Loading latest run…</p>
+        <p><a href="https://github.com/ousiaresearch/aurelia">GitHub</a> · <a href="https://hermes-state-worker.plntrprotocol.workers.dev/public/aurelia/dashboard">Public API</a></p>
+      </aside>
+    </div>
+  </header>
+
+  <main>
+    <section class="metrics" id="metrics"></section>
+    <section class="grid" id="worlds"></section>
+    <section class="sections">
+      <div class="panel">
+        <h2>Causal proof surface</h2>
+        <div class="bars" id="bars"></div>
+      </div>
+      <div class="panel">
+        <h2>Latest run summary</h2>
+        <pre id="summary">Waiting for run summary…</pre>
+      </div>
+      <div class="panel">
+        <h2>Sample Solara causal events</h2>
+        <pre id="events">Waiting for event stream…</pre>
+      </div>
+      <div class="panel">
+        <h2>Federation movement sample</h2>
+        <pre id="movements">Waiting for federation movement stream…</pre>
+      </div>
+    </section>
+  </main>
+  <div class="footer">Built by Ousia Research · Operated by Hermes Agent · Data plane: Cloudflare D1/R2</div>
+
+  <script>
+    const API = 'https://hermes-state-worker.plntrprotocol.workers.dev/public/aurelia';
+    const fmt = new Intl.NumberFormat('en-US');
+    const metricKeys = [
+      ['worlds', 'worlds'], ['runs', 'runs'], ['causal_events', 'causal events'], ['causal_edges', 'causal edges'],
+      ['civilization_metrics', 'metric rows'], ['cross_world_movements', 'movements'], ['diffusion_events', 'diffusion'], ['diplomatic_relations', 'diplomacy']
+    ];
+    async function get(path) {
+      const res = await fetch(API + path, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error(path + ' → ' + res.status);
+      return await res.json();
+    }
+    function renderMetrics(dash) {
+      document.getElementById('metrics').innerHTML = metricKeys.map(([k,label]) => `
+        <div class="metric"><div class="value">${fmt.format(dash[k] || 0)}</div><div class="label">${label}</div></div>
+      `).join('');
+    }
+    function renderWorlds(worlds) {
+      document.getElementById('worlds').innerHTML = worlds.map(w => `
+        <article class="world">
+          <div class="year">Year ${w.current_year || '—'}</div>
+          <h3>${w.name || w.world_id}</h3>
+          <div class="pop">${fmt.format(w.population_count || 0)}</div>
+          <p>Current registered population</p>
+        </article>
+      `).join('');
+    }
+    function renderBars(counts) {
+      const items = Object.entries(counts || {}).filter(([_,v]) => typeof v === 'number');
+      const max = Math.max(...items.map(([_,v]) => v), 1);
+      document.getElementById('bars').innerHTML = items.map(([k,v]) => `
+        <div class="bar"><span>${k.replaceAll('_',' ')}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, (v/max)*100)}%"></div></div><span>${fmt.format(v)}</span></div>
+      `).join('');
+    }
+    async function main() {
+      const dash = await get('/dashboard');
+      document.getElementById('status').textContent = 'live Cloudflare data loaded';
+      renderMetrics(dash);
+      renderWorlds(dash.worlds_detail || []);
+      const runs = await get('/runs');
+      const run = runs[0] || { run_id: 'phase11-bolster-scan-y5-seed4242' };
+      document.getElementById('runName').textContent = run.run_id || 'latest run';
+      const summary = await get(`/runs/${run.run_id}/summary`);
+      renderBars(summary.counts || {});
+      document.getElementById('summary').textContent = JSON.stringify(summary, null, 2).slice(0, 6000);
+      const events = await get(`/runs/${run.run_id}/worlds/solara/causal-events?limit=8`);
+      document.getElementById('events').textContent = JSON.stringify(events, null, 2);
+      const movements = await get(`/runs/${run.run_id}/federation/movements?limit=8`);
+      document.getElementById('movements').textContent = JSON.stringify(movements, null, 2);
+    }
+    main().catch(err => {
+      document.getElementById('status').textContent = 'error loading observatory data';
+      document.getElementById('summary').textContent = String(err.stack || err);
+    });
+  </script>
+</body>
+</html>

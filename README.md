@@ -299,10 +299,16 @@ The current production ingestion path persists:
 
 The Cloudflare layer is the durable memory. It is what makes Aurelia a real system, not a notebook. Phase 11 extends this public data plane with raw causal events, causal edges, cross-world movements, diffusion events, run manifests, and graph-query endpoints.
 
-Cloudflare endpoints:
+Public surfaces:
+
+- Observatory: `https://hermes-state-worker.plntrprotocol.workers.dev/public/aurelia/observatory`
+- Dashboard JSON: `https://hermes-state-worker.plntrprotocol.workers.dev/public/aurelia/dashboard`
+- Latest runs JSON: `https://hermes-state-worker.plntrprotocol.workers.dev/public/aurelia/runs`
+
+Operator endpoints:
 
 - Worker: `https://hermes-state-worker.plntrprotocol.workers.dev`
-- Dashboard: `https://hermes-state-worker.plntrprotocol.workers.dev/aurelia/dashboard`
+- Authenticated dashboard: `https://hermes-state-worker.plntrprotocol.workers.dev/aurelia/dashboard`
 - Project: `~/.hermes/profiles/palantir/cf-worker/` (D1 + R2, R2 for chronicle artifacts, D1 for indexed queries)
 
 ## Tests

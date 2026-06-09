@@ -2,6 +2,15 @@
 
 All notable changes to Aurelia are documented here.
 
+## 0.1.2-phase11-observatory — 2026-06-09
+
+### Phase 11: public observability
+
+- Added a static `docs/observatory/index.html` dashboard artifact.
+- Deployed a Worker-hosted public Observatory at `https://hermes-state-worker.plntrprotocol.workers.dev/public/aurelia/observatory`.
+- Added read-only public Cloudflare endpoints for dashboard, runs, run summaries, causal graph slices, movement, diffusion, and diplomacy samples.
+- Kept mutation/write endpoints authenticated.
+
 ## 0.1.1-phase11-tools — 2026-06-09
 
 ### Phase 11: local proof tools
