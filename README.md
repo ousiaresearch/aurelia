@@ -119,6 +119,7 @@ aurelia/
 │   ├── escalation_ladder.py      # Conflict type transitions
 │   ├── yearly_report.py          # Per-year chronicle writer
 │   └── ... (~60 more)
+├── scripts/                      # Phase 11 proof tools: graph export, explanations, reports, quality scoring
 ├── tests/                        # Pytest suite (70+ tests)
 ├── docs/                         # Phase design notes, deep dives, plans
 ├── configs/                      # Per-world YAML profiles
@@ -138,6 +139,7 @@ aurelia/
 | `src_template/phase10_dynamics.py` | Phase 10 causal-gap closure runtime                              |
 | `src_template/capital_economy.py` | Phase 9 productive value creation                                |
 | `src_template/causal_ledger.py`   | The causal event graph (first-class rows)                       |
+| `scripts/`                  | Phase 11 proof tools: causal graph export, event explanation, reports, quality scoring |
 | `tests/`                     | Pytest test suite                                                     |
 | `docs/`                      | Phase design notes, deep dives, plans, analysis                       |
 | `configs/`                   | Per-world YAML profiles (Solara, Arkos, Mirithane, Valdris, Verge)    |
@@ -190,6 +192,39 @@ To run a single world daemon:
 # Use the world daemon template, parameterized by world id
 PYTHONPATH=. python world_daemon_template.py --world solara
 ```
+
+## Phase 11 proof tools
+
+Aurelia ships local inspection tools that turn completed run directories into audit artifacts:
+
+```bash
+# Export a causal graph slice for one world
+PYTHONPATH=.:scripts python scripts/export_causal_graph.py \
+  --run-dir /tmp/aurelia-bolster-scan \
+  --world solara \
+  --run-id phase11-bolster-scan-y5-seed4242 \
+  --start-tick 1 \
+  --end-tick 3 \
+  --output docs/examples/phase11-solara-graph.json
+
+# Explain one event by walking upstream causal edges
+PYTHONPATH=.:scripts python scripts/explain_event.py \
+  --db /tmp/aurelia-bolster-scan/solara.db \
+  --event-id <event_id> \
+  --depth 3
+
+# Render a human-readable run report
+PYTHONPATH=.:scripts python scripts/render_run_report.py \
+  --run-dir /tmp/aurelia-bolster-scan \
+  --output docs/reports/phase11-bolster-scan-report.md
+
+# Score run quality before committing to longer production runs
+PYTHONPATH=.:scripts python scripts/evaluate_run_quality.py \
+  --run-dir /tmp/aurelia-bolster-scan \
+  --output docs/reports/phase11-bolster-scan-quality.json
+```
+
+Sample outputs are committed under `docs/examples/` and `docs/reports/`.
 
 ## Five abstract worlds
 

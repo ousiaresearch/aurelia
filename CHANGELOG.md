@@ -2,6 +2,16 @@
 
 All notable changes to Aurelia are documented here.
 
+## 0.1.1-phase11-tools — 2026-06-09
+
+### Phase 11: local proof tools
+
+- Added `scripts/export_causal_graph.py` for graph JSON exports from SQLite causal ledgers.
+- Added `scripts/explain_event.py` for upstream causal-chain explanations.
+- Added `scripts/render_run_report.py` for Markdown run reports.
+- Added `scripts/evaluate_run_quality.py` for engine/causal/civilization/federation/narrative quality scoring.
+- Added `tests/test_phase11_tools.py` plus sample outputs under `docs/examples/` and `docs/reports/`.
+
 ## 0.1.0-phase10 — 2026-06-09
 
 ### Canonical public release
