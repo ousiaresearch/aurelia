@@ -10,6 +10,8 @@ import urllib.request
 BASE_URL = "https://hermes-state-worker.plntrprotocol.workers.dev"
 SECRET_FILE = os.path.expanduser("~/.hermes/profiles/palantir/cf-worker/.secret")
 WORLDS = ["solara", "arkos", "mirithane", "valdris", "verge"]
+RUN_OUTPUT = os.environ.get("AURELIA_RUN_OUTPUT", "").strip()
+RUN_ID = os.environ.get("AURELIA_RUN_ID", "").strip()
 DAEMON_DB = os.path.expanduser("~/.hermes/agents/{w}/aurelia-world/world/world.db")
 CAUSALRUN_DB = "/tmp/aurelia-causal-run/output/{w}.db"
 PHASE8_DB = "/tmp/aurelia-phase8-50y/{w}.db"
@@ -39,7 +41,7 @@ def call(method, path, body=None):
     if data:
         req.add_header("Content-Type", "application/json")
     try:
-        resp = urllib.request.urlopen(req, timeout=15)
+        resp = urllib.request.urlopen(req, timeout=30)
         return resp.status, json.loads(resp.read())
     except urllib.request.HTTPError as e:
         return e.code, json.loads(e.read())
@@ -48,8 +50,11 @@ def call(method, path, body=None):
 
 
 def find_db(world_id):
-    # Prefer phase10, then phase9, then phase8, then causal-run, then seq-run, then speed-run, then daemon (freshest first)
-    paths = [
+    # Explicit run output wins, then phase outputs, then daemon fallback.
+    paths = []
+    if RUN_OUTPUT:
+        paths.append(os.path.join(RUN_OUTPUT, f"{world_id}.db"))
+    paths.extend([
         PHASE10_DB.format(w=world_id),
         PHASE9_DB.format(w=world_id),
         PHASE8_DB.format(w=world_id),
@@ -57,7 +62,7 @@ def find_db(world_id):
         SEQRUN_DB.format(w=world_id),
         SPEEDRUN_DB.format(w=world_id),
         DAEMON_DB.format(w=world_id),
-    ]
+    ])
     for p in paths:
         if os.path.exists(p):
             return p
@@ -107,7 +112,7 @@ def get_world_ident(db):
 
 def load_causal_world_summary(world_id):
     """Return final living population/faction totals from the newest causal summary."""
-    for summary_path in (PHASE10_SUMMARY, PHASE9_SUMMARY, PHASE8_SUMMARY, CAUSAL_SUMMARY):
+    for summary_path in summary_paths():
         if not os.path.exists(summary_path):
             continue
         try:
@@ -119,6 +124,53 @@ def load_causal_world_summary(world_id):
         except Exception:
             continue
     return None
+
+
+def summary_paths():
+    paths = []
+    if RUN_OUTPUT:
+        paths.append(os.path.join(RUN_OUTPUT, "causal_summary.json"))
+    paths.extend([PHASE10_SUMMARY, PHASE9_SUMMARY, PHASE8_SUMMARY, CAUSAL_SUMMARY])
+    return paths
+
+
+def latest_summary():
+    for summary_path in summary_paths():
+        if not os.path.exists(summary_path):
+            continue
+        try:
+            with open(summary_path) as f:
+                return summary_path, json.load(f)
+        except Exception:
+            continue
+    return None, {}
+
+
+def current_run_id(summary=None):
+    if RUN_ID:
+        return RUN_ID
+    summary = summary or {}
+    out = summary.get("output_dir") or RUN_OUTPUT or "aurelia-run"
+    safe = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in os.path.basename(str(out).rstrip("/")))
+    years = summary.get("years", 0)
+    ticks = summary.get("ticks", 0)
+    return f"{safe}-y{years}-t{ticks}"
+
+
+def post_records(path, key, rows, batch_size=250):
+    ingested = 0
+    for i in range(0, len(rows), batch_size):
+        batch = rows[i:i + batch_size]
+        s, b = call("POST", path, {key: batch})
+        if s not in (200, 201):
+            print(f"    push failed {path}: {s} {b}")
+            continue
+        ingested += int(b.get("ingested", 0))
+    return ingested
+
+
+def rowdicts(rows):
+    return [dict(r) for r in rows]
 
 
 def register_worlds():
@@ -154,15 +206,19 @@ def register_worlds():
 
 
 def load_causal_reports(world_id):
-    """Return causal yearly reports from the latest causal runner output."""
-    if not os.path.exists(CAUSAL_SUMMARY):
-        return []
-    try:
-        with open(CAUSAL_SUMMARY) as f:
-            summary = json.load(f)
-        return [r for r in summary.get("yearly_reports", []) if r.get("world_id") == world_id]
-    except Exception:
-        return []
+    """Return causal yearly reports from the latest selected causal runner output."""
+    for summary_path in summary_paths():
+        if not os.path.exists(summary_path):
+            continue
+        try:
+            with open(summary_path) as f:
+                summary = json.load(f)
+            reports = [r for r in summary.get("yearly_reports", []) if r.get("world_id") == world_id]
+            if reports:
+                return reports
+        except Exception:
+            continue
+    return []
 
 
 def push_yearly(world_id, db):
@@ -335,6 +391,104 @@ def push_chronicles(world_id):
     return pushed[0]
 
 
+def push_run_manifest(run_id, summary_path, summary):
+    worlds = sorted((summary.get("worlds") or {}).keys()) or WORLDS
+    payload = {
+        "run_id": run_id,
+        "label": os.path.basename(str(summary.get("output_dir") or RUN_OUTPUT or run_id).rstrip("/")),
+        "seed": summary.get("seed", 0),
+        "years": summary.get("years", 0),
+        "ticks": summary.get("ticks", 0),
+        "ticks_per_year": summary.get("ticks_per_year", 0),
+        "worlds": worlds,
+        "output_dir": summary.get("output_dir") or RUN_OUTPUT or "",
+        "summary": {k: v for k, v in summary.items() if k != "yearly_reports"},
+        "summary_path": summary_path,
+    }
+    s, b = call("POST", "/aurelia/runs", payload)
+    return 1 if s in (200, 201) else 0
+
+
+def push_causal_events(run_id, world_id, db, federation=False):
+    if not table_exists(db, "causal_events"):
+        return 0
+    rows = rowdicts(db.execute("SELECT * FROM causal_events ORDER BY tick_number, event_id").fetchall())
+    endpoint = f"/aurelia/runs/{run_id}/federation/causal-events" if federation else f"/aurelia/runs/{run_id}/worlds/{world_id}/causal-events"
+    return post_records(endpoint, "causal_events", rows)
+
+
+def push_causal_edges(run_id, world_id, db, federation=False):
+    if not table_exists(db, "causal_edges"):
+        return 0
+    rows = rowdicts(db.execute(
+        """
+        SELECT e.parent_event_id, e.child_event_id, e.relation, e.weight,
+               COALESCE(c.world_id, ?) AS world_id,
+               COALESCE(c.tick_number, 0) AS tick_number,
+               COALESCE(c.created_at, strftime('%s','now')) AS created_at
+        FROM causal_edges e
+        LEFT JOIN causal_events c ON c.event_id = e.child_event_id
+        ORDER BY tick_number, parent_event_id, child_event_id
+        """,
+        (world_id,),
+    ).fetchall())
+    endpoint = f"/aurelia/runs/{run_id}/federation/causal-edges" if federation else f"/aurelia/runs/{run_id}/worlds/{world_id}/causal-edges"
+    return post_records(endpoint, "causal_edges", rows)
+
+
+def push_civilization_metrics(run_id, world_id, db):
+    if not table_exists(db, "civilization_metrics"):
+        return 0
+    rows = rowdicts(db.execute("SELECT * FROM civilization_metrics ORDER BY tick_number").fetchall())
+    return post_records(f"/aurelia/runs/{run_id}/worlds/{world_id}/metrics", "metrics", rows)
+
+
+def push_federation_table(run_id, fed, table, endpoint_kind, payload_key):
+    if not table_exists(fed, table):
+        return 0
+    order = "created_at" if table == "diplomatic_relations" else "tick_number"
+    rows = rowdicts(fed.execute(f"SELECT * FROM {table} ORDER BY {order}").fetchall())
+    return post_records(f"/aurelia/runs/{run_id}/federation/{endpoint_kind}", payload_key, rows)
+
+
+def push_phase11_observability(run_id):
+    totals = {
+        "run_manifest": 0,
+        "causal_events": 0,
+        "causal_edges": 0,
+        "metrics": 0,
+        "movements": 0,
+        "diffusion": 0,
+        "diplomacy": 0,
+    }
+    summary_path, summary = latest_summary()
+    if summary:
+        totals["run_manifest"] = push_run_manifest(run_id, summary_path, summary)
+
+    for w in WORLDS:
+        db_path = find_db(w)
+        if not db_path:
+            continue
+        db = sqlite3.connect(db_path)
+        db.row_factory = sqlite3.Row
+        totals["causal_events"] += push_causal_events(run_id, w, db)
+        totals["causal_edges"] += push_causal_edges(run_id, w, db)
+        totals["metrics"] += push_civilization_metrics(run_id, w, db)
+        db.close()
+
+    fed_path = os.path.join(RUN_OUTPUT, "federation.db") if RUN_OUTPUT else None
+    if fed_path and os.path.exists(fed_path):
+        fed = sqlite3.connect(fed_path)
+        fed.row_factory = sqlite3.Row
+        totals["causal_events"] += push_causal_events(run_id, "federation", fed, federation=True)
+        totals["causal_edges"] += push_causal_edges(run_id, "federation", fed, federation=True)
+        totals["movements"] += push_federation_table(run_id, fed, "cross_world_movements", "movements", "movements")
+        totals["diffusion"] += push_federation_table(run_id, fed, "diffusion_events", "diffusion", "diffusion")
+        totals["diplomacy"] += push_federation_table(run_id, fed, "diplomatic_relations", "diplomacy", "diplomacy")
+        fed.close()
+    return totals
+
+
 def push_all():
     print(f"Pushing to {BASE_URL}\n")
     register_worlds()
@@ -358,7 +512,12 @@ def push_all():
         totals["fed_events"] += f
         totals["chronicles"] += c
         db.close()
-    print(f"\nTotals: {json.dumps(totals)}")
+    summary_path, summary = latest_summary()
+    run_id = current_run_id(summary)
+    phase11 = push_phase11_observability(run_id)
+    totals_report = {"legacy": totals, "phase11": phase11}
+    print(f"  phase11[{run_id}]: {json.dumps(phase11, sort_keys=True)}")
+    print(f"\nTotals: {json.dumps(totals_report)}")
     s, b = call("GET", "/aurelia/dashboard")
     print(f"\nDashboard: {json.dumps(b)[:300]}")
     return totals
