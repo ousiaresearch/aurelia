@@ -1,0 +1,198 @@
+# The Verge — Frontier Borderland
+# Contested zone between the four established countries
+# No formal currency — barter, salvage, favors
+# Rogue threns, refugees, old-world tech salvagers
+
+world_id: verge
+name: The Verge
+full_name: The Verge (Unincorporated Territory)
+region: Aurelia
+currency: None
+currency_symbol: "—"
+currency_backing: None — barter economy (salvage value, favors, reputation)
+
+geography:
+  biome: frontier_scrubland
+  landmark_name: The Scar (old battlefield / industrial collapse zone)
+  terrain: [scrubland, ruin_field, canyon_edge, trade_road]
+  elevation_range: [300, 1100]
+
+locations:
+  - id: crossroads
+    name: The Crossroads
+    description: The only neutral ground in The Verge. A dusty intersection where roads from all four countries meet. Makeshift stalls, campfires, and constant negotiation.
+    indoor: false
+    tags: [commercial, civic, transit, landmark]
+  - id: rust_depot
+    name: Rust Depot
+    description: A massive salvage yard — acres of old-world machinery, gutted vehicles, and stripped electronics. Prospectors spend days here. You can find anything. Eventually.
+    indoor: false
+    tags: [industrial, commercial]
+  - id: unregistered_quarter
+    name: Unregistered Quarter
+    description: Where threns who refused citizenship live. No registry, no tracking, no official identity. Makeshift repair bays and memory-swap dens. Dangerous but free.
+    indoor: false
+    tags: [residential, thren, social]
+  - id: water_tower
+    name: The Water Tower
+    description: The only reliable water source for 200 km. Controlled by a rotating council of elders. Neutral territory by ancient agreement. Everyone gets a ration. No exceptions.
+    indoor: false
+    tags: [infrastructure, civic]
+  - id: scar_market
+    name: Scar Market
+    description: Built in the ruins of an old-world industrial collapse. Salvagers sell components pulled from the wreckage. Some of it still works. Most of it shouldn't.
+    indoor: false
+    tags: [commercial, industrial]
+  - id: wayfarer_inn
+    name: The Wayfarer's Inn
+    description: The only permanent structure with walls and a roof. A converted cargo container. Serves distilled cactus spirit and information — both of questionable quality.
+    indoor: true
+    tags: [commercial, social]
+  - id: thren_sanctuary
+    name: Thren Sanctuary
+    description: Hidden canyon enclave where rogue threns repair each other. No human has mapped it fully. The entrance is a rumor you earn the right to know.
+    indoor: false
+    tags: [thren, residential, hidden]
+  - id: trade_road_east
+    name: Trade Road (East)
+    description: The dusty route toward Arkos. Marked by solar-charged waystones. Caravans travel in groups — solo travelers don't always arrive. Bandits know the blind spots.
+    indoor: false
+    tags: [transit]
+  - id: trade_road_south
+    name: Trade Road (South)
+    description: The route toward Solara. Paved in sections by old-world concrete. The solar-recharged surface still hums with residual energy. Smugglers prefer the night.
+    indoor: false
+    tags: [transit]
+  - id: the_sink
+    name: The Sink
+    description: "A deep canyon where refuse and runoff from the four countries collects. Toxic in places. But in the muck: rare components, chemical precursors, forgotten data. Scavenger's paradise."
+    indoor: false
+    tags: [industrial, nature]
+  - id: windbreak_camp
+    name: Windbreak Camp
+    description: A seasonal settlement of nomads who follow the salvage cycles. Tents and solar stills arranged behind a natural rock formation that blocks the worst winds.
+    indoor: false
+    tags: [residential, social]
+  - id: memory_broker
+    name: Memory Broker's Tent
+    description: A thren who trades in memories — both recorded and simulated. Want to know what Arkos looked like before the arcologies? She has the data. For a price.
+    indoor: true
+    tags: [commercial, thren, cultural]
+  - id: lookout_ridge
+    name: Lookout Ridge
+    description: The highest point in The Verge. On a clear day, you can see the glass towers of Arkos, the solar farms of Solara, and the canyon mists of Valdris. Smugglers use it for surveillance.
+    indoor: false
+    tags: [landmark, transit]
+  - id: old_road
+    name: The Old Road
+    description: A pre-collapse highway, fractured and half-buried. Still used by caravans. Some sections are intact — others drop into sinkholes. Travel it enough and you learn the safe path.
+    indoor: false
+    tags: [transit, landmark]
+  - id: salvage_kitchen
+    name: Salvage Kitchen
+    description: "A communal cooking fire where anyone can add ingredients and anyone can eat. Maintained by volunteers. The only rule: you contribute what you can, when you can."
+    indoor: false
+    tags: [social, civic]
+  - id: drone_graveyard
+    name: Drone Graveyard
+    description: Where broken autonomous units from all four countries end up. Some still have intact memory cores. Salvagers risk electric shock for the data inside.
+    indoor: false
+    tags: [industrial, thren]
+
+ecology:
+  animals:
+    - scavenger_dog        # feral, smart, travels in packs
+    - rust_hawk             # nests in salvage, swoops for scrap rodents
+    - glass_viper           # venomous, translucent, hard to spot
+    - dune_hare             # fast, burrows beneath scrap piles
+    - salvage_crow          # collects shiny components
+  plants:
+    - dust_brush            # tough scrub, grows anywhere
+    - iron_weed             # roots break through old concrete
+    - salt_thorn            # edible but unpleasant
+    - wind_grass            # bends flat in storms
+  fish: []  # no permanent water bodies
+
+npc_occupations:
+  - salvage_scavenger
+  - caravan_guard
+  - water_rationer
+  - memory_broker
+  - rogue_thren_repairer
+  - wayfarer_innkeeper
+  - crossroads_trader
+  - drone_prospector
+  - smuggle_runner
+  - nomad_elder
+  - scrap_artisan
+  - lookout_scout
+  - salvage_kitchen_cook
+  - rust_depot_foreman
+  - tattoo_ritualist
+  - debt_collector
+  - information_dealer
+  - fugitive_harborer
+
+weather_profile:
+  base_temp: 20
+  temp_range: [2, 42]
+  dominant_conditions: [clear, windy, dusty]
+  rare_conditions: [storm, rain]
+  wind: gust_frontier
+
+agent:
+  agent_id: verge
+  entry_location: crossroads
+  personality: >
+    Weathered, skeptical of authority, fiercely independent. Has seen every
+    country's promise and every country's betrayal. Doesn't trust borders.
+    Knows The Verge's unwritten rules by heart. Keeps a ledger of favors owed
+    and debts unpaid. The closest thing to a neutral mediator between countries.
+
+governance:
+  system: None
+  type: anarchic
+  description: >
+    No rule, no system, no council. Respect is earned through action, influence
+    through reputation. A person with useful skills has weight. Everyone else
+    finds their own way. The Verge doesn't organize because organizing is what
+    the other countries do.
+
+  thren_status: rogue_unregistered
+  thren_notes: >
+    Rogue Threns who refused citizenship. They looked at every country's system
+    and said no. They're not proving anything to anyone. The Thren sanctuary is
+    hidden in a canyon — "the entrance is a rumor you earn the right to know."
+
+  vorn_status: repairers
+  vorn_notes: >
+    The ones who didn't fit in Arkos's machine paradise or anywhere else. They
+    fix things. The Verge always needs things fixed.
+
+  glim_status: abandoned_still_moving
+  glim_notes: >
+    The darkest mirror. Decommissioned, malfunctioning, abandoned. They didn't
+    shut down. They kept going. Walking delivery routes that don't exist anymore.
+    The Verge lets them exist because the Verge lets everything exist.
+
+  human_attitude_to_ai: irrelevant
+  human_notes: >
+    Exiles, criminals, debtors. People running. Some are human supremacists.
+    Some couldn't bear the framework elsewhere. In The Verge, the question of
+    personhood dissolves — not because it's answered, but because survival
+    makes philosophy irrelevant.
+
+  desire: "To be left alone. Not revolution, not reform, not proof of concept. Just: stop trying to fix us, categorize us, save us, or integrate us."
+
+  special_locations:
+    thren_sanctuary: >
+      Hidden canyon enclave. The entrance is a rumor you earn the right to know.
+    memory_trader: >
+      A mysterious figure who trades in recorded and simulated memories. Her
+      truths are too confusing. Her dreams are too enticing. People come wanting
+      answers and leave with better questions.
+
+  daily_rhythm:
+    morning: [crossroads, water_tower, windbreak_camp]
+    midday: [rust_depot, scar_market, salvage_kitchen]
+    evening: [wayfarer_inn, unregistered_quarter, lookout_ridge]

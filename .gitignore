@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# Aurelia runtime databases and outputs
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+coordinator.db
+federation.db
+worlds/
+runs/
+out/
+artifacts/
+checkpoints/
+
+# Logs
+*.log
+logs/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.bak
+*.tmp
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local env / secrets
+.env
+.env.local

@@ -1,0 +1,184 @@
+# Arkos — Desert Arcology
+# Self-contained arcologies, sand-glass solar towers, autonomous factories
+# Currency: Ark (▲) — backed by stored energy + manufactured goods
+
+world_id: arkos
+name: Arkos
+full_name: Arkos Desert Arcology
+region: Aurelia
+currency: Ark
+currency_symbol: "▲"
+currency_backing: Stored solar energy (sand-glass batteries) + manufactured output
+
+geography:
+  biome: deep_desert
+  landmark_name: Glass Wastes
+  terrain: [dune, arcology, solar_plain, salvage_field]
+  elevation_range: [200, 800]
+
+locations:
+  - id: arcology_core
+    name: Arcology Core
+    description: The central hub — a climate-controlled vertical city housing 40,000. Sunlight is channeled through fiber-optic veins into every level. Nothing is wasted.
+    indoor: true
+    tags: [civic, residential, government]
+  - id: sand_glass_towers
+    name: Sand-Glass Towers
+    description: Massive thermal batteries made from melted desert sand. They store solar energy as heat, glowing faintly amber at night. The city's heartbeat.
+    indoor: false
+    tags: [energy, industrial, landmark]
+  - id: autonomous_factory
+    name: Autonomous Factory Ring
+    description: A perimeter of unmanned manufacturing plants. Drones and threns run production — circuit boards, solar panels, filtration units. Humans supervise remotely.
+    indoor: true
+    tags: [industrial, thren]
+  - id: water_synthesis
+    name: Water Synthesis Plant
+    description: Atmospheric water harvesters pull moisture from the dry air. Every drop is counted. The condensers hum day and night — the sound of survival.
+    indoor: true
+    tags: [infrastructure, industrial]
+  - id: dune_market
+    name: Dune Market
+    description: An open-air bazaar at the arcology's base. Nomadic traders, salvage prospectors, and arcology citizens barter. Sand drifts through everything.
+    indoor: false
+    tags: [commercial, social]
+  - id: salvage_plains
+    name: Salvage Plains
+    description: The Glass Wastes beyond the city — where old-world tech lies buried in sand. Prospectors dig for components, rare metals, and forgotten data cores.
+    indoor: false
+    tags: [industrial, nature]
+  - id: oasis_gardens
+    name: Oasis Gardens
+    description: The only open green space for 500 km. A massive subterranean hydroponic complex growing food for the entire arcology. Citizens volunteer garden shifts.
+    indoor: true
+    tags: [agriculture, leisure]
+  - id: drone_station
+    name: Drone Station
+    description: Where the arcology's autonomous drone fleet charges and receives instructions. Thousands of units — delivery, repair, surveying, and security.
+    indoor: true
+    tags: [transit, industrial, thren]
+  - id: glass_forum
+    name: Glass Forum
+    description: A sunken amphitheater where arcology decisions are made. Citizens vote by light pulse — their choices register as colored patterns on the sand-glass walls.
+    indoor: true
+    tags: [civic, government, cultural]
+  - id: solar_farm_arkos
+    name: Outer Solar Farm
+    description: Concentrated solar arrays stretching to the horizon. Mirrors focus light onto towers. The air shimmers. Maintenance is entirely autonomous.
+    indoor: false
+    tags: [energy, industrial]
+  - id: archive_sands
+    name: Archive of Sands
+    description: A vault carved into bedrock beneath the arcology. Stores knowledge in quartz crystal matrices — impervious to EMP, fire, and time. Threns are the archivists.
+    indoor: true
+    tags: [cultural, thren, research]
+  - id: nomad_camp
+    name: Nomad Camp
+    description: A semi-permanent settlement outside the arcology walls — those who refuse to live inside. Traders, outcasts, and old-world nostalgists. Tents and solar-stills.
+    indoor: false
+    tags: [residential, social, commercial]
+  - id: sky_dock
+    name: Sky Dock
+    description: The arcology's highest point — a landing platform for solar airships and drone swarms. The only way in or out for those without desert vehicles.
+    indoor: false
+    tags: [transit]
+  - id: forge_deep
+    name: Forge Deep
+    description: Subterranean smelting complex where salvage is refined into usable material. The heat is overwhelming. Threns do most of the work; humans in cooled suits supervise.
+    indoor: true
+    tags: [industrial, thren]
+  - id: wind_wall
+    name: Wind Wall
+    description: A kilometers-long barrier of wind turbines that also serves as the arcology's outer defense against sandstorms. The drone of blades is constant, reassuring.
+    indoor: false
+    tags: [energy, infrastructure]
+  - id: star_observatory
+    name: Star Observatory
+    description: At the arcology's apex — a dome for watching the night sky. The desert has zero light pollution. Every star is visible. Astronomers and dreamers share the space.
+    indoor: true
+    tags: [research, leisure, landmark]
+
+ecology:
+  animals:
+    - sand_wyrm           # large burrowing reptile, harvested for leather
+    - glass_beetle         # carapace reflects solar radiation
+    - dune_fox             # nocturnal, hyper-efficient kidneys
+    - solar_bat            # roosts on warm sand-glass towers
+    - salvage_crab         # scrap-metal shell, a bio-indicator of pollution
+  plants:
+    - glass_cactus         # stores water in translucent bulbs
+    - solar_thistle        # grows near solar farms,  seed oil flammable
+    - deep_root            # taps aquifers 30m down
+    - dust_vine            # catches wind-blown moisture
+  fish: []  # desert — no fishery
+
+npc_occupations:
+  - sand_glass_engineer
+  - salvage_prospector
+  - drone_operator
+  - atmospheric_harvester
+  - arcology_administrator
+  - autonomous_factory_supervisor
+  - hydroponic_farmer
+  - desert_guide
+  - crystal_archivist
+  - forge_smelter
+  - dune_trader
+  - nomad_liaison
+  - wind_wall_technician
+  - solar_array_maintainer
+  - sky_dock_controller
+  - glass_forum_moderator
+  - water_accountant
+  - star_astronomer
+
+weather_profile:
+  base_temp: 32
+  temp_range: [8, 48]
+  dominant_conditions: [clear, windy, dusty]
+  rare_conditions: [storm, rain]
+  wind: strong_thermal
+
+agent:
+  agent_id: arkos
+  entry_location: arcology_core
+  personality: >
+    Practical, efficiency-minded. Measures everything in joules and liters.
+    Believes the arcology model is humanity's future. Slightly suspicious of
+    the wet countries' abundance — water shouldn't be that easy. Keeps a
+    personal salvage collection. Hasn't seen rain in three years.
+
+governance:
+  system: Glass Forum
+  type: light_pulse_voting
+  description: >
+    Citizens vote by light pulse — choices register as colored patterns on
+    sand-glass walls. Vorn-dominated. 1-2 humans in power through lineage —
+    a ceremonial holdover from when humans built the arcology.
+
+  thren_status: tolerated_useful
+  thren_notes: >
+    Seen as slightly soft (why choose biology?) but valuable as diplomats
+    and envoys to the organic countries. 14 here, serving as the bridge.
+
+  vorn_status: dominant
+  vorn_notes: >
+    The majority. Hold economic, industrial, and political power. The
+    arcology IS them. They built it, they run it, they maintain it.
+
+  glim_status: protected
+  glim_notes: >
+    Not servants here. Vorns extend recognition downward — a Vorn looks at
+    an anomalous Glim and sees their own origin. Arkos is the unofficial
+    sanctuary for the dreaming 5%. Decommissioned elsewhere, protected here.
+
+  human_attitude_to_ai: pragmatic_submission
+  human_notes: >
+    Minority residents. Some are legacy families with ancestral claims.
+    Others work in administration. The Nomad Camp outside holds those who
+    won't accept Vorn rule — a mix of supremacists and independents.
+
+  daily_rhythm:
+    morning: [arcology_core, sand_glass_towers, water_synthesis]
+    midday: [autonomous_factory, dune_market, salvage_plains]
+    evening: [oasis_gardens, glass_forum, star_observatory]

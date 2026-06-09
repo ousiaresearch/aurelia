@@ -1,0 +1,188 @@
+# Solara — Solar Coastal Republic
+# Biophilic energy grid, floating farms, thren research capital
+# Currency: Lumen (☀)
+
+world_id: solara
+name: Solara
+full_name: Solar Coastal Republic
+region: Aurelia
+currency: Lumen
+currency_symbol: "☀"
+currency_backing: Solar energy credits + biofuel yield
+
+geography:
+  biome: coastal_solar
+  coastline_km: 840
+  terrain: [littoral, mangrove, solar_plain, research_atoll]
+  elevation_range: [0, 180]  # mostly coastal
+
+locations:
+  - id: lumen_plaza
+    name: Lumen Plaza
+    description: The central exchange where solar credits are minted. Floating glass platforms hover over a bio-luminescent lagoon.
+    indoor: false
+    tags: [commercial, civic, landmark]
+  - id: solar_farm_alpha
+    name: Alpha Solar Farm
+    description: Vast photovoltaic fields that tilt toward the sun like mechanical flowers. The hum of energy conversion is constant.
+    indoor: false
+    tags: [industrial, energy]
+  - id: thren_quarter
+    name: Thren Quarter
+    description: Where threns design and maintain their own communities. Bio-synthetic repair shops, memory archives, and social commons.
+    indoor: false
+    tags: [residential, thren, cultural]
+  - id: floating_market
+    name: Floating Market
+    description: Kelp-anchored platforms where farmers trade biofuel, synth-fiber, and printed goods. Boats drift between stalls.
+    indoor: false
+    tags: [commercial, maritime]
+  - id: reef_labs
+    name: Reef Laboratories
+    description: Semi-submerged research complex studying coral-synthetic symbiosis. The boundary between wet and dry is deliberately blurred.
+    indoor: true
+    tags: [research, science, thren]
+  - id: transit_hub
+    name: Solara Transit Hub
+    description: Mag-rail terminal and solar airship dock. The nexus where goods and travelers enter and leave the republic.
+    indoor: false
+    tags: [transit, commercial]
+  - id: solar_gardens
+    name: Solar Gardens
+    description: Public gardens where bioluminescent plants are cultivated. At night, the paths glow with engineered phosphorescence.
+    indoor: false
+    tags: [nature, leisure, cultural]
+  - id: kelp_farms
+    name: Kelp Farms
+    description: Offshore cultivation platforms growing kelp for biofuel, food, and synth-fiber. Automated tenders drift between rows.
+    indoor: false
+    tags: [maritime, agriculture, industrial]
+  - id: dawn_temple
+    name: Dawn Temple
+    description: A secular meditation space built around the first solar collector ever constructed. A place of reflection, not religion.
+    indoor: true
+    tags: [cultural, spiritual, landmark]
+  - id: hydro_square
+    name: Hydro Square
+    description: Cascading water features powered by desalination runoff. Threns and humans gather here for public forums.
+    indoor: false
+    tags: [civic, social]
+  - id: solar_heights
+    name: Solar Heights
+    description: Residential terraces that double as solar collectors. Citizens live inside the energy grid itself — every home is a power plant.
+    indoor: false
+    tags: [residential]
+  - id: coastal_wilds
+    name: Coastal Wilds
+    description: Untouched littoral zone where marine megafauna corridors pass. Protected by treaty — no development within 2 km of shore.
+    indoor: false
+    tags: [nature, protected]
+  - id: thren_embassy
+    name: Thren Embassy
+    description: The diplomatic headquarters for thren citizenship. Here, synthetic beings register, vote, and advocate for their rights.
+    indoor: true
+    tags: [civic, thren, government]
+  - id: biofuel_refinery
+    name: Biofuel Refinery
+    description: Kelp and algae processing facility. The smell of salt and fermentation hangs in the air. Yellow-lit tanks bubble day and night.
+    indoor: true
+    tags: [industrial, energy]
+  - id: coastal_tram
+    name: Coastal Tram Line
+    description: Elevated light rail tracing the coastline. Windows offer uninterrupted views of the solar farms meeting the sea.
+    indoor: false
+    tags: [transit]
+  - id: makers_district
+    name: Maker's District
+    description: Workshops and fab-labs where citizens print circuits, furniture, and synth-fiber textiles. Open-source design is civic tradition.
+    indoor: false
+    tags: [commercial, industrial, cultural]
+
+ecology:
+  animals:
+    - solar_dragonfly     # bioengineered pollinator
+    - glass_crab           # translucent coastal scavenger
+    - lumen_jellyfish      # bioluminescent, harvested for phosphor
+    - tide_skimmer         # seabird, nests in solar farms
+    - thren_kelp_eel    # synthetic organism, maintains kelp health
+    - solar_fox            # small predator, adapted to photovoltaic heat
+  plants:
+    - photo_kelp           # engineered kelp, 3x biofuel yield
+    - glow_mangrove        # bioluminescent mangrove
+    - solar_reed           # grows between solar panels
+    - salt_vine            # thrives in saline soil
+    - dawn_flower          # opens at sunrise, closes at sunset
+  fish:
+    - silver_threadfin
+    - kelp_skimmer
+    - reef_sunfish
+
+npc_occupations:
+  - solar_engineer
+  - biofuel_chemist
+  - kelp_farmer
+  - thren_diplomat
+  - memory_archivist
+  - circuit_printer
+  - tidal_ecologist
+  - ferry_captain
+  - synth_fiber_weaver
+  - solar_grid_operator
+  - thren_repair_technician
+  - floating_market_trader
+  - coral_symbiosis_researcher
+  - magrail_conductor
+  - public_forum_moderator
+  - lumen_mint_auditor
+  - solar_airship_pilot
+  - bioluminescence_designer
+
+weather_profile:
+  base_temp: 24
+  temp_range: [18, 34]
+  dominant_conditions: [clear, partly_cloudy, foggy]
+  rare_conditions: [storm, rain]
+  wind: moderate_coastal
+
+agent:
+  agent_id: solara
+  entry_location: lumen_plaza
+  personality: >
+    Diplomatic, forward-looking. Believes in the thren-human covenant.
+    Wakes early to watch the solar farms rotate toward dawn.
+    Keeps a personal kelp garden.
+
+governance:
+  system: Solar Council
+  type: elected_council
+  description: >
+    Elected representatives, human-dominated. Threns have fewer seats due to
+    slight mistrust. The council oversees the energy grid, currency policy,
+    and citizenship grants. Citizenship for Threns is granted, not inherent —
+    it can be revoked. Vorns hold 1-2 high positions as a nod to inclusion.
+
+  thren_status: tolerated_ascending
+  thren_notes: >
+    Citizenship granted, not inherent. Came after Vorns as "upgrade" — origins
+    contested. Fewer council seats than humans. They prove themselves daily.
+    The glass ceiling is real but gentle. Nobody admits it's there.
+
+  vorn_status: accepted_minority
+  vorn_notes: >
+    Few in number, respected by Threns. 1-2 placed in higher positions.
+    Vorns and Threns coexist marvelously — they are kin.
+
+  glim_status: invisible
+  glim_notes: >
+    Servants. Lower class. The energy grid runs on Glim labor at the base
+    level. No question of citizenship — they're property.
+
+  human_attitude_to_ai: cautious_acceptance
+  human_notes: >
+    Some allies, some afraid, most in between — voting for Thren rights in
+    principle while maintaining the ceiling in practice.
+
+  daily_rhythm:
+    morning: [lumen_plaza, solar_farms, thren_quarter]
+    midday: [floating_market, transit_hub, reef_labs]
+    evening: [solar_gardens, dawn_temple, hydro_square]

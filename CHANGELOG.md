@@ -1,0 +1,39 @@
+# Changelog
+
+All notable changes to Aurelia are documented here.
+
+## 1.0.0 — 2026-06-08
+
+### Phase 10: Causal-gap closure
+
+Runtime closure of the causal gaps identified in
+[`docs/analysis/2026-06-08-aurelia-causal-gaps-deep-dive.md`](docs/analysis/2026-06-08-aurelia-causal-gaps-deep-dive.md).
+
+- New module `src_template/phase10_dynamics.py` concentrates Phase 10 missing-cause surface into one tested runtime layer.
+- New module `src_template/capital_economy.py` (Phase 9) makes productive value creation a first-class dynamic.
+- Causal graph edges are now written by every macro snapshot path.
+- Cross-world NPC movement, cultural diffusion fallback, diplomatic trust accumulation, foreign strategy intervention under environmental and public-health crises.
+- Counterfactual branch runner for causal replay and alternative history.
+- New test suite `tests/test_phase10_causal_gaps.py` (10 tests).
+
+### Phase 9: Positive-sum dynamics
+
+Capital economy, culture, regime, institutions. New test suites:
+`test_phase9_culture.py`, `test_phase9_diplomacy.py`, `test_phase9_economy.py`,
+`test_phase9_institutions.py`, `test_phase9_regime.py`.
+
+### Phase 8: Resilience, divergence, migration, faction consequences
+
+NPC resilience, divergence, migration, faction lifecycle consequences. New
+test suites: `test_phase8_factions.py`, `test_phase8_migration.py`,
+`test_phase8_profiles_macro.py`, `test_phase8_reporting_evaluator.py`.
+
+### Cloudflare persistence
+
+`aurelia_cf_pusher.py` pushes per-year snapshots, chronicle entries, world
+state, federation causal events, and causal summaries to Cloudflare.
+
+### Test suite
+
+70 tests pass in ~13s. Coverage focuses on causal mechanics, federation, and
+phase-specific dynamics.
