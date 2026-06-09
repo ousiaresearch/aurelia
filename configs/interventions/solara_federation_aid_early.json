@@ -1,0 +1,20 @@
+{
+  "branch_id": "solara-federation-aid-early",
+  "base_seed": 4242,
+  "description": "Counterfactual: federation aid reaches Solara early, boosting resource stock and education while reducing disease pressure.",
+  "interventions": [
+    {
+      "tick": 24,
+      "world_id": "solara",
+      "type": "federation_aid",
+      "payload": {
+        "resource_stock": 0.12,
+        "education_level": 0.04,
+        "disease_pressure": -0.05,
+        "duration_ticks": 24,
+        "magnitude": 0.7,
+        "valence": 0.4
+      }
+    }
+  ]
+}
