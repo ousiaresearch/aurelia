@@ -156,10 +156,23 @@ def _count(db: sqlite3.Connection, table: str) -> int:
     return int(db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
 
 
+def _count_event_types(db: sqlite3.Connection) -> dict[str, int]:
+    if not _table_exists(db, "causal_events"):
+        return {}
+    rows = db.execute(
+        "SELECT event_type, COUNT(*) FROM causal_events GROUP BY event_type"
+    ).fetchall()
+    return {str(r[0]): int(r[1]) for r in rows}
+
+
 def compare_runs(baseline_dir: str | Path, branch_dir: str | Path) -> dict[str, Any]:
     baseline = Path(baseline_dir)
     branch = Path(branch_dir)
     worlds: dict[str, Any] = {}
+    warnings: list[str] = []
+    total_event_delta = 0
+    total_metric_delta = 0.0
+    all_type_deltas: dict[str, int] = {}
     for bdb in sorted(baseline.glob("*.db")):
         if bdb.name == "federation.db":
             continue
@@ -168,21 +181,73 @@ def compare_runs(baseline_dir: str | Path, branch_dir: str | Path) -> dict[str, 
         if not cdb.exists():
             continue
         b = _connect(bdb); c = _connect(cdb)
+        ev_delta = _count(c, "causal_events") - _count(b, "causal_events")
+        ed_delta = _count(c, "causal_edges") - _count(b, "causal_edges")
+        rs_delta = _avg_metric(c, "resource_stock") - _avg_metric(b, "resource_stock")
+        ed_lvl = _avg_metric(c, "education_level") - _avg_metric(b, "education_level")
+        dp_delta = _avg_metric(c, "disease_pressure") - _avg_metric(b, "disease_pressure")
         worlds[world] = {
-            "causal_events_delta": _count(c, "causal_events") - _count(b, "causal_events"),
-            "causal_edges_delta": _count(c, "causal_edges") - _count(b, "causal_edges"),
-            "avg_resource_stock_delta": round(_avg_metric(c, "resource_stock") - _avg_metric(b, "resource_stock"), 6),
-            "avg_education_level_delta": round(_avg_metric(c, "education_level") - _avg_metric(b, "education_level"), 6),
-            "avg_disease_pressure_delta": round(_avg_metric(c, "disease_pressure") - _avg_metric(b, "disease_pressure"), 6),
+            "causal_events_delta": ev_delta,
+            "causal_edges_delta": ed_delta,
+            "avg_resource_stock_delta": round(rs_delta, 6),
+            "avg_education_level_delta": round(ed_lvl, 6),
+            "avg_disease_pressure_delta": round(dp_delta, 6),
         }
+        # Track event-type deltas across all worlds.
+        b_types = _count_event_types(b)
+        c_types = _count_event_types(c)
+        for et, n in c_types.items():
+            all_type_deltas[et] = all_type_deltas.get(et, 0) + (n - b_types.get(et, 0))
+        for et, n in b_types.items():
+            if et not in c_types:
+                all_type_deltas[et] = all_type_deltas.get(et, 0) - n
+        total_event_delta += abs(ev_delta)
+        total_metric_delta += abs(rs_delta) + abs(ed_lvl) + abs(dp_delta)
         b.close(); c.close()
-    return {"baseline_dir": str(baseline), "branch_dir": str(branch), "worlds": worlds}
+
+    # Divergence score: combine event-count and metric deltas with a small weight on
+    # event-type churn. This is a single honest number; a zero score means the
+    # branch is a no-op (a real warning, not just a quiet 0.0).
+    type_churn = sum(abs(v) for v in all_type_deltas.values())
+    divergence_score = round(total_event_delta + total_metric_delta + 0.25 * type_churn, 4)
+
+    if divergence_score == 0:
+        warnings.append(
+            "counterfactual branch is identical to baseline "
+            "(divergence_score=0); intervention had no observable effect"
+        )
+
+    top_changed = sorted(
+        ({"event_type": et, "delta": d} for et, d in all_type_deltas.items() if d != 0),
+        key=lambda x: abs(x["delta"]),
+        reverse=True,
+    )[:10]
+
+    return {
+        "baseline_dir": str(baseline),
+        "branch_dir": str(branch),
+        "worlds": worlds,
+        "divergence_score": divergence_score,
+        "top_changed_event_types": top_changed,
+        "warnings": warnings,
+    }
 
 
 def render_comparison_report(comparison: dict[str, Any]) -> str:
     lines = ["# Aurelia Counterfactual Comparison", ""]
     lines.append(f"- baseline: `{comparison['baseline_dir']}`")
     lines.append(f"- branch: `{comparison['branch_dir']}`")
+    lines.append(f"- divergence score: **{comparison.get('divergence_score', 0)}**")
+    if comparison.get("warnings"):
+        lines.append("")
+        lines.append("## Warnings")
+        for w in comparison["warnings"]:
+            lines.append(f"- {w}")
+    if comparison.get("top_changed_event_types"):
+        lines.append("")
+        lines.append("## Top changed event types")
+        for row in comparison["top_changed_event_types"]:
+            lines.append(f"- `{row['event_type']}`: delta={row['delta']}")
     lines.append("")
     lines.append("## World deltas")
     for world, data in comparison.get("worlds", {}).items():
