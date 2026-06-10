@@ -2,6 +2,89 @@
 
 All notable changes to Aurelia are documented here.
 
+## 0.1.5-phase12-gap-closure — 2026-06-10
+
+### Phase 12: gap closure between lore, simulation, datasets, and public surfaces
+
+Phase 12 turns Aurelia from three impressive but separate artifacts into
+one inspectable system. The plan delivered eight workstreams end-to-end:
+
+**A. Canon bridge** — `docs/data/aurelia_concepts.yaml` (32 concepts with
+status, wiki paths, code paths, tables, datasets, Cloudflare surfaces, and
+proof artifacts). `scripts/render_canon_data_guide.py` deterministically
+generates `docs/AURELIA_CANON_AND_DATA_GUIDE.md`.
+
+**B. Wiki reconciliation** — `docs/AURELIA_WIKI_RECONCILIATION_REVIEW.md`
+plus three Desktop wiki patches (public front door, simulation status,
+TTRPG-adjacent archive). The wiki itself (139 markdown + 90 image
+files) was migrated to `docs/wiki/` as the canonical public surface.
+
+**C. Dataset research UX** — `examples/aurelia_dataset_loader.py` with
+Parquet + SQLite backends. `examples/01_load_aurelia_hf_datasets.py`,
+`02_reproduce_density_diversification.py` (reproduces the **99.1%** CV
+reduction exactly), and `03_trace_causal_chain.py`. Dual-track start-here
+pages: `AURELIA_RESEARCH_START_HERE.md` (HF/ML) and
+`AURELIA_LORE_READERS_START_HERE.md` (world).
+
+**D. Simulation quality gates** — `scripts/evaluate_run_quality.py` now
+hard-caps the score for pathological runs (factions absent, population
+collapse, high CV, missing manifest). Manifest propagation adds
+`seed`, `ticks_per_year`, `density_diversification`, `engine_version`,
+`git_commit`, `run_id`, `created_at` to the orchestrator summary.
+`scripts/compare_runs.py` adds `divergence_score` and no-op warnings.
+
+**E. Public surface reconciliation** — `scripts/reconcile_public_surfaces.py`
+produces a Markdown report comparing local runs, HF exports, and the
+Cloudflare dashboard. `docs/ARCHITECTURE.md`, `README.md`, and
+`docs/DEMO.md` document the D1 cap reality honestly.
+
+**F. HF card integration** — each rendered dataset README links to
+the research start-here guide, the relevant examples, and the canon
+bridge.
+
+**G. Research figure** — `scripts/plot_density_diversification.py`
+generates `docs/reports/figures/density-diversification.svg` from real
+data with no plotting-library dependency.
+
+**H. Closure report** — this entry plus
+`docs/reports/phase12-gap-closure-report.md`.
+
+### Added
+
+- `docs/data/aurelia_concepts.yaml` — 32 concept bridge entries
+- `docs/AURELIA_CANON_AND_DATA_GUIDE.md` — generated from the YAML
+- `docs/AURELIA_RESEARCH_START_HERE.md`, `docs/AURELIA_LORE_READERS_START_HERE.md`
+- `docs/wiki/` — full public wiki (139 markdown + 90 image files)
+- `examples/aurelia_dataset_loader.py`
+- `examples/01_load_aurelia_hf_datasets.py`
+- `examples/02_reproduce_density_diversification.py`
+- `examples/03_trace_causal_chain.py`
+- `scripts/reconcile_public_surfaces.py`
+- `scripts/plot_density_diversification.py`
+- `docs/reports/public-surface-reconciliation.md`
+- `docs/reports/figures/density-diversification.svg`
+- `docs/reports/phase12-gap-closure-report.md`
+
+### Changed
+
+- `scripts/evaluate_run_quality.py` — pathological-run gates with module-level thresholds
+- `src_template/federation_orchestrator.py` — manifest fields + `ENGINE_VERSION`, `GIT_COMMIT`, `make_run_id`
+- `src_template/counterfactuals.py` — divergence score + top changed event types + no-op warning
+- `scripts/render_hf_readme.py` — `related_examples` per schema + canon-bridge + research-guide sections
+- `docs/ARCHITECTURE.md`, `README.md`, `docs/DEMO.md`, `docs/HUGGINGFACE_PUBLISH.md` — D1 cap honest framing + examples section
+- `README.md` — dual-track "Two ways to start" + "Start with the research examples" sections
+
+### Test surface
+
+138 tests pass. New test files:
+
+- `tests/test_dataset_examples.py` — loader + 3 examples (parquet + sqlite)
+- `tests/test_run_quality_gates.py` — pathology gates
+- `tests/test_run_manifest.py` — orchestrator manifest propagation
+- `tests/test_public_surface_reconciliation.py` — local vs HF vs CF
+- `tests/test_density_plot.py` — stdlib SVG figure
+- `tests/test_hf_export.py` — extended with F1 link assertions
+
 ## 0.1.4-phase11-hf-datasets — 2026-06-09
 
 ### Phase 11: HuggingFace dataset publication
