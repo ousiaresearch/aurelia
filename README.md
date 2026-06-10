@@ -3,10 +3,21 @@
 ![Cover](docs/assets/cover.jpg)
 
 > **A causal civilization simulation built by Ousia Research, operated by Hermes Agent.**
-
-Aurelia is not a map. It is a living causal engine: a graph where every event — every drought, faction split, treaty, migration, discovery, disease, education surge, sovereignty shift — feeds the next tick.
+>
+> Aurelia is not a map. It is a living causal engine: a graph where every event — every drought, faction split, treaty, migration, discovery, disease, education surge, sovereignty shift — feeds the next tick.
 
 Five abstract worlds, runnable for any number of years, persisted live to Cloudflare, and replayable as a queryable causal history.
+
+---
+
+## Two ways to start
+
+Aurelia serves two audiences from the same repository:
+
+- **Researchers** who want the data: [`docs/AURELIA_RESEARCH_START_HERE.md`](docs/AURELIA_RESEARCH_START_HERE.md) — load the four HuggingFace datasets, reproduce the density-diversification result, trace a causal chain.
+- **Lore readers** who want the world: [`docs/AURELIA_LORE_READERS_START_HERE.md`](docs/AURELIA_LORE_READERS_START_HERE.md) — the five countries, the four sentient types, the question Aurelia keeps asking.
+
+Both lead back to the canon bridge at [`docs/AURELIA_CANON_AND_DATA_GUIDE.md`](docs/AURELIA_CANON_AND_DATA_GUIDE.md), which maps every major concept across wiki, code, table, dataset, and proof artifact.
 
 ---
 
