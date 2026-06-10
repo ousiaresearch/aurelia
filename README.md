@@ -325,6 +325,18 @@ Operator endpoints:
 - Authenticated dashboard: `https://hermes-state-worker.plntrprotocol.workers.dev/aurelia/dashboard`
 - Project: `~/.hermes/profiles/palantir/cf-worker/` (D1 + R2, R2 for chronicle artifacts, D1 for indexed queries)
 
+## Start with the research examples
+
+If you want to inspect Aurelia rather than read about it:
+
+```bash
+PYTHONPATH=. python3 examples/01_load_aurelia_hf_datasets.py
+PYTHONPATH=. python3 examples/02_reproduce_density_diversification.py
+PYTHONPATH=. python3 examples/03_trace_causal_chain.py
+```
+
+All three work offline against `/tmp/hf-export/` (the local Parquet mirror) or fall back to `/tmp/aurelia-*` smoke runs when no export is present. The second reproduces the headline **99.1% cross-world population-CV reduction** when the density-diversification knob is on. The third walks a causal chain three hops upstream from a federation event. See `docs/AURELIA_RESEARCH_START_HERE.md` for the full path.
+
 ## HuggingFace datasets
 
 The same run artifacts that flow into Cloudflare are also exported as four
