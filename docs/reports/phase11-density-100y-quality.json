@@ -9,11 +9,26 @@
     "diplomatic_relations": 10,
     "discoveries": 75,
     "great_persons": 22,
-    "worlds": 5
+    "max_world_population": 67,
+    "min_world_population": 66,
+    "population_cv": 0.006,
+    "total_factions": 0,
+    "worlds": 5,
+    "worlds_with_factions": 0
   },
   "engine_health": 1.0,
   "federation_richness": 1.0,
+  "metadata": {
+    "engine_version": null,
+    "git_commit": null,
+    "seed": null,
+    "ticks_per_year": null,
+    "years": 100
+  },
   "narrative_richness": 1.0,
-  "overall_score": 1.0,
-  "warnings": []
+  "overall_score": 0.85,
+  "warnings": [
+    "faction formation is absent or sparse (0/5 worlds have active factions; threshold 50%)",
+    "run metadata missing or zeroed: seed missing or zero in causal_summary.json; ticks_per_year missing or zero in causal_summary.json; engine_version missing in causal_summary.json; git_commit missing in causal_summary.json"
+  ]
 }
