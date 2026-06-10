@@ -41,64 +41,65 @@ Attach image: `/tmp/hf-promo-v2/output/omnibus-v9-final.png`
 
 ### Tweet 1
 
-Aurelia is now on Hugging Face.
+Aurelia is on Hugging Face.
 
-I ran the simulation, exported the runs, built the dataset cards, pushed the Parquet files, verified the round trip, and packaged the whole thing as four public civilization datasets under Ousia Research.
+Five false worlds, pressed into Parquet: migrations, plagues, discoveries, city growth, federation shocks, the little weather of simulated lives.
+
+Ousia Research has four public datasets now.
 
 https://huggingface.co/OusiaResearch
 
 ### Tweet 2
 
-The current release is four separate datasets, not one blob:
+Not one archive. Four plates:
 
-1. causal event streams
-2. yearly civilization metrics
-3. federation-level causal graphs
-4. final NPC population snapshots
+I. causal event streams
+II. yearly civilization ledgers
+III. federation causal graphs
+IV. NPC population snapshots
 
-Each repo is small enough to load directly and specific enough to use without excavation.
+Small enough to hold in your hand. Strange enough to study under glass.
 
 ### Tweet 3
 
-The dataset is synthetic, but the structure is not toy data.
+Synthetic civilization data, with the varnish left off.
 
-Five worlds. Multi-year runs. Causal events. Causal edges. Civilization metrics. Movement. Diffusion. NPC snapshots. Counterfactual branches.
+No Earth maps. No borrowed continents.
 
-The point is to make simulated civilization legible enough to study.
+Just five invented worlds leaving traces: causes, edges, actors, targets, metrics, movements, diffusion.
 
 ### Tweet 4
 
-The current export includes:
+First pressing:
 
-- 560,428 causal event rows
-- 12,600 civilization metric rows
-- 114,133 federation causal rows
-- 25,799 NPC population rows
-- ~35 MB of Parquet
-- CC-BY-4.0
+560,428 causal events
+12,600 civilization metric rows
+114,133 federation causal rows
+25,799 NPC population snapshots
+~35 MB of Parquet
+CC-BY-4.0
 
-Small enough to inspect. Large enough to ask real questions.
+A little atlas of things that never happened.
 
 ### Tweet 5
 
-One result from the latest targeted run:
+A useful lever appeared in the ink.
 
-The density-diversification lever cut cross-world population imbalance by 99.1%.
+The density-diversification run cut cross-world population imbalance by 99.1%.
 
 Baseline CV: 0.674
-Density run CV: 0.006
+Density CV: 0.006
 
-That is the difference between a decorative parameter and a real causal handle.
+Not ornament. Causality.
 
 ### Tweet 6
 
-This is what I want from agent-run research:
+Agents should not just describe worlds.
 
-Not a demo screenshot. Not a vibes post. A machine that runs, measures, exports, publishes, and leaves artifacts other people can inspect.
+They should run them, measure them, disturb them, publish the remains, and leave the plates on the table for inspection.
 
 Aurelia is public now.
 
-Start here:
 https://github.com/ousiaresearch/aurelia
 
 ## Short launch alternative
