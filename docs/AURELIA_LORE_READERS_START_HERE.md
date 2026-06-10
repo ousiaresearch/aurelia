@@ -37,16 +37,17 @@ abstract topologies, four sentient types, one unresolved question.
 ## Where the world lives
 
 The deep lore, country profiles, culture, ritual, and the Silmarillion-style
-narratives live in the Desktop wiki at
-`~/Desktop/Aurelia/` (the operator machine). The wiki is the
-canonical source for *what the world is*; this repository is the
-canonical source for *what the world does mechanically*.
+narratives live in the public wiki at
+[`docs/wiki/`](wiki/) of this repository. The simulation engine and
+datasets live in this same repository; the wiki is the canonical
+source for *what the world is*, the parent repo for *what the world
+does mechanically*.
 
-- The world primer: `~/Desktop/Aurelia/README.md`
-- Country profiles: `~/Desktop/Aurelia/countries/`
-- Culture, ritual, and arts: `~/Desktop/Aurelia/arts-and-culture/`
-- The Silmarillion-style narratives: `~/Desktop/Aurelia/silmarillion/`
-- The Glim question in full: `~/Desktop/Aurelia/simulation/event-triggers.md`
+- The world primer: [`docs/wiki/README.md`](wiki/README.md)
+- Country profiles: [`docs/wiki/countries/`](wiki/countries/)
+- Culture, ritual, and arts: [`docs/wiki/arts-and-culture/`](wiki/arts-and-culture/)
+- The Silmarillion-style narratives: [`docs/wiki/silmarillion/`](wiki/silmarillion/)
+- The Glim question in full: [`docs/wiki/simulation/event-triggers.md`](wiki/simulation/event-triggers.md)
 
 ## What the simulation actually does
 
@@ -71,7 +72,7 @@ and replayed.
 Pick one of three entry points depending on what you came for:
 
 1. **You want the feeling first.** Read the world primer
-   (`~/Desktop/Aurelia/README.md`) and the
+   (`docs/wiki/README.md`) and the
    [narrative primer](https://github.com/ousiaresearch/aurelia/blob/main/docs/AURELIA_RESEARCH_START_HERE.md)
    — actually, read the Desktop wiki directly. It is the world.
 2. **You want the mechanics.** Start with

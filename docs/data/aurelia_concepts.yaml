@@ -3,8 +3,8 @@
   status: simulated
   summary: "One of Aurelia's five abstract simulation arenas: arkos, mirithane, solara, valdris, or verge."
   wiki_paths:
-    - ~/Desktop/Aurelia/README.md
-    - ~/Desktop/Aurelia/geography/overview.md
+    - wiki/README.md
+    - wiki/geography/overview.md
   code_paths:
     - aurelia_factory.py
     - src_template/world_state.py
@@ -31,8 +31,8 @@
   status: simulated
   summary: "Procedural inhabitant tracked through agent rows, events, movement, deaths, and exported population snapshots."
   wiki_paths:
-    - ~/Desktop/Aurelia/simulation/npc-registry.md
-    - ~/Desktop/Aurelia/simulation/simulation-architecture.md
+    - wiki/simulation/npc-registry.md
+    - wiki/simulation/simulation-architecture.md
   code_paths:
     - populate_npcs.py
     - src_template/npc_generation.py
@@ -56,8 +56,8 @@
   status: partial
   summary: "Legacy/species identity from the wiki and NPC generator; present in population records but not yet a central Phase 11 analytic axis."
   wiki_paths:
-    - ~/Desktop/Aurelia/types/human.md
-    - ~/Desktop/Aurelia/types/design-sheets/human.md
+    - wiki/types/human.md
+    - wiki/types/design-sheets/human.md
   code_paths:
     - populate_npcs.py
     - src_template/npc_generation.py
@@ -75,8 +75,8 @@
   status: partial
   summary: "Bio-synthetic people from the lore; represented in NPC generation/population but not yet exposed as a dedicated research slice."
   wiki_paths:
-    - ~/Desktop/Aurelia/types/thren.md
-    - ~/Desktop/Aurelia/types/design-sheets/thren.md
+    - wiki/types/thren.md
+    - wiki/types/design-sheets/thren.md
   code_paths:
     - populate_npcs.py
     - src_template/npc_generation.py
@@ -94,8 +94,8 @@
   status: partial
   summary: "Mechanical people from the lore; represented in NPC generation/population but not yet a full causal analysis dimension."
   wiki_paths:
-    - ~/Desktop/Aurelia/types/vorn.md
-    - ~/Desktop/Aurelia/types/design-sheets/vorn.md
+    - wiki/types/vorn.md
+    - wiki/types/design-sheets/vorn.md
   code_paths:
     - populate_npcs.py
     - src_template/npc_generation.py
@@ -113,8 +113,8 @@
   status: partial
   summary: "Mass-produced autonomous units from the lore; population identity exists, but awakening/anomaly dynamics remain partial/planned."
   wiki_paths:
-    - ~/Desktop/Aurelia/types/glim.md
-    - ~/Desktop/Aurelia/lore/glim-narrative.md
+    - wiki/types/glim.md
+    - wiki/lore/glim-narrative.md
   code_paths:
     - populate_npcs.py
     - src_template/npc_generation.py
@@ -132,7 +132,7 @@
   status: simulated
   summary: "Organized political/social group formed from grievances and recorded in world tables and reports."
   wiki_paths:
-    - ~/Desktop/Aurelia/factions/overview.md
+    - wiki/factions/overview.md
   code_paths:
     - src_template/factions.py
     - src_template/phase10_dynamics.py
@@ -155,7 +155,7 @@
   status: simulated
   summary: "Durable governance/social structure affecting state capacity, property rights, and macro resilience."
   wiki_paths:
-    - ~/Desktop/Aurelia/governance.md
+    - wiki/governance.md
   code_paths:
     - src_template/institutions.py
     - src_template/phase10_dynamics.py
@@ -176,7 +176,7 @@
   status: simulated
   summary: "Political regime or transition path tracked through regime events, institutions, and macro state variables."
   wiki_paths:
-    - ~/Desktop/Aurelia/governance.md
+    - wiki/governance.md
   code_paths:
     - src_template/regime.py
     - src_template/phase10_dynamics.py
@@ -197,8 +197,8 @@
   status: simulated
   summary: "Macro civilization indicator updated by Phase 10 dynamics and exported as a time-series field."
   wiki_paths:
-    - ~/Desktop/Aurelia/education.md
-    - ~/Desktop/Aurelia/education/overview.md
+    - wiki/education.md
+    - wiki/education/overview.md
   code_paths:
     - src_template/phase10_dynamics.py
     - src_template/macro_dynamics.py
@@ -216,7 +216,7 @@
   status: simulated
   summary: "Macro civilization indicator representing urban share/settlement concentration over ticks."
   wiki_paths:
-    - ~/Desktop/Aurelia/geography/locations.md
+    - wiki/geography/locations.md
   code_paths:
     - src_template/phase10_dynamics.py
     - src_template/macro_dynamics.py
@@ -234,8 +234,8 @@
   status: simulated
   summary: "Macro health/ecology pressure that evolves by world and affects civilization trajectories."
   wiki_paths:
-    - ~/Desktop/Aurelia/medicine/disease.md
-    - ~/Desktop/Aurelia/medicine-comprehensive.md
+    - wiki/medicine/disease.md
+    - wiki/medicine-comprehensive.md
   code_paths:
     - src_template/phase10_dynamics.py
     - src_template/ecology.py
@@ -255,8 +255,8 @@
   status: simulated
   summary: "Aggregate resource availability and ecological/economic substrate for macro dynamics."
   wiki_paths:
-    - ~/Desktop/Aurelia/trade-economy.md
-    - ~/Desktop/Aurelia/flora-agriculture.md
+    - wiki/trade-economy.md
+    - wiki/flora-agriculture.md
   code_paths:
     - src_template/phase10_dynamics.py
     - src_template/economy.py
@@ -278,8 +278,8 @@
   status: simulated
   summary: "Macro institutional indicator used to model economic security and state/citizen relations."
   wiki_paths:
-    - ~/Desktop/Aurelia/governance.md
-    - ~/Desktop/Aurelia/crime-and-legal/legal-systems.md
+    - wiki/governance.md
+    - wiki/crime-and-legal/legal-systems.md
   code_paths:
     - src_template/phase10_dynamics.py
     - src_template/institutions.py
@@ -297,7 +297,7 @@
   status: simulated
   summary: "Categorical government capacity state such as patrimonial, prebendal, or bureaucratic."
   wiki_paths:
-    - ~/Desktop/Aurelia/governance.md
+    - wiki/governance.md
   code_paths:
     - src_template/phase10_dynamics.py
     - src_template/institutions.py
@@ -315,8 +315,8 @@
   status: simulated
   summary: "Categorical coercion/control mode exported as part of civilization metrics."
   wiki_paths:
-    - ~/Desktop/Aurelia/governance.md
-    - ~/Desktop/Aurelia/crime-and-legal/crime-and-punishment.md
+    - wiki/governance.md
+    - wiki/crime-and-legal/crime-and-punishment.md
   code_paths:
     - src_template/phase10_dynamics.py
     - src_template/regime.py
@@ -334,8 +334,8 @@
   status: simulated
   summary: "Categorical conflict state such as latent, insurgency, or civil war."
   wiki_paths:
-    - ~/Desktop/Aurelia/warfare.md
-    - ~/Desktop/Aurelia/war-and-military/overview.md
+    - wiki/warfare.md
+    - wiki/war-and-military/overview.md
   code_paths:
     - src_template/escalation_ladder.py
     - src_template/phase10_dynamics.py
@@ -355,7 +355,7 @@
   status: simulated
   summary: "Cross-world movement of NPCs/populations caused by pressure, opportunity, and density-balancing dynamics."
   wiki_paths:
-    - ~/Desktop/Aurelia/geography/locations.md
+    - wiki/geography/locations.md
   code_paths:
     - src_template/phase10_dynamics.py
     - src_template/federation_orchestrator.py
@@ -379,7 +379,7 @@
   status: simulated
   summary: "Cross-world adoption/resistance of cultural traits and norms."
   wiki_paths:
-    - ~/Desktop/Aurelia/arts-and-culture/literature-and-story.md
+    - wiki/arts-and-culture/literature-and-story.md
   code_paths:
     - src_template/cultural_diffusion.py
     - src_template/federation_orchestrator.py
@@ -398,7 +398,7 @@
   status: simulated
   summary: "Cross-world relations, strategies, treaties, and trust accumulation."
   wiki_paths:
-    - ~/Desktop/Aurelia/diplomatic-matrix.md
+    - wiki/diplomatic-matrix.md
   code_paths:
     - aurelia_diplomacy.py
     - src_template/federation_diplomacy.py
@@ -419,7 +419,7 @@
   status: simulated
   summary: "Scheduled/imported federation-level effect that carries causality between worlds."
   wiki_paths:
-    - ~/Desktop/Aurelia/simulation/event-triggers.md
+    - wiki/simulation/event-triggers.md
   code_paths:
     - src_template/federation_effects.py
     - src_template/federation_orchestrator.py
@@ -442,7 +442,7 @@
   status: simulated
   summary: "Innovation or breakthrough event that changes local or cross-world dynamics."
   wiki_paths:
-    - ~/Desktop/Aurelia/technology.md
+    - wiki/technology.md
   code_paths:
     - src_template/discovery.py
     - src_template/phase10_dynamics.py
@@ -461,7 +461,7 @@
   status: simulated
   summary: "Emergent historical actor linked to discontinuous breakthroughs or institutional changes."
   wiki_paths:
-    - ~/Desktop/Aurelia/mythology/legendary-figures.md
+    - wiki/mythology/legendary-figures.md
   code_paths:
     - src_template/great_persons.py
     - src_template/phase10_dynamics.py
@@ -480,7 +480,7 @@
   status: simulated
   summary: "First-class event node written by micro, meso, macro, and federation systems."
   wiki_paths:
-    - ~/Desktop/Aurelia/simulation/simulation-architecture.md
+    - wiki/simulation/simulation-architecture.md
   code_paths:
     - src_template/causal_ledger.py
     - src_template/phase10_dynamics.py
@@ -502,7 +502,7 @@
   status: simulated
   summary: "Directed relation between parent and child causal events."
   wiki_paths:
-    - ~/Desktop/Aurelia/simulation/simulation-architecture.md
+    - wiki/simulation/simulation-architecture.md
   code_paths:
     - src_template/causal_ledger.py
     - scripts/export_causal_graph.py
@@ -570,8 +570,8 @@
   status: planned
   summary: "Central philosophical lore mechanic for Glims showing curiosity or awakening; not yet sufficiently represented as a Phase 11 causal mechanism."
   wiki_paths:
-    - ~/Desktop/Aurelia/lore/glim-narrative.md
-    - ~/Desktop/Aurelia/public/faq.md
+    - wiki/lore/glim-narrative.md
+    - wiki/public/faq.md
   code_paths:
     - populate_npcs.py
     - src_template/npc_generation.py
@@ -591,7 +591,7 @@
   status: simulated
   summary: "Human-readable yearly chronicle generated from run data and summary artifacts."
   wiki_paths:
-    - ~/Desktop/Aurelia/simulation/simulation-architecture.md
+    - wiki/simulation/simulation-architecture.md
   code_paths:
     - src_template/yearly_report.py
     - scripts/render_run_report.py
@@ -687,8 +687,8 @@
   status: stale
   summary: "Older public/wiki framing that described Aurelia as a single landmass partitioned into five countries; current public repo emphasizes abstract worlds/topologies."
   wiki_paths:
-    - ~/Desktop/Aurelia/README.md
-    - ~/Desktop/Aurelia/media/media-kit.md
+    - wiki/README.md
+    - wiki/media/media-kit.md
   code_paths: []
   sqlite_tables: []
   hf_datasets: []
@@ -703,9 +703,9 @@
   status: archived
   summary: "Older playable/adventure/equipment docs that should remain historical/internal unless the user explicitly asks for TTRPG content."
   wiki_paths:
-    - ~/Desktop/Aurelia/playable-types.md
-    - ~/Desktop/Aurelia/adventure-hooks.md
-    - ~/Desktop/Aurelia/equipment.md
+    - wiki/playable-types.md
+    - wiki/adventure-hooks.md
+    - wiki/equipment.md
   code_paths: []
   sqlite_tables: []
   hf_datasets: []
@@ -720,7 +720,7 @@
   status: partial
   summary: "Ousia Research / Risomorphism / Nous-v9-derived public presentation layer for posts, promo images, and dataset launch materials."
   wiki_paths:
-    - ~/Desktop/Aurelia/media/media-kit.md
+    - wiki/media/media-kit.md
   code_paths: []
   sqlite_tables: []
   hf_datasets: []

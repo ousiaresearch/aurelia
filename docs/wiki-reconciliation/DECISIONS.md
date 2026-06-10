@@ -1,6 +1,6 @@
 # Aurelia Wiki Reconciliation Decisions
 
-Status: review package. These decisions are intended to guide a later patch to `~/Desktop/Aurelia`; this file does not modify the wiki.
+Status: review package. These decisions are intended to guide a later patch to `docs/wiki/`; this file does not modify the wiki.
 
 ## Decisions applied in the draft package
 

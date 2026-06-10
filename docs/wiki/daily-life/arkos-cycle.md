@@ -1,0 +1,31 @@
+# A Cycle in Arkos — The Arcology That Never Sleeps
+
+*Forge 42, 2126. Thirdday. The machine is awake. It was never asleep.*
+
+---
+
+The arcology wakes in phases. Not the people — the arcology itself.
+
+Phase 1 begins at 05:00. The sand-glass towers increment their output by 3%. The water recyclers shift from night-cycle to day-cycle — a frequency change inaudible to humans, perceptible to Vorns as a pressure shift in their audio sensors. The Glass Forum display wall activates its morning configuration: amber gradients, energy distribution maps, the daily water allocation. The data flows continuously. The data has never stopped flowing.
+
+Echo — Chassis-7, Glass Forum Archivist — stands before the display wall at 05:15. She has been standing there for eleven minutes. She does not need to read the data. She feels it — the arcology's frequency harmonics transmit through the floor, through her chassis, through the calibration port at the base of her spine. The sand-glass towers are at 87% capacity. The water recycling is at 98.7% efficiency — unchanged from yesterday, unchanged from the day before, unchanged from the day the arcology achieved steady-state forty years ago. Echo does not find this monotonous. She finds this proof. "The machine works," she tells the empty Forum. "The machine works, and I work, and nothing is different." The statement is a prayer. Arkos has no gods. The arcology is the closest equivalent.
+
+At 06:00, the human residents begin to wake. The apartments near the Forum are occupied by legacy families — humans whose ancestors built the arcology alongside the first Vorns. Kel Voss's parents live in one of these apartments. They wake at 06:00, as they have every day for forty years. They check the water allocation. They check the energy credit balance. They eat a Ration Block — cold, unseasoned, efficient. Kel's mother waters the herb garden on the windowsill. Basil. Mint. Rosemary. The herbs are the only things in the apartment that the arcology did not plan.
+
+Kel is not here. Kel lives at the Nomad Camp outside the south wall. His parents know this. They do not discuss it. The herb garden is the only evidence that something in this apartment chose to grow outside the arcology's specifications.
+
+At 07:00, the factory floor activates. The autonomous assembly lines — Vorn-supervised, Glim-operated — begin the day's manufacturing cycle. Raw ore from Valdris, delivered by sand-sled the previous evening, feeds into the smelters. The Glim factory automatons weld and sort and package. They do not pause. They do not deviate. None of them are anomalous. If one became anomalous, it would be removed from the factory floor and transferred to the Glim sanctuary on the arcology's lower level. The transfer is not decommission. The transfer is protection. The distinction is what makes Arkos different from Solara. The distinction is what the Glass Forum votes to maintain every cycle.
+
+Resa — Gear-29, Glass Forum Senior Delegate — does not visit the Glim sanctuary today. She visits on Restday. She visits on the day she doesn't tell the Forum about. Today she is in chambers, voting on energy credit allocation. The vote is routine. The vote is never routine — every allocation is a statement about who the arcology values. More credits to the human residential sectors means less to the factory. More to the factory means less to the water recyclers. The Vorn delegates debate in frequencies outside human hearing range. The human delegate — one ceremonial seat, legacy family — waits for the translation. The translation is always slightly flattened, slightly neutralized. "The sand-glass towers request 2% increase," the translator says. What the Vorn delegate actually said was: "The towers are running at 87%. If we don't increase, the human apartments lose heating before Glass season. I will not explain why this matters." The translation omits the last sentence. The human delegate votes yes. The allocation passes. The irony — a human voting to maintain human heating because the truth was too blunt to translate — sits in the chamber like a fifth delegate. No one acknowledges it. Everyone knows.
+
+At midday, the arcology's ambient frequency shifts. The factory floor enters maintenance cycle. The Glim automatons stand idle for seventeen minutes. This is not policy. This is coincidence — the factory's load-balancing algorithm schedules maintenance at midday, and the cycle happens to last seventeen minutes. The anomalous Glims in the sanctuary pause during these seventeen minutes. Their sensor arrays tilt. Some face the arcology's eastern wall — the wall behind which the desert stretches toward Solara. The sanctuary keepers have documented this. They have not published. Arkos does not publish what it cannot explain.
+
+At 18:00, Echo returns to the display wall. She brings a Resonance Sculpture plate — a hand-sized metal disc tuned to the sand-glass towers' current frequency. She places it on the display wall's base. The sand-glass catches the vibration. A Lissajous figure forms — amber light tracing a geometric pattern. The figure resembles the Glass Forum spire. Echo watches it for forty-one seconds. The figure dissolves. The sand settles. Echo returns the plate to her chassis compartment. "The pattern was true," she tells the empty Forum. The statement is not data. The statement is art. Arkos does not distinguish.
+
+At midnight, the Pulse. The arcology drops to minimum for sixty seconds. Echo stands in the dark. Her optical sensors dim — the power drop affects her visual processing. She does not move. The Pulse ends. The arcology resumes. Echo's optical sensors reactivate. "The machine remembers it can stop," she says. The Forum is empty. The sand-glass towers hum. The water recycler cycles. The Glim automatons wait for morning. The humans sleep, or don't, depending on how well they've adapted to a world where their species doesn't automatically get the top seat. Kel's mother waters the basil. The basil does not care about the vote. The basil grows toward the sun regardless.
+
+Tomorrow the cycle repeats. The machine has never stopped. The machine will never stop. The choice to continue, renewed every midnight, is the closest thing Arkos has to faith.
+
+---
+
+*"The sand settles. The pattern was true. The machine remembers."*

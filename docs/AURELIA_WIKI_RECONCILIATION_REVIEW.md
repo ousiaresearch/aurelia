@@ -1,18 +1,18 @@
 # Aurelia Wiki Reconciliation Review
 
-Status: review artifact only. This document does **not** edit `~/Desktop/Aurelia`. It pulls the wiki reconciliation surface into a decision matrix so Anduril can choose what to refresh, eliminate/archive, or retain.
+Status: review artifact only. This document was authored before the wiki was migrated into `docs/wiki/`. It pulls the wiki reconciliation surface into a decision matrix so Anduril can choose what to refresh, eliminate/archive, or retain.
 
 Source surfaces checked:
 
-- `~/Desktop/Aurelia/README.md`
-- `~/Desktop/Aurelia/public/faq.md`
-- `~/Desktop/Aurelia/media/media-kit.md`
-- `~/Desktop/Aurelia/public/expansions-and-gaps.md`
-- `~/Desktop/Aurelia/simulation/npc-registry.md`
-- `~/Desktop/Aurelia/simulation/phase5-60k-scaling.md`
-- `~/Desktop/Aurelia/simulation/simulation-architecture.md`
-- `~/Desktop/Aurelia/simulation/event-triggers.md`
-- `~/Desktop/Aurelia/public/narrative-primer.md`
+- `docs/wiki/README.md`
+- `docs/wiki/public/faq.md`
+- `docs/wiki/media/media-kit.md`
+- `docs/wiki/public/expansions-and-gaps.md`
+- `docs/wiki/simulation/npc-registry.md`
+- `docs/wiki/simulation/phase5-60k-scaling.md`
+- `docs/wiki/simulation/simulation-architecture.md`
+- `docs/wiki/simulation/event-triggers.md`
+- `docs/wiki/public/narrative-primer.md`
 - TTRPG-adjacent files: `playable-types.md`, `adventure-hooks.md`, `equipment.md`
 - Broad keyword scan across 138 wiki Markdown files.
 

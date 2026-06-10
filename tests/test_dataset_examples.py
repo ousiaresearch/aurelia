@@ -221,14 +221,34 @@ def test_lore_readers_start_here_mentions_world_primer_and_bridge():
     text = (ROOT / "docs" / "AURELIA_LORE_READERS_START_HERE.md").read_text()
     assert "AURELIA_CANON_AND_DATA_GUIDE" in text
     assert "AURELIA_COHERENCE_AUDIT" in text
-    # Lore readers should be pointed at the wiki, not at the dataset CLI
-    assert "Desktop/Aurelia" in text or "wiki" in text.lower()
+    # Lore readers should be pointed at the public wiki, not at the local Desktop dir
+    assert "docs/wiki" in text
+    assert "~/Desktop/Aurelia" not in text
 
 
 def test_readme_links_both_start_here_pages():
     text = (ROOT / "README.md").read_text()
     assert "AURELIA_RESEARCH_START_HERE" in text
     assert "AURELIA_LORE_READERS_START_HERE" in text
+
+
+def test_wiki_readme_anchors_canon_bridge():
+    text = (ROOT / "docs" / "wiki" / "README.md").read_text()
+    assert "AURELIA_CANON_AND_DATA_GUIDE" in text
+    assert "AURELIA_COHERENCE_AUDIT" in text
+    # Should not point to the Desktop
+    assert "~/Desktop" not in text
+    # Should declare itself the world canon
+    assert "canonical" in text.lower()
+
+
+def test_wiki_migrated_with_no_junk():
+    wiki = ROOT / "docs" / "wiki"
+    assert wiki.exists()
+    ds_store = list(wiki.rglob(".DS_Store"))
+    assert not ds_store, f"junk files in wiki: {ds_store}"
+    # The Desktop-specific index.html should not be in the public copy
+    assert not (wiki / "index.html").exists()
 
 
 # ---------------------------------------------------------------------------
