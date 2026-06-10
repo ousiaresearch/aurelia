@@ -1,0 +1,731 @@
+- id: world
+  name: World
+  status: simulated
+  summary: "One of Aurelia's five abstract simulation arenas: arkos, mirithane, solara, valdris, or verge."
+  wiki_paths:
+    - ~/Desktop/Aurelia/README.md
+    - ~/Desktop/Aurelia/geography/overview.md
+  code_paths:
+    - aurelia_factory.py
+    - src_template/world_state.py
+    - src_template/federation_orchestrator.py
+  sqlite_tables:
+    - per_world.sqlite.world_state
+    - per_world.sqlite.civilization_metrics
+    - federation.runs
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+    - OusiaResearch/aurelia-causal-events
+    - OusiaResearch/aurelia-npc-population
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+    - /public/aurelia/runs
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+    - docs/ARCHITECTURE.md
+  notes:
+    - Public repo now frames worlds as abstract topologies rather than real-world maps.
+
+- id: npc
+  name: NPC
+  status: simulated
+  summary: "Procedural inhabitant tracked through agent rows, events, movement, deaths, and exported population snapshots."
+  wiki_paths:
+    - ~/Desktop/Aurelia/simulation/npc-registry.md
+    - ~/Desktop/Aurelia/simulation/simulation-architecture.md
+  code_paths:
+    - populate_npcs.py
+    - src_template/npc_generation.py
+    - src_template/npc_ai.py
+    - src_template/world_state.py
+  sqlite_tables:
+    - agents
+    - demographic_events
+    - causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-npc-population
+    - OusiaResearch/aurelia-causal-events
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+    - /public/aurelia/runs
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: human
+  name: Human
+  status: partial
+  summary: "Legacy/species identity from the wiki and NPC generator; present in population records but not yet a central Phase 11 analytic axis."
+  wiki_paths:
+    - ~/Desktop/Aurelia/types/human.md
+    - ~/Desktop/Aurelia/types/design-sheets/human.md
+  code_paths:
+    - populate_npcs.py
+    - src_template/npc_generation.py
+  sqlite_tables:
+    - agents
+  hf_datasets:
+    - OusiaResearch/aurelia-npc-population
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/AURELIA_CANON_AND_DATA_GUIDE.md
+
+- id: thren
+  name: Thren
+  status: partial
+  summary: "Bio-synthetic people from the lore; represented in NPC generation/population but not yet exposed as a dedicated research slice."
+  wiki_paths:
+    - ~/Desktop/Aurelia/types/thren.md
+    - ~/Desktop/Aurelia/types/design-sheets/thren.md
+  code_paths:
+    - populate_npcs.py
+    - src_template/npc_generation.py
+  sqlite_tables:
+    - agents
+  hf_datasets:
+    - OusiaResearch/aurelia-npc-population
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/AURELIA_CANON_AND_DATA_GUIDE.md
+
+- id: vorn
+  name: Vorn
+  status: partial
+  summary: "Mechanical people from the lore; represented in NPC generation/population but not yet a full causal analysis dimension."
+  wiki_paths:
+    - ~/Desktop/Aurelia/types/vorn.md
+    - ~/Desktop/Aurelia/types/design-sheets/vorn.md
+  code_paths:
+    - populate_npcs.py
+    - src_template/npc_generation.py
+  sqlite_tables:
+    - agents
+  hf_datasets:
+    - OusiaResearch/aurelia-npc-population
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/AURELIA_CANON_AND_DATA_GUIDE.md
+
+- id: glim
+  name: Glim
+  status: partial
+  summary: "Mass-produced autonomous units from the lore; population identity exists, but awakening/anomaly dynamics remain partial/planned."
+  wiki_paths:
+    - ~/Desktop/Aurelia/types/glim.md
+    - ~/Desktop/Aurelia/lore/glim-narrative.md
+  code_paths:
+    - populate_npcs.py
+    - src_template/npc_generation.py
+  sqlite_tables:
+    - agents
+  hf_datasets:
+    - OusiaResearch/aurelia-npc-population
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/AURELIA_CANON_AND_DATA_GUIDE.md
+
+- id: faction
+  name: Faction
+  status: simulated
+  summary: "Organized political/social group formed from grievances and recorded in world tables and reports."
+  wiki_paths:
+    - ~/Desktop/Aurelia/factions/overview.md
+  code_paths:
+    - src_template/factions.py
+    - src_template/phase10_dynamics.py
+    - src_template/yearly_report.py
+  sqlite_tables:
+    - factions
+    - causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-causal-events
+    - OusiaResearch/aurelia-civilization-metrics
+  cloudflare_surface:
+    - /public/aurelia/runs
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+  notes:
+    - Phase 12 quality gates should warn when factions remain zero across long runs.
+
+- id: institution
+  name: Institution
+  status: simulated
+  summary: "Durable governance/social structure affecting state capacity, property rights, and macro resilience."
+  wiki_paths:
+    - ~/Desktop/Aurelia/governance.md
+  code_paths:
+    - src_template/institutions.py
+    - src_template/phase10_dynamics.py
+  sqlite_tables:
+    - institutions
+    - civilization_metrics
+    - causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+    - OusiaResearch/aurelia-causal-events
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/analysis/2026-06-08-aurelia-causal-gaps-deep-dive.md
+
+- id: regime
+  name: Regime
+  status: simulated
+  summary: "Political regime or transition path tracked through regime events, institutions, and macro state variables."
+  wiki_paths:
+    - ~/Desktop/Aurelia/governance.md
+  code_paths:
+    - src_template/regime.py
+    - src_template/phase10_dynamics.py
+  sqlite_tables:
+    - regime_events
+    - civilization_metrics
+    - causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+    - OusiaResearch/aurelia-causal-events
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/plans/2026-06-08-phase9-positive-sum-dynamics.md
+
+- id: education
+  name: Education
+  status: simulated
+  summary: "Macro civilization indicator updated by Phase 10 dynamics and exported as a time-series field."
+  wiki_paths:
+    - ~/Desktop/Aurelia/education.md
+    - ~/Desktop/Aurelia/education/overview.md
+  code_paths:
+    - src_template/phase10_dynamics.py
+    - src_template/macro_dynamics.py
+  sqlite_tables:
+    - civilization_metrics
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: urbanization
+  name: Urbanization
+  status: simulated
+  summary: "Macro civilization indicator representing urban share/settlement concentration over ticks."
+  wiki_paths:
+    - ~/Desktop/Aurelia/geography/locations.md
+  code_paths:
+    - src_template/phase10_dynamics.py
+    - src_template/macro_dynamics.py
+  sqlite_tables:
+    - civilization_metrics
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: disease_pressure
+  name: Disease pressure
+  status: simulated
+  summary: "Macro health/ecology pressure that evolves by world and affects civilization trajectories."
+  wiki_paths:
+    - ~/Desktop/Aurelia/medicine/disease.md
+    - ~/Desktop/Aurelia/medicine-comprehensive.md
+  code_paths:
+    - src_template/phase10_dynamics.py
+    - src_template/ecology.py
+  sqlite_tables:
+    - civilization_metrics
+    - causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+    - OusiaResearch/aurelia-causal-events
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: resource_stock
+  name: Resource stock
+  status: simulated
+  summary: "Aggregate resource availability and ecological/economic substrate for macro dynamics."
+  wiki_paths:
+    - ~/Desktop/Aurelia/trade-economy.md
+    - ~/Desktop/Aurelia/flora-agriculture.md
+  code_paths:
+    - src_template/phase10_dynamics.py
+    - src_template/economy.py
+    - src_template/ecology.py
+  sqlite_tables:
+    - civilization_metrics
+    - resources
+    - causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+    - OusiaResearch/aurelia-causal-events
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: property_rights
+  name: Property rights
+  status: simulated
+  summary: "Macro institutional indicator used to model economic security and state/citizen relations."
+  wiki_paths:
+    - ~/Desktop/Aurelia/governance.md
+    - ~/Desktop/Aurelia/crime-and-legal/legal-systems.md
+  code_paths:
+    - src_template/phase10_dynamics.py
+    - src_template/institutions.py
+  sqlite_tables:
+    - civilization_metrics
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: state_capacity_type
+  name: State capacity type
+  status: simulated
+  summary: "Categorical government capacity state such as patrimonial, prebendal, or bureaucratic."
+  wiki_paths:
+    - ~/Desktop/Aurelia/governance.md
+  code_paths:
+    - src_template/phase10_dynamics.py
+    - src_template/institutions.py
+  sqlite_tables:
+    - civilization_metrics
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: repression_type
+  name: Repression type
+  status: simulated
+  summary: "Categorical coercion/control mode exported as part of civilization metrics."
+  wiki_paths:
+    - ~/Desktop/Aurelia/governance.md
+    - ~/Desktop/Aurelia/crime-and-legal/crime-and-punishment.md
+  code_paths:
+    - src_template/phase10_dynamics.py
+    - src_template/regime.py
+  sqlite_tables:
+    - civilization_metrics
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: conflict_type
+  name: Conflict type
+  status: simulated
+  summary: "Categorical conflict state such as latent, insurgency, or civil war."
+  wiki_paths:
+    - ~/Desktop/Aurelia/warfare.md
+    - ~/Desktop/Aurelia/war-and-military/overview.md
+  code_paths:
+    - src_template/escalation_ladder.py
+    - src_template/phase10_dynamics.py
+  sqlite_tables:
+    - civilization_metrics
+    - causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+    - OusiaResearch/aurelia-causal-events
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: migration
+  name: Migration
+  status: simulated
+  summary: "Cross-world movement of NPCs/populations caused by pressure, opportunity, and density-balancing dynamics."
+  wiki_paths:
+    - ~/Desktop/Aurelia/geography/locations.md
+  code_paths:
+    - src_template/phase10_dynamics.py
+    - src_template/federation_orchestrator.py
+    - src_template/federation_effects.py
+  sqlite_tables:
+    - federation.cross_world_movements
+    - agents
+    - causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-federation-causal
+    - OusiaResearch/aurelia-npc-population
+    - OusiaResearch/aurelia-causal-events
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+    - /public/aurelia/runs
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: cultural_diffusion
+  name: Cultural diffusion
+  status: simulated
+  summary: "Cross-world adoption/resistance of cultural traits and norms."
+  wiki_paths:
+    - ~/Desktop/Aurelia/arts-and-culture/literature-and-story.md
+  code_paths:
+    - src_template/cultural_diffusion.py
+    - src_template/federation_orchestrator.py
+  sqlite_tables:
+    - federation.diffusion_events
+    - federation.causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-federation-causal
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: diplomacy
+  name: Diplomacy
+  status: simulated
+  summary: "Cross-world relations, strategies, treaties, and trust accumulation."
+  wiki_paths:
+    - ~/Desktop/Aurelia/diplomatic-matrix.md
+  code_paths:
+    - aurelia_diplomacy.py
+    - src_template/federation_diplomacy.py
+    - src_template/federation_orchestrator.py
+  sqlite_tables:
+    - federation.diplomatic_relations
+    - federation.causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-federation-causal
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/diplomatic-matrix.md
+    - docs/reports/phase11-runs-comparison.md
+
+- id: cross_world_effect
+  name: Cross-world effect
+  status: simulated
+  summary: "Scheduled/imported federation-level effect that carries causality between worlds."
+  wiki_paths:
+    - ~/Desktop/Aurelia/simulation/event-triggers.md
+  code_paths:
+    - src_template/federation_effects.py
+    - src_template/federation_orchestrator.py
+  sqlite_tables:
+    - federation.causal_events
+    - federation.causal_edges
+    - federation.cross_world_movements
+  hf_datasets:
+    - OusiaResearch/aurelia-federation-causal
+    - OusiaResearch/aurelia-causal-events
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+    - /public/aurelia/runs
+  proof_artifacts:
+    - docs/ARCHITECTURE.md
+    - docs/reports/phase11-runs-comparison.md
+
+- id: discovery
+  name: Discovery
+  status: simulated
+  summary: "Innovation or breakthrough event that changes local or cross-world dynamics."
+  wiki_paths:
+    - ~/Desktop/Aurelia/technology.md
+  code_paths:
+    - src_template/discovery.py
+    - src_template/phase10_dynamics.py
+  sqlite_tables:
+    - discoveries
+    - causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-causal-events
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: great_person
+  name: Great person
+  status: simulated
+  summary: "Emergent historical actor linked to discontinuous breakthroughs or institutional changes."
+  wiki_paths:
+    - ~/Desktop/Aurelia/mythology/legendary-figures.md
+  code_paths:
+    - src_template/great_persons.py
+    - src_template/phase10_dynamics.py
+  sqlite_tables:
+    - great_persons
+    - causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-causal-events
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+
+- id: causal_event
+  name: Causal event
+  status: simulated
+  summary: "First-class event node written by micro, meso, macro, and federation systems."
+  wiki_paths:
+    - ~/Desktop/Aurelia/simulation/simulation-architecture.md
+  code_paths:
+    - src_template/causal_ledger.py
+    - src_template/phase10_dynamics.py
+    - scripts/export_hf_dataset.py
+  sqlite_tables:
+    - causal_events
+    - federation.causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-causal-events
+    - OusiaResearch/aurelia-federation-causal
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/ARCHITECTURE.md
+    - docs/reports/phase11-runs-comparison.md
+
+- id: causal_edge
+  name: Causal edge
+  status: simulated
+  summary: "Directed relation between parent and child causal events."
+  wiki_paths:
+    - ~/Desktop/Aurelia/simulation/simulation-architecture.md
+  code_paths:
+    - src_template/causal_ledger.py
+    - scripts/export_causal_graph.py
+    - scripts/explain_event.py
+  sqlite_tables:
+    - causal_edges
+    - federation.causal_edges
+  hf_datasets:
+    - OusiaResearch/aurelia-federation-causal
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/examples/phase11-solara-graph.json
+    - docs/reports/phase11-runs-comparison.md
+
+- id: counterfactual_branch
+  name: Counterfactual branch
+  status: simulated
+  summary: "Deterministic branch over a baseline run where an intervention is applied and deltas are compared."
+  wiki_paths: []
+  code_paths:
+    - src_template/counterfactuals.py
+    - scripts/run_counterfactual.py
+    - scripts/compare_runs.py
+  sqlite_tables:
+    - causal_events
+    - civilization_metrics
+    - agents
+  hf_datasets:
+    - OusiaResearch/aurelia-causal-events
+    - OusiaResearch/aurelia-civilization-metrics
+    - OusiaResearch/aurelia-npc-population
+  cloudflare_surface: []
+  proof_artifacts:
+    - configs/interventions/solara_federation_aid_early.json
+    - tests/test_counterfactuals.py
+
+- id: density_diversification
+  name: Density diversification
+  status: simulated
+  summary: "Migration-balancing knob that reduces cross-world population concentration by moving pressure toward underpopulated worlds."
+  wiki_paths: []
+  code_paths:
+    - src_template/federation_orchestrator.py
+    - src_template/phase10_dynamics.py
+  sqlite_tables:
+    - federation.cross_world_movements
+    - agents
+    - civilization_metrics
+  hf_datasets:
+    - OusiaResearch/aurelia-civilization-metrics
+    - OusiaResearch/aurelia-npc-population
+    - OusiaResearch/aurelia-federation-causal
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+    - /public/aurelia/runs
+  proof_artifacts:
+    - docs/reports/phase11-runs-comparison.md
+    - tests/test_density_diversification.py
+  notes:
+    - Phase 11 density run reduced population coefficient of variation from 0.674 to 0.006.
+
+- id: glim_anomaly
+  name: Glim anomaly / awakening
+  status: planned
+  summary: "Central philosophical lore mechanic for Glims showing curiosity or awakening; not yet sufficiently represented as a Phase 11 causal mechanism."
+  wiki_paths:
+    - ~/Desktop/Aurelia/lore/glim-narrative.md
+    - ~/Desktop/Aurelia/public/faq.md
+  code_paths:
+    - populate_npcs.py
+    - src_template/npc_generation.py
+  sqlite_tables:
+    - agents
+  hf_datasets:
+    - OusiaResearch/aurelia-npc-population
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/plans/2026-06-10-aurelia-gap-closure-plan.md
+  notes:
+    - Treat as planned/partial until anomaly events become causal rows and quality-gated outputs.
+
+- id: yearly_report
+  name: Yearly report
+  status: simulated
+  summary: "Human-readable yearly chronicle generated from run data and summary artifacts."
+  wiki_paths:
+    - ~/Desktop/Aurelia/simulation/simulation-architecture.md
+  code_paths:
+    - src_template/yearly_report.py
+    - scripts/render_run_report.py
+  sqlite_tables:
+    - causal_events
+    - civilization_metrics
+  hf_datasets:
+    - OusiaResearch/aurelia-causal-events
+    - OusiaResearch/aurelia-civilization-metrics
+  cloudflare_surface:
+    - /public/aurelia/dashboard
+  proof_artifacts:
+    - docs/reports/phase11-100y-report.md
+    - docs/reports/phase11-200y-report.md
+    - docs/reports/phase11-density-100y-report.md
+
+- id: run_quality
+  name: Run quality evaluation
+  status: partial
+  summary: "Scoring layer for causal, civilization, federation, and narrative richness; currently needs stricter pathology gates."
+  wiki_paths: []
+  code_paths:
+    - scripts/evaluate_run_quality.py
+    - scripts/aurelia_run_inspect.py
+  sqlite_tables:
+    - causal_events
+    - causal_edges
+    - civilization_metrics
+    - federation.cross_world_movements
+    - federation.diffusion_events
+  hf_datasets:
+    - OusiaResearch/aurelia-causal-events
+    - OusiaResearch/aurelia-civilization-metrics
+    - OusiaResearch/aurelia-federation-causal
+  cloudflare_surface: []
+  proof_artifacts:
+    - docs/reports/phase11-100y-quality.json
+    - docs/reports/phase11-200y-quality.json
+    - docs/reports/phase11-density-100y-quality.json
+  notes:
+    - Phase 12 should prevent perfect scores on pathological runs.
+
+- id: cloudflare_observatory
+  name: Cloudflare observatory
+  status: partial
+  summary: "Public dashboard and JSON plane exposing snapshots, counts, causal rows, and run metadata; long-run completeness is limited by D1 capacity."
+  wiki_paths: []
+  code_paths:
+    - aurelia_cf_pusher.py
+    - ~/.hermes/profiles/palantir/cf-worker/
+  sqlite_tables:
+    - D1.aurelia_worlds
+    - D1.aurelia_runs
+    - D1.aurelia_causal_events
+    - D1.aurelia_causal_edges
+  hf_datasets: []
+  cloudflare_surface:
+    - /public/aurelia/observatory
+    - /public/aurelia/dashboard
+    - /public/aurelia/runs
+  proof_artifacts:
+    - docs/DEMO.md
+    - docs/ARCHITECTURE.md
+  notes:
+    - Public Worker requires a browser-like User-Agent for anonymous fetches.
+
+- id: huggingface_export
+  name: HuggingFace export
+  status: simulated
+  summary: "Offline Parquet export pipeline that publishes Aurelia run artifacts as four research datasets."
+  wiki_paths: []
+  code_paths:
+    - scripts/export_hf_dataset.py
+    - scripts/render_hf_readme.py
+  sqlite_tables:
+    - causal_events
+    - causal_edges
+    - civilization_metrics
+    - agents
+    - federation.causal_events
+  hf_datasets:
+    - OusiaResearch/aurelia-causal-events
+    - OusiaResearch/aurelia-civilization-metrics
+    - OusiaResearch/aurelia-federation-causal
+    - OusiaResearch/aurelia-npc-population
+  cloudflare_surface: []
+  proof_artifacts:
+    - docs/HUGGINGFACE_PUBLISH.md
+    - tests/test_hf_export.py
+
+- id: single_landmass_old_canon
+  name: Single-landmass old canon
+  status: stale
+  summary: "Older public/wiki framing that described Aurelia as a single landmass partitioned into five countries; current public repo emphasizes abstract worlds/topologies."
+  wiki_paths:
+    - ~/Desktop/Aurelia/README.md
+    - ~/Desktop/Aurelia/media/media-kit.md
+  code_paths: []
+  sqlite_tables: []
+  hf_datasets: []
+  cloudflare_surface: []
+  proof_artifacts:
+    - docs/plans/2026-06-10-aurelia-gap-closure-plan.md
+  notes:
+    - Do not resolve without wiki reconciliation review.
+
+- id: ttrpg_assets_old_canon
+  name: TTRPG-adjacent old canon assets
+  status: archived
+  summary: "Older playable/adventure/equipment docs that should remain historical/internal unless the user explicitly asks for TTRPG content."
+  wiki_paths:
+    - ~/Desktop/Aurelia/playable-types.md
+    - ~/Desktop/Aurelia/adventure-hooks.md
+    - ~/Desktop/Aurelia/equipment.md
+  code_paths: []
+  sqlite_tables: []
+  hf_datasets: []
+  cloudflare_surface: []
+  proof_artifacts:
+    - docs/plans/2026-06-10-aurelia-gap-closure-plan.md
+  notes:
+    - Mark for review only; do not edit Desktop wiki in this canon-bridge pass.
+
+- id: public_branding
+  name: Public branding
+  status: partial
+  summary: "Ousia Research / Risomorphism / Nous-v9-derived public presentation layer for posts, promo images, and dataset launch materials."
+  wiki_paths:
+    - ~/Desktop/Aurelia/media/media-kit.md
+  code_paths: []
+  sqlite_tables: []
+  hf_datasets: []
+  cloudflare_surface: []
+  proof_artifacts:
+    - docs/social/aurelia-hf-dataset-posts.md
+    - docs/assets/hf-promo/README.md
+    - docs/assets/hf-promo-v2/README.md
