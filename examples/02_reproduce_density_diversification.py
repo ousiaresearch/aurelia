@@ -34,12 +34,13 @@ if str(_REPO) not in sys.path:
 from examples import aurelia_dataset_loader as loader  # noqa: E402
 
 # Fallback numbers from docs/reports/phase11-runs-comparison.md
+# Metric: count of NPCs with final_state == "active" in each world at run end.
 FALLBACK_POPULATIONS: dict[str, dict[str, int]] = {
     "phase11-100y": {
         "solara": 171,
-        "arkos": 29,
+        "arkos": 58,
         "mirithane": 63,
-        "valdris": 58,
+        "valdris": 29,
         "verge": 49,
     },
     "phase11-density-100y": {
@@ -74,11 +75,15 @@ def coefficient_of_variation(values: Iterable[int | float]) -> float:
 # ---------------------------------------------------------------------------
 
 def _world_populations_from_export(run: str, root: Path) -> Optional[dict[str, int]]:
-    """Count npc-population rows per world for ``run`` if the export is local.
+    """Count *active* npc-population rows per world for ``run`` if the export is local.
 
-    Returns ``None`` if any expected file is missing. The published metric
-    is "count of NPCs whose final state is alive in this world at run end";
-    row count of the partitioned parquet is a stable proxy.
+    The published metric is "count of NPCs whose ``final_state`` is ``active`` in
+    this world at run end" — i.e., still alive and present in-world. Filtering by
+    ``final_state`` is what reproduces the headline 99.1% reduction; row counts
+    of the partitioned parquet (which include ``emigrated`` and ``deceased``)
+    produce a much smaller and less meaningful CV.
+
+    Returns ``None`` if any expected file is missing.
     """
     import pyarrow.parquet as pqlib
     base = root / "aurelia-npc-population" / "data" / run
@@ -89,8 +94,8 @@ def _world_populations_from_export(run: str, root: Path) -> Optional[dict[str, i
         pq = base / world / "train.parquet"
         if not pq.exists():
             return None
-        table = pqlib.read_table(pq, columns=["npc_id"])
-        out[world] = len(table)
+        table = pqlib.read_table(pq, columns=["final_state"])
+        out[world] = sum(1 for s in table.column("final_state").to_pylist() if s == "active")
     return out
 
 
@@ -162,10 +167,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     if source_kind == "fallback":
         print("Numbers above are the published canonical values.")
     else:
-        print("Local-export numbers above are computed from the partitioned npc-population")
-        print("dataset; the small difference vs. the 99.1% headline reflects the metric used")
-        print("(row count of partitioned parquets vs. the run-end alive population recorded")
-        print("in docs/reports/phase11-runs-comparison.md).")
+        print("Local-export numbers above are computed from npc-population rows where")
+        print("final_state == 'active' (i.e., NPCs still alive and present in-world at")
+        print("run end). This is the metric that reproduces the 99.1% headline.")
     print("\nSee docs/reports/phase11-runs-comparison.md for context.")
     return 0
 

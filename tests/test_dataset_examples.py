@@ -107,8 +107,8 @@ def test_load_hf_datasets_main_runs_against_local_export(tmp_path, capsys):
 
 def test_density_diversification_example_exposes_cv_function():
     mod = load_example("02_reproduce_density_diversification")
-    # Plan-mandated assertions
-    assert round(mod.coefficient_of_variation([171, 29, 63, 58, 49]), 3) == 0.674
+    # Plan-mandated assertions (baseline-vs-density active NPC counts)
+    assert round(mod.coefficient_of_variation([171, 58, 63, 29, 49]), 3) == 0.674
     assert round(mod.coefficient_of_variation([67, 67, 67, 67, 66]), 3) == 0.006
 
 
@@ -207,14 +207,14 @@ def _make_fake_export(root: Path) -> Path:
         data_dir = ds_dir / "data" / "phase11-100y"
         data_dir.mkdir(parents=True, exist_ok=True)
         if ds == "aurelia-npc-population":
-            # Per-world populations engineered to mirror the baseline-vs-density result:
-            # one world is heavy (Solara), the rest are sparse.
+            # Per-world active-NPC counts engineered to mirror the headline
+            # baseline-vs-density result (filter by final_state == "active").
             tables = {
-                "solara": pa.table({"npc_id": [f"solara_{i}" for i in range(171)]}),
-                "arkos": pa.table({"npc_id": [f"arkos_{i}" for i in range(29)]}),
-                "mirithane": pa.table({"npc_id": [f"mirithane_{i}" for i in range(63)]}),
-                "valdris": pa.table({"npc_id": [f"valdris_{i}" for i in range(58)]}),
-                "verge": pa.table({"npc_id": [f"verge_{i}" for i in range(49)]}),
+                "solara": pa.table({"npc_id": [f"solara_{i}" for i in range(171)], "final_state": ["active"] * 171}),
+                "arkos": pa.table({"npc_id": [f"arkos_{i}" for i in range(58)], "final_state": ["active"] * 58}),
+                "mirithane": pa.table({"npc_id": [f"mirithane_{i}" for i in range(63)], "final_state": ["active"] * 63}),
+                "valdris": pa.table({"npc_id": [f"valdris_{i}" for i in range(29)], "final_state": ["active"] * 29}),
+                "verge": pa.table({"npc_id": [f"verge_{i}" for i in range(49)], "final_state": ["active"] * 49}),
             }
         elif ds == "aurelia-causal-events":
             tables = {
