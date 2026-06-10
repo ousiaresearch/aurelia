@@ -23,6 +23,7 @@ if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
 from examples import aurelia_dataset_loader as loader  # noqa: E402
+import pyarrow as pa  # noqa: E402
 
 
 HF_FALLBACK = """\
@@ -55,6 +56,11 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="Local export root (default: /tmp/hf-export)",
     )
     p.add_argument(
+        "--sqlite-root",
+        default=str(loader.DEFAULT_SQLITE_ROOT),
+        help="Local SQLite smoke-run root (default: /tmp)",
+    )
+    p.add_argument(
         "--max-columns",
         type=int,
         default=8,
@@ -63,26 +69,40 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = p.parse_args(argv)
 
     root = Path(args.export_root)
+    sqlite_root = Path(args.sqlite_root)
     if not root.exists():
         print(HF_FALLBACK.format(root=root))
         return 0
 
+    sqlite_dir = loader._latest_sqlite_run(sqlite_root)
+    parquet_paths = loader.discover_local_parquet_files(root)
     rows: list[list[str]] = []
     for ds in loader.DATASETS:
+        ds_parquet = parquet_paths.get(ds, [])
         try:
-            table = loader.load_local_table(ds, root)
+            if ds_parquet:
+                table = loader.load_local_table(ds, root)
+                src = "parquet"
+            elif sqlite_dir is not None:
+                table = loader.load_local_table_from_sqlite(ds, sqlite_dir)
+                src = f"sqlite:{sqlite_dir.name}"
+            else:
+                table = pa.table({})
+                src = "missing"
         except Exception as exc:  # pragma: no cover — defensive
             rows.append([ds, "ERROR", "-", str(exc)[:40]])
             continue
-        files = len(loader.discover_local_parquet_files(root).get(ds, []))
         cols = ", ".join(table.column_names[: args.max_columns])
         if len(table.column_names) > args.max_columns:
             cols += f"… (+{len(table.column_names) - args.max_columns})"
-        rows.append([ds, str(len(table)), str(files), cols])
+        rows.append([ds, str(len(table)), src, cols])
 
     print("Aurelia datasets — local export summary")
-    print(f"  export root: {root}\n")
-    print(_render_table(["dataset", "rows", "files", "columns"], rows))
+    print(f"  export root: {root}")
+    if sqlite_dir is not None:
+        print(f"  sqlite fallback: {sqlite_dir}")
+    print()
+    print(_render_table(["dataset", "rows", "source", "columns"], rows))
     print("\nDatasets are published under https://huggingface.co/OusiaResearch/")
     print("See docs/AURELIA_RESEARCH_START_HERE.md for next steps.")
     return 0
