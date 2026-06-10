@@ -53,11 +53,11 @@ Preferred:
 
 Avoid:
 
-- “Aurelia has exactly 600 NPCs.”
-- “Aurelia has exactly 60,000 NPCs.”
-- “All five daemons are currently live.”
+- fixed NPC counts without a specific run or dataset citation;
+- live-daemon claims without same-day verification;
+- any public copy that implies one historical experiment is the permanent scale of Aurelia.
 
-Unless those claims are tied to a verified run/report at publication time.
+Quantitative claims should be tied to a verified run/report at publication time.
 
 ---
 
