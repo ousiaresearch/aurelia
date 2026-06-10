@@ -8,11 +8,41 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import random
 import sqlite3
+import subprocess
 import time
 from pathlib import Path
 from typing import Iterable
+
+
+# ---------------------------------------------------------------------------
+# Engine identity (exposed for the run manifest)
+# ---------------------------------------------------------------------------
+
+ENGINE_VERSION = "aurelia-phase12"
+
+
+def _git_commit() -> str:
+    """Return the current short git commit hash, or ``"unknown"`` if not in a repo."""
+    try:
+        out = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            timeout=2.0,
+        )
+        return out.decode().strip()
+    except Exception:
+        return "unknown"
+
+
+GIT_COMMIT = _git_commit()
+
+
+def make_run_id(label: str, years: int, ticks_per_year: int, seed: int) -> str:
+    """Construct a deterministic run id from the manifest fields."""
+    return f"{label}-y{years}-tpy{ticks_per_year}-seed{seed}-{GIT_COMMIT}"
 
 try:
     from . import (
@@ -251,14 +281,14 @@ def run_causal_simulation(
         macro_baseline = profile.get("macro_baseline", {})
         resilience = profile.get("resilience", {})
         migration = profile.get("migration", {})
-        seed = {
+        cultural_seed = {
             "openness_to_trade": migration.get("border_friction", 0.5),
             "institutional_memory": resilience.get("shock_absorption", 0.5),
             "xenophobia": 1.0 - migration.get("refugee_tolerance", 0.5),
             "innovation_culture": resilience.get("recovery_rate", 0.01) * 10.0,
             "governance_norms": macro_baseline.get("legitimacy", 0.5),
         }
-        cultural_diffusion.seed_traits(fed, world_id, seed)
+        cultural_diffusion.seed_traits(fed, world_id, cultural_seed)
     for a in worlds:
         for b in worlds:
             if a != b:
@@ -331,6 +361,16 @@ def run_causal_simulation(
         "worlds": world_summaries,
         "years": years,
         "ticks": total_ticks,
+        "ticks_per_year": ticks_per_year,
+        "seed": seed,
+        "density_diversification": density_diversification,
+        "max_interactions": max_interactions,
+        "birth_scale": birth_scale,
+        "death_scale": death_scale,
+        "engine_version": ENGINE_VERSION,
+        "git_commit": GIT_COMMIT,
+        "run_id": make_run_id("aurelia", years, ticks_per_year, seed),
+        "created_at": time.time(),
         "effects_scheduled": effects_scheduled,
         "effects_imported": effects_imported,
         "yearly_reports": yearly_reports,
