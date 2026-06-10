@@ -70,6 +70,8 @@ PY
 
 Cloudflare upload requires the local operator secret at `~/.hermes/profiles/palantir/cf-worker/.secret`. Do not put that secret in the repo.
 
+**Note on D1 cap:** the Worker runs on the D1 Free plan (500MB cap). For long runs, the cap can cause partial movement/diffusion ingestion. The local Parquet export and the HuggingFace datasets are the complete research archive. See `docs/ARCHITECTURE.md` and `docs/reports/public-surface-reconciliation.md` for the exact status of each surface.
+
 ```bash
 PYTHONPATH=. python aurelia_cf_pusher.py
 ```
