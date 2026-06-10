@@ -65,6 +65,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "payload for type-specific deltas. The causal graph is reconstructed "
             "from the separate federation_causal dataset."
         ),
+        "related_examples": ["01_load_aurelia_hf_datasets", "03_trace_causal_chain"],
         "schema": [
             ("run_id", "string", "Run label (e.g. phase11-100y)"),
             ("event_id", "string", "Globally unique event id (primary key)"),
@@ -99,6 +100,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "one world. A natural input for time-series forecasting, regime "
             "classification, and path-dependence analyses."
         ),
+        "related_examples": ["01_load_aurelia_hf_datasets", "02_reproduce_density_diversification"],
         "schema": [
             ("run_id", "string", "Run label (e.g. phase11-100y)"),
             ("world_id", "string", "World id (arkos, mirithane, solara, valdris, verge)"),
@@ -133,6 +135,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "diplomatic relations across the five Aurelian worlds. Edges are "
             "filtered to the federation events in this run."
         ),
+        "related_examples": ["01_load_aurelia_hf_datasets", "03_trace_causal_chain"],
         "schema": [
             ("events.event_id", "string", "Federation event id (primary key)"),
             ("events.tick_number", "int64", "Simulation tick"),
@@ -165,6 +168,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
             "birth, migration, household, and demographic metadata. Useful for "
             "agent-level demography, mortality, and migration studies."
         ),
+        "related_examples": ["01_load_aurelia_hf_datasets", "02_reproduce_density_diversification"],
         "schema": [
             ("run_id", "string", "Run label (e.g. phase11-100y)"),
             ("npc_id", "string", "Globally unique NPC id (primary key)"),
@@ -246,6 +250,28 @@ def render(dataset: str, export_root: Path, run_label: str = "") -> str:
         n = sum(c.values())
         run_rows.append(f"| `{r}` | {n:,} | {', '.join(f'{k}={v:,}' for k,v in c.items())} |")
     run_table = "\n".join(run_rows) if run_rows else "_(no runs exported)_"
+
+    # Related examples (F1)
+    related = info.get("related_examples", [])
+    related_block = ""
+    if related:
+        lines = ["## Reproducible research examples", ""]
+        lines.append("Three runnable scripts in the [Aurelia repository](https://github.com/ousiaresearch/aurelia) "
+                     "let you inspect this dataset end-to-end. Start with [AURELIA_RESEARCH_START_HERE.md]("
+                     "https://github.com/ousiaresearch/aurelia/blob/main/docs/AURELIA_RESEARCH_START_HERE.md).")
+        lines.append("")
+        for ex in related:
+            lines.append(f"- `examples/{ex}.py`")
+        related_block = "\n".join(lines) + "\n"
+
+    # Canon bridge (F1)
+    canon_block = (
+        "## Concept bridge\n\n"
+        "Every concept in this dataset is mapped across wiki, code, table, and "
+        "proof artifact in [AURELIA_CANON_AND_DATA_GUIDE.md](https://github.com/ousiaresearch/aurelia/blob/main/docs/AURELIA_CANON_AND_DATA_GUIDE.md). "
+        "If you want to know which simulator module produced a row, or which "
+        "proof artifact exercises it, the canon bridge is the index.\n"
+    )
 
     # Schema table
     schema_rows = ["| column | type | description |", "|---|---|---|"]
@@ -345,6 +371,7 @@ To load a specific run, point `data_files` at the run's directory.
 ```python
 {load_snippet}```
 
+{related_block}{canon_block}
 ## Run provenance map
 
 Each `run_id` corresponds to a deterministic Aurelia simulation with a specific

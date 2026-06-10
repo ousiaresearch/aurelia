@@ -75,6 +75,19 @@ All four datasets are released under **CC-BY-4.0**. Synthetic data, no
 privacy concerns, and CC-BY-4.0 is the most permissive standard HF license for
 synthetic corpora.
 
+## Research on-ramp for HF users
+
+Before the export pipeline: researchers should start with the
+[Aurelia research start-here guide](https://github.com/ousiaresearch/aurelia/blob/main/docs/AURELIA_RESEARCH_START_HERE.md)
+and the three runnable examples:
+
+- `examples/01_load_aurelia_hf_datasets.py` — load all four datasets and print row counts
+- `examples/02_reproduce_density_diversification.py` — reproduce the 99.1% population-CV reduction
+- `examples/03_trace_causal_chain.py` — trace a causal chain from the federation graph
+
+Each dataset's HF README links back to the examples and to the
+[canon bridge](https://github.com/ousiaresearch/aurelia/blob/main/docs/AURELIA_CANON_AND_DATA_GUIDE.md).
+
 ## Reproducing the exports
 
 ```bash

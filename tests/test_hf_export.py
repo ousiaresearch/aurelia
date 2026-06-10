@@ -321,6 +321,55 @@ def test_all_four_datasets_have_schema():
             assert desc
 
 
+# ── F1 — README links to research guide and examples ──────────────────────
+
+
+def test_render_hf_readme_links_to_research_start_here(tmp_path):
+    fix = _build_fixture(tmp_path)
+    export_root = tmp_path / "export"
+    ds_root = export_root / "aurelia-causal-events"
+    exporter.write_dataset_rows("causal_events", fix, "test_run", "jsonl", ds_root)
+    text = renderer.render("causal_events", export_root)
+    assert "AURELIA_RESEARCH_START_HERE" in text
+    assert "github.com/ousiaresearch/aurelia" in text
+
+
+def test_render_hf_readme_links_to_density_example_for_npc_population(tmp_path):
+    fix = _build_fixture(tmp_path)
+    export_root = tmp_path / "export"
+    ds_root = export_root / "aurelia-npc-population"
+    exporter.write_dataset_rows("npc_population", fix, "test_run", "jsonl", ds_root)
+    text = renderer.render("npc_population", export_root)
+    assert "02_reproduce_density_diversification" in text
+
+
+def test_render_hf_readme_links_to_density_example_for_civilization_metrics(tmp_path):
+    fix = _build_fixture(tmp_path)
+    export_root = tmp_path / "export"
+    ds_root = export_root / "aurelia-civilization-metrics"
+    exporter.write_dataset_rows("civilization_metrics", fix, "test_run", "jsonl", ds_root)
+    text = renderer.render("civilization_metrics", export_root)
+    assert "02_reproduce_density_diversification" in text
+
+
+def test_render_hf_readme_links_to_canon_guide(tmp_path):
+    fix = _build_fixture(tmp_path)
+    export_root = tmp_path / "export"
+    ds_root = export_root / "aurelia-federation-causal"
+    exporter.write_dataset_rows("federation_causal", fix, "test_run", "jsonl", ds_root)
+    text = renderer.render("federation_causal", export_root)
+    assert "AURELIA_CANON_AND_DATA_GUIDE" in text
+
+
+def test_render_hf_readme_links_to_causal_chain_example_for_federation(tmp_path):
+    fix = _build_fixture(tmp_path)
+    export_root = tmp_path / "export"
+    ds_root = export_root / "aurelia-federation-causal"
+    exporter.write_dataset_rows("federation_causal", fix, "test_run", "jsonl", ds_root)
+    text = renderer.render("federation_causal", export_root)
+    assert "03_trace_causal_chain" in text
+
+
 def test_parquet_round_trip_when_pyarrow_available(tmp_path: Path):
     if not HAS_PYARROW:
         pytest.skip("pyarrow not installed in this env")
