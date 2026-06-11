@@ -2,35 +2,34 @@
   "causal_richness": 1.0,
   "civilization_richness": 1.0,
   "counts": {
-    "causal_edges": 152031,
-    "causal_events": 197182,
-    "cross_world_movements": 3629,
+    "causal_edges": 82509,
+    "causal_events": 142178,
+    "cross_world_movements": 1703,
     "diffusion_events": 1200,
     "diplomatic_relations": 10,
-    "discoveries": 68,
-    "great_persons": 19,
-    "max_world_population": 143,
-    "min_world_population": 1,
-    "population_cv": 1.096,
+    "discoveries": 11,
+    "great_persons": 3,
+    "max_world_population": 35,
+    "min_world_population": 3,
+    "population_cv": 0.947,
+    "total_faction_formations": 39,
     "total_factions": 0,
     "worlds": 5,
+    "worlds_with_faction_formations": 5,
     "worlds_with_factions": 0
   },
   "engine_health": 1.0,
   "federation_richness": 1.0,
   "metadata": {
-    "engine_version": null,
-    "git_commit": null,
-    "seed": null,
-    "ticks_per_year": null,
+    "engine_version": "aurelia-phase12",
+    "git_commit": "7b7a96b",
+    "seed": 2002,
+    "ticks_per_year": 6,
     "years": 200
   },
   "narrative_richness": 1.0,
-  "overall_score": 0.8,
+  "overall_score": 0.85,
   "warnings": [
-    "faction formation is absent or sparse (0/5 worlds have active factions; threshold 50%)",
-    "population collapse in valdris (min_world_population=1, years=200)",
-    "population cross-world CV is high (cv=1.096 > 1.0)",
-    "run metadata missing or zeroed: seed missing or zero in causal_summary.json; ticks_per_year missing or zero in causal_summary.json; engine_version missing in causal_summary.json; git_commit missing in causal_summary.json"
+    "faction formation is absent or sparse (0/5 worlds have active factions; threshold 50%)"
   ]
 }

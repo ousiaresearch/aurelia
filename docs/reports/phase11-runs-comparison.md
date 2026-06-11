@@ -1,22 +1,22 @@
 # Aurelia Run Comparison
 
-Side-by-side comparison of completed Aurelia runs. Population stats use the active NPC count from each world's SQLite DB.
+Side-by-side comparison of completed Aurelia runs. Population stats use the active NPC count from each world's SQLite DB. **Post-fix** (2026-06-11, CHANGELOG 0.1.6) — the engine stability work capped four feedback loops, so numbers here are smaller and more honest than the pre-fix baseline.
 
 ## Population balance across the 5 worlds
 
 | run | solara | valdris | mirithane | arkos | verge | mean | stddev | range | cv |
 |---|---|---|---|---|---|---|---|---|---|
-| 100y-baseline | 171 | 29 | 63 | 58 | 49 | 74.0 | 49.9 | 142 | 0.674 |
-| 200y-baseline | 143 | 1 | 12 | 13 | 78 | 49.4 | 54.1 | 142 | 1.096 |
-| density-100y-d07 | 67 | 67 | 67 | 67 | 66 | 66.8 | 0.4 | 1 | 0.006 |
+| 100y-baseline | 21 | 0 | 3 | 30 | 38 | 18.4 | 14.8 | 38 | 0.807 |
+| 200y-baseline | 35 | 4 | 3 | 8 | 12 | 12.4 | 11.7 | 32 | 0.947 |
+| density-100y-d07 | 27 | 28 | 27 | 27 | 27 | 27.2 | 0.4 | 1 | 0.015 |
 
 ## Per-run causal + civilization totals
 
 | run | causal events | causal edges | metric rows | discoveries | great persons | movements | diffusion |
 |---|---|---|---|---|---|---|---|
-| 100y-baseline | 306025 | 129203 | 3000 | 65 | 19 | 3066 | 600 |
-| 200y-baseline | 433012 | 155660 | 6000 | 68 | 19 | 3629 | 1200 |
-| density-100y-d07 | 293267 | 123234 | 3000 | 75 | 22 | 3644 | 600 |
+| 100y-baseline | 92632 | 65133 | 3000 | 16 | 4 | 1479 | 600 |
+| 200y-baseline | 142178 | 82509 | 6000 | 11 | 3 | (see quality.json) | 1200 |
+| density-100y-d07 | 90028 | 63928 | 3000 | 12 | 4 | (see quality.json) | 600 |
 
 ## Civilization metric means (per world, last 5 ticks)
 
@@ -24,39 +24,49 @@ Side-by-side comparison of completed Aurelia runs. Population stats use the acti
 
 | world | avg_education | avg_urbanization | avg_youth_bulge | avg_disease_pressure | avg_resource_stock | avg_property_rights |
 |---|---|---|---|---|---|---|
-| arkos | 0.322 | 0.259 | 0.82 | 0.756 | 0.349 | 0.198 |
-| mirithane | 0.328 | 0.257 | 1.0 | 0.16 | 0.613 | 0.547 |
-| solara | 0.33 | 0.252 | 0.853 | 0.189 | 0.698 | 0.685 |
-| valdris | 0.323 | 0.263 | 1.0 | 0.334 | 0.596 | 0.6 |
-| verge | 0.322 | 0.254 | 0.9 | 0.749 | 0.351 | 0.208 |
+| arkos | 0.319 | 0.258 | 0.922 | 0.602 | 0.431 | 0.349 |
+| mirithane | 0.307 | 0.310 | 0.951 | 0.232 | 0.601 | 0.524 |
+| solara | 0.318 | 0.272 | 0.970 | 0.228 | 0.695 | 0.650 |
+| valdris | 0.310 | 0.279 | 0.939 | 0.536 | 0.471 | 0.356 |
+| verge | 0.315 | 0.270 | 0.927 | 0.605 | 0.429 | 0.239 |
 
 ### 200y-baseline
 
 | world | avg_education | avg_urbanization | avg_youth_bulge | avg_disease_pressure | avg_resource_stock | avg_property_rights |
 |---|---|---|---|---|---|---|
-| arkos | 0.311 | 0.282 | 1.0 | 0.751 | 0.35 | 0.195 |
-| mirithane | 0.307 | 0.25 | 1.0 | 0.074 | 0.685 | 0.554 |
-| solara | 0.33 | 0.252 | 0.799 | 0.07 | 0.949 | 0.689 |
-| valdris | 0.208 | 1.0 | 1.0 | 0.247 | 0.831 | 0.65 |
-| verge | 0.321 | 0.258 | 1.0 | 0.746 | 0.35 | 0.201 |
+| arkos | 0.273 | 0.362 | 0.734 | 0.704 | 0.388 | 0.207 |
+| mirithane | 0.282 | 0.397 | 0.904 | 0.242 | 0.615 | 0.531 |
+| solara | 0.323 | 0.259 | 0.826 | 0.154 | 0.802 | 0.667 |
+| valdris | 0.268 | 0.372 | 0.836 | 0.678 | 0.398 | 0.411 |
+| verge | 0.316 | 0.266 | 0.985 | 0.681 | 0.389 | 0.209 |
 
 ### density-100y-d07
 
 | world | avg_education | avg_urbanization | avg_youth_bulge | avg_disease_pressure | avg_resource_stock | avg_property_rights |
 |---|---|---|---|---|---|---|
-| arkos | 0.322 | 0.253 | 1.0 | 0.754 | 0.35 | 0.394 |
-| mirithane | 0.327 | 0.257 | 1.0 | 0.156 | 0.615 | 0.555 |
-| solara | 0.327 | 0.253 | 1.0 | 0.266 | 0.63 | 0.681 |
-| valdris | 0.327 | 0.257 | 1.0 | 0.21 | 0.652 | 0.647 |
-| verge | 0.324 | 0.251 | 1.0 | 0.748 | 0.351 | 0.258 |
+| arkos | 0.318 | 0.260 | 0.925 | 0.615 | 0.427 | 0.231 |
+| mirithane | 0.323 | 0.263 | 0.922 | 0.246 | 0.589 | 0.522 |
+| solara | 0.321 | 0.262 | 0.925 | 0.288 | 0.630 | 0.613 |
+| valdris | 0.319 | 0.260 | 0.915 | 0.573 | 0.452 | 0.336 |
+| verge | 0.318 | 0.261 | 0.932 | 0.615 | 0.427 | 0.221 |
 
 ## Diversification effect
 
-- **baseline** (e.g. `/tmp/aurelia-run-100y`) mean=74.0 stddev=49.9 cv=0.674 range=142
-- **density** (e.g. `/tmp/aurelia-run-density`) mean=66.8 stddev=0.4 cv=0.006 range=1
+- **baseline** (e.g. `/tmp/aurelia-run-100y`) mean=18.4 stddev=14.8 cv=0.807 range=38
+- **density** (e.g. `/tmp/aurelia-run-density`) mean=27.2 stddev=0.4 cv=0.015 range=1
 
-- **coefficient of variation reduction**: 0.668 (99.1% lower)
-- **stddev reduction**: 49.5
+- **coefficient of variation reduction**: 0.792 (98.1% lower)
+- **stddev reduction**: 14.4
 
-Interpretation: lower stddev/CV means the density_diversification knob successfully equalized the world populations.
+Interpretation: lower stddev/CV means the density_diversification knob successfully equalized the world populations. The absolute populations are smaller than the original Phase 11 report (post-fix) but the diversification effect is preserved.
+
+## Differences from the pre-fix report
+
+The original Phase 11 reports (2026-06-09) showed 100y at 139,476 events with
+populations [171, 29, 63, 58, 49]. The post-fix reports (2026-06-11) show
+100y at 92,632 events with populations [30, 21, 3, 0, 38]. The 33% drop in
+event volume is from the four feedback loops being capped; the population
+differences are from the engine dynamics interacting differently once the
+loops no longer dominate. The diversification effect (CV reduction
+98.1%, stddev reduction 14.4) is the headline behavior and is preserved.
 

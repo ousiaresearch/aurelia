@@ -4,68 +4,69 @@
 
 ## Run
 
-- run_dir: `/tmp/aurelia-run-100y`
+- run_dir: `/tmp/aurelia-postfix/phase11-100y-seed1001`
 - years: 100
 - ticks: 600
+- seed: 1001
 
 ## Executive summary
 
 - worlds: 5
-- causal events: 139476
-- causal edges: 126137
+- causal events: 92632
+- causal edges: 65133
 - civilization metric rows: 3000
-- discoveries: 65
-- great persons: 19
-- cross-world movements: 3066
+- discoveries: 16
+- great persons: 4
+- cross-world movements: 1479
 - diffusion events: 600
 - diplomatic relations: 10
 
 ## World outcomes
 
 ### arkos
-- causal events: 26867
-- causal edges: 22909
-- event type diversity: 49
-- discoveries: 4
-- great persons: 2
-- top event types: work_success (2084), rumor_transmission (1548), work_failure (1503), small_trade (1408), caregiving (1166), wage_dispute (928)
-
-### mirithane
-- causal events: 31475
-- causal edges: 30449
-- event type diversity: 49
-- discoveries: 31
-- great persons: 8
-- top event types: work_success (2741), rumor_transmission (1979), work_failure (1961), small_trade (1850), caregiving (1537), security_stop (1210)
-
-### solara
-- causal events: 19205
-- causal edges: 16095
-- event type diversity: 45
-- discoveries: 8
-- great persons: 2
-- top event types: work_success (1331), rumor_transmission (1002), work_failure (980), small_trade (907), caregiving (720), wage_dispute (624)
-
-### valdris
-- causal events: 29481
-- causal edges: 25910
-- event type diversity: 49
-- discoveries: 21
-- great persons: 7
-- top event types: work_success (2201), rumor_transmission (1623), work_failure (1594), small_trade (1495), caregiving (1216), security_stop (1015)
-
-### verge
-- causal events: 32448
-- causal edges: 30774
-- event type diversity: 48
+- causal events: 15686
+- causal edges: 9302
+- event type diversity: 61
 - discoveries: 1
 - great persons: 0
-- top event types: work_success (2948), rumor_transmission (2210), work_failure (2088), small_trade (2036), caregiving (1711), security_stop (1330)
+- top event types: work_success (624), urbanization_shift (600), state_capacity_evolved (600), repression_type_selected (600), property_rights_shift (600), path_dependence_lock_in (600)
+
+### mirithane
+- causal events: 19141
+- causal edges: 13979
+- event type diversity: 56
+- discoveries: 10
+- great persons: 3
+- top event types: work_success (992), work_failure (691), rumor_transmission (687), small_trade (612), urbanization_shift (600), state_capacity_evolved (600)
+
+### solara
+- causal events: 15113
+- causal edges: 9418
+- event type diversity: 59
+- discoveries: 3
+- great persons: 1
+- top event types: urbanization_shift (600), state_capacity_evolved (600), sovereignty_charter (600), repression_type_selected (600), property_rights_shift (600), path_dependence_lock_in (600)
+
+### valdris
+- causal events: 21320
+- causal edges: 15921
+- event type diversity: 62
+- discoveries: 1
+- great persons: 0
+- top event types: work_success (1280), rumor_transmission (968), work_failure (934), small_trade (894), caregiving (761), macro_resilience_recovery (721)
+
+### verge
+- causal events: 21372
+- causal edges: 16513
+- event type diversity: 61
+- discoveries: 1
+- great persons: 0
+- top event types: work_success (1415), work_failure (1011), rumor_transmission (999), small_trade (978), caregiving (785), security_stop (657)
 
 ## Federation dynamics
 
-- cross-world movements: 3066
-- movement types: refugee (3029), labor (37)
+- cross-world movements: 1479
+- movement types: refugee (1411), labor (68)
 - diffusion events: 600
 - diffusion traits: openness_to_trade (300), governance_norms (300)
 - diplomatic relations: 10
@@ -73,5 +74,5 @@
 
 ## Causal graph
 
-- total nodes/events: 306025
-- total edges: 129203
+- total nodes/events: 204687
+- total edges: 66612

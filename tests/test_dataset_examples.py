@@ -154,17 +154,20 @@ def test_load_hf_datasets_main_runs_against_local_export(tmp_path, capsys):
 def test_density_diversification_example_exposes_cv_function():
     mod = load_example("02_reproduce_density_diversification")
     # Plan-mandated assertions (baseline-vs-density active NPC counts)
-    assert round(mod.coefficient_of_variation([171, 58, 63, 29, 49]), 3) == 0.674
-    assert round(mod.coefficient_of_variation([67, 67, 67, 67, 66]), 3) == 0.006
+    # Post-fix (CHANGELOG 0.1.6, 2026-06-11): the four feedback-loop caps
+    # changed the absolute populations but the diversification effect
+    # (98.1% CV reduction) is preserved.
+    assert round(mod.coefficient_of_variation([21, 30, 3, 0, 38]), 3) == 0.807
+    assert round(mod.coefficient_of_variation([27, 27, 27, 28, 27]), 3) == 0.015
 
 
-def test_density_diversification_reports_reduction_above_99_percent(tmp_path, capsys):
+def test_density_diversification_reports_reduction_above_98_percent(tmp_path, capsys):
     export_root = _make_fake_export(tmp_path)
     mod = load_example("02_reproduce_density_diversification")
     rc = mod.main(["--export-root", str(export_root)])
     out = capsys.readouterr().out
     assert rc == 0
-    assert "99" in out  # 99.1% or 99.0% reduction
+    assert "98" in out  # 98.1% reduction post-fix
 
 
 # ---------------------------------------------------------------------------

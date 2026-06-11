@@ -2,7 +2,7 @@
 
 The headline result on the Aurelia Phase 11 comparison is that turning
 on ``density_diversification`` reduces the population coefficient of
-variation across worlds from ~0.67 to ~0.006 — a 99% reduction.
+variation across worlds from ~0.81 to ~0.015 — a 98% reduction.
 
 This example computes that number two ways:
 
@@ -37,18 +37,18 @@ from examples import aurelia_dataset_loader as loader  # noqa: E402
 # Metric: count of NPCs with final_state == "active" in each world at run end.
 FALLBACK_POPULATIONS: dict[str, dict[str, int]] = {
     "phase11-100y": {
-        "solara": 171,
-        "arkos": 58,
-        "mirithane": 63,
-        "valdris": 29,
-        "verge": 49,
+        "solara": 21,
+        "arkos": 30,
+        "mirithane": 3,
+        "valdris": 0,
+        "verge": 38,
     },
     "phase11-density-100y": {
-        "solara": 67,
-        "arkos": 67,
-        "mirithane": 67,
-        "valdris": 67,
-        "verge": 66,
+        "solara": 27,
+        "arkos": 27,
+        "mirithane": 27,
+        "valdris": 28,
+        "verge": 27,
     },
 }
 
@@ -79,7 +79,7 @@ def _world_populations_from_export(run: str, root: Path) -> Optional[dict[str, i
 
     The published metric is "count of NPCs whose ``final_state`` is ``active`` in
     this world at run end" — i.e., still alive and present in-world. Filtering by
-    ``final_state`` is what reproduces the headline 99.1% reduction; row counts
+    ``final_state`` is what reproduces the headline 98.1% reduction; row counts
     of the partitioned parquet (which include ``emigrated`` and ``deceased``)
     produce a much smaller and less meaningful CV.
 
@@ -163,13 +163,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     print(f"  CV = {density_cv:.4f}\n")
 
     print(f"Reduction in cross-world population CV: {reduction_pct:.1f}%")
-    print("Published Phase 11 headline: 99.1% reduction.")
+    print("Published Phase 11 headline (post-fix): 98.1% reduction.")
     if source_kind == "fallback":
         print("Numbers above are the published canonical values.")
     else:
         print("Local-export numbers above are computed from npc-population rows where")
         print("final_state == 'active' (i.e., NPCs still alive and present in-world at")
-        print("run end). This is the metric that reproduces the 99.1% headline.")
+        print("run end). This is the metric that reproduces the 98.1% headline.")
     print("\nSee docs/reports/phase11-runs-comparison.md for context.")
     return 0
 
