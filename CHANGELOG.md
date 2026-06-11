@@ -2,6 +2,64 @@
 
 All notable changes to Aurelia are documented here.
 
+## 0.1.6-phase12-engine-stability — 2026-06-11
+
+### Phase 12.1: engine stability + counterfactual surface
+
+Phase 12 closed the gap between lore, simulation, datasets, and public
+surfaces. Phase 12.1 closes the next layer: the engine itself is now
+stable at 100y and 200y horizons, the counterfactual pattern is surfaced
+as a researcher demo, and the headline regressions are documented.
+
+**Engine stability (4 feedback loops capped).** During the Phase 12
+re-score, four interlocking feedback loops in the simulation engine
+were producing runaway state growth. All four are now bounded by hard
+absolute caps with TDD coverage:
+
+| Loop | File | Cap | Commit |
+|---|---|---|---|
+| Faction formation never fired (per-tick threshold unreachable) | `src_template/faction_lifecycle.py` | Cumulative pressure over 16-tick rolling window | `482e8b4` |
+| `link_tick_causality` O(N²) at >5k events/tick | `src_template/phase10_dynamics.py` | Grouped cross-product + chunked executemany (5-6× speedup) | `482e8b4` |
+| Migration effect cap scaled with active population | `src_template/migration_flows.py` | `MAX_MIGRATION_EVENTS_PER_TICK = 8` | `ad52b21` |
+| Migration cohort size scaled with population | `src_template/migration_flows.py` | `MAX_MIGRATION_COHORT_SIZE = 25` | `9eb8556` |
+| Faction splinter doubled the open set per tick | `src_template/faction_lifecycle.py` | Parent marked terminal on splinter | `21028c0` |
+| Per-faction outcome re-roll event flood | `src_template/faction_lifecycle.py` | `MIN_OUTCOME_INTERVAL_TICKS = 4` | `29dca9f` |
+
+**Empirical at npc_count=100 seed=1001 (the failing pre-fix target):**
+- 100y: tick 175 killed (verge.db 2.4 GB) → tick 1200 completes (D1 0.80)
+- 200y: not reachable → completes in 210s (D1 0.80)
+- density-100y: completes in 84s (D1 0.85, pop CV 0.039)
+
+**Counterfactual surface (Phase 11.5 shipped).** The
+`src_template/counterfactuals.py` module has been in the repo since
+Phase 11 but was never surfaced as a researcher demo. Now shipped:
+- `examples/04_run_counterfactual_branch.py` — paired-simulation
+  comparison with same seed, `density_diversification` 0.0 vs 1.0,
+  prints a divergence report
+- `docs/AURELIA_COUNTERFACTUALS.md` — researcher guide covering
+  paired-simulation and post-run intervention patterns, the
+  `divergence_score` formula, and how to read per-world deltas
+- Wired into `AURELIA_RESEARCH_START_HERE.md` (4th command) and
+  `README.md`
+
+Verified at 50y npc_count=80 seed=1001: divergence_score 5104.4, top
+change is `reconciliation_process +219`, solara +2080 events vs verge
+-1483 (consistent with density=1.0 rebalancing migration flow).
+
+**Test count: 138 → 166** (+28 tests across 5 new test files):
+- `tests/test_faction_formation_in_runs.py` (5)
+- `tests/test_link_tick_causality_perf.py` (6)
+- `tests/test_run_quality_gates.py` (6)
+- `tests/test_run_manifest.py` (4)
+- `tests/test_public_surface_reconciliation.py` (6)
+- `tests/test_density_plot.py` (4)
+- `tests/test_migration_feedback_loop.py` (5) — new
+- `tests/test_phase8_factions.py` (+4 — splinter parent terminal + cooldown)
+
+**Project status snapshot.** `docs/PROJECT_STATUS_2026-06-11.md`
+captures the settled state, the open items from previous closures,
+and the leverage-ordered workstream queue.
+
 ## 0.1.5-phase12-gap-closure — 2026-06-10
 
 ### Phase 12: gap closure between lore, simulation, datasets, and public surfaces
