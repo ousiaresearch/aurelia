@@ -22,6 +22,13 @@ except Exception:
 
 MIGRATION_EFFECTS = {"refugee_outflow", "labor_outflow", "refugee_inflow", "labor_inflow"}
 
+# Hard ceiling on per-tick migration effects. Without this, max_events was
+# proportional to active population, which immigration itself inflates,
+# producing an unbounded feedback loop (verge.db exploded to 600MB+ at
+# tick 130+ in npc_count=100 seed=1001 runs). 8 is well above what any
+# realistic mid-tick pressure surge can legitimately need.
+MAX_MIGRATION_EVENTS_PER_TICK = 8
+
 
 def _loads(raw) -> dict:
     try:
@@ -236,8 +243,12 @@ def run_migration_flows(db, *, world_id: str, tick_number: int, rng: random.Rand
     causal_ledger.ensure_schema(db)
     rng = rng or random.Random()
     counts = {"immigration": 0, "emigration": 0}
-    # Cap per-tick migration events to prevent feedback cascades
-    max_events = max(3, _active_population(db) // 30)
+    # Cap per-tick migration effects. The active-population-driven
+    # formula is kept as a baseline (so small worlds still see at least
+    # a few effects per tick), but MAX_MIGRATION_EVENTS_PER_TICK bounds
+    # the ceiling so a population inflated by prior immigration cannot
+    # raise the cap and create a runaway feedback loop.
+    max_events = min(MAX_MIGRATION_EVENTS_PER_TICK, max(3, _active_population(db) // 30))
     processed = 0
     for effect in causal_ledger.due_effects(db, tick_number, world_id):
         et = effect["effect_type"]
