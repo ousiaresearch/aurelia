@@ -47,12 +47,16 @@ def make_world(tmp_path, world_id="solara", n=160):
 def insert_faction(db, world_id="solara", faction_id="fac1", status="active", members=80, influence=0.8, score=0.9):
     faction_lifecycle._ensure_extra_columns(db)
     now = time.time()
+    # last_action_tick=0 means "never processed" so the new
+    # MIN_OUTCOME_INTERVAL_TICKS cooldown doesn't suppress the first
+    # outcome roll. Tests that need to exercise cooldown behavior
+    # explicitly set last_action_tick after insertion.
     db.execute(
         """
         INSERT INTO factions (faction_id, name, world_id, region, status, primary_grievance,
                               demand, member_count, influence, founded_tick, metadata, created_at,
                               lifecycle_stage, consequence_score, last_action_tick)
-        VALUES (?, 'Test Front', ?, 'capital', ?, 'labor_unrest', 'concessions', ?, ?, 1, '{}', ?, 'organization', ?, 1)
+        VALUES (?, 'Test Front', ?, 'capital', ?, 'labor_unrest', 'concessions', ?, ?, 1, '{}', ?, 'organization', ?, 0)
         """,
         (faction_id, world_id, status, members, influence, now, score),
     )
@@ -168,6 +172,98 @@ def test_splintering_in_a_loop_does_not_explode_open_factions(tmp_path):
     assert max(open_counts) <= 4, (
         "Open factions grew too large under repeated splintering: max=" +
         str(max(open_counts)) + ". Trajectory: " + str(open_counts)
+    )
+
+
+def test_repeated_radicalized_outcomes_are_debounced(tmp_path):
+    """Forcing the radicalized outcome over 50 ticks must not produce
+    one event per faction per tick. With MIN_OUTCOME_INTERVAL_TICKS=4,
+    a faction is processed at most every 4 ticks, so per-tick events
+    stay small.
+
+    Pre-cooldown: with force_outcome='radicalized' for 50 ticks, the
+    same faction is re-rolled every tick, writing 1 event per tick
+    per faction. With 1-3 open factions, 1-4 events per tick; the
+    faction's member_count grows geometrically (100 -> ~5500 in 50
+    ticks at int(members * 1.08 + 2) per tick).
+
+    Post-cooldown: the same faction is processed at most every 4
+    ticks. Total events for 1-3 factions over 50 ticks should be a
+    small fraction of 50 (not 50+).
+    """
+    db = make_world(tmp_path, "test", n=300)
+    insert_faction(db, "test", "fac1", members=100, influence=0.9, score=1.0)
+    per_tick_events = []
+    for tick in range(1, 51):
+        force_macro(db, "test", tick, {"legitimacy": 0.20, "repression": 0.20, "war_pressure": 0.95, "gdp_proxy": 0.30, "public_health": 0.40})
+        force_pressure(db, "test", tick, mag=8.0)
+        faction_lifecycle.run_faction_lifecycle(
+            db, world_id="test", tick_number=tick,
+            rng=random.Random(7 + tick), force_outcome="radicalized",
+        )
+        n = db.execute("SELECT COUNT(*) FROM causal_events WHERE world_id='test' AND tick_number=?", (tick,)).fetchone()[0]
+        per_tick_events.append(n)
+
+    # Pre-cooldown worst case was 4 events per tick (3 open factions,
+    # 1 of which is a formation). With cooldown=4, the same faction
+    # writes at most 1 event per 4 ticks. Total events for 50 ticks
+    # should be far below 50.
+    total = sum(per_tick_events)
+    assert total < 50, (
+        "Cooldown not effective: " + str(total) + " events over 50 ticks "
+        "for a single starting faction. Per-tick max: " + str(max(per_tick_events))
+    )
+
+    # And: per-tick event count should be small (mostly 0, sometimes 1).
+    # Pre-cooldown we observed 1-4 per tick.
+    assert max(per_tick_events) <= 2, (
+        "Per-tick events too high: max=" + str(max(per_tick_events)) +
+        ". Should be 0-2 with cooldown=4."
+    )
+
+
+def test_cooldown_does_not_starve_terminal_resolution(tmp_path):
+    """The cooldown must not prevent a faction from eventually reaching
+    a terminal state. After 4 ticks of rest, the faction should be
+    processed again and a non-radicalized outcome should be allowed
+    to take effect.
+    """
+    db = make_world(tmp_path, "test", n=300)
+    insert_faction(db, "test", "fac1", members=100, influence=0.9, score=1.0)
+    placeholders = ",".join("?" * len(faction_lifecycle.TERMINAL_STATUSES))
+
+    # Tick 1: force radicalized
+    force_macro(db, "test", 1, {"legitimacy": 0.85, "repression": 0.05, "war_pressure": 0.0, "gdp_proxy": 0.70, "public_health": 0.80})
+    force_pressure(db, "test", 1, mag=8.0)
+    faction_lifecycle.run_faction_lifecycle(
+        db, world_id="test", tick_number=1,
+        rng=random.Random(1), force_outcome="radicalized",
+    )
+
+    # Wait through cooldown: ticks 2-4 should be no-ops for fac1
+    for tick in range(2, 5):
+        force_macro(db, "test", tick, {"legitimacy": 0.85, "repression": 0.05, "war_pressure": 0.0, "gdp_proxy": 0.70, "public_health": 0.80})
+        force_pressure(db, "test", tick, mag=8.0)
+        faction_lifecycle.run_faction_lifecycle(
+            db, world_id="test", tick_number=tick,
+            rng=random.Random(tick), force_outcome="radicalized",
+        )
+
+    # Tick 5: should be processed again (cooldown elapsed)
+    force_macro(db, "test", 5, {"legitimacy": 0.85, "repression": 0.05, "war_pressure": 0.0, "gdp_proxy": 0.70, "public_health": 0.80})
+    force_pressure(db, "test", 5, mag=8.0)
+    faction_lifecycle.run_faction_lifecycle(
+        db, world_id="test", tick_number=5,
+        rng=random.Random(5), force_outcome="integrated",
+    )
+
+    fac = db.execute("SELECT status, last_action_tick FROM factions WHERE faction_id='fac1'").fetchone()
+    assert fac["last_action_tick"] == 5, (
+        "Faction not re-processed after cooldown: last_action_tick=" +
+        str(fac["last_action_tick"]) + " (expected 5)"
+    )
+    assert fac["status"] == "integrated", (
+        "Faction could not transition to integrated after cooldown: status=" + str(fac["status"])
     )
 
 

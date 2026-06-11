@@ -32,6 +32,15 @@ CUMULATIVE_PRESSURE_WINDOW_TICKS = 16
 #: for a long federation run.
 CUMULATIVE_PRESSURE_THRESHOLD = 0.30
 
+#: Minimum number of ticks between outcome rolls for the same faction.
+#: Without this, every open faction is re-rolled every tick, writing
+#: one event per tick per faction. With 1-3 open factions that produces
+#: 1-4 faction events per tick (most of them re-rolls of the same
+#: faction in 'armed_conflict' / 'radicalized' state). 4 ticks = 4
+#: months at the default 12 ticks_per_year, which is a realistic
+#: minimum interval for a political movement to change state.
+MIN_OUTCOME_INTERVAL_TICKS = 4
+
 OUTCOME_KEYS = [
     "formed",
     "integrated",
@@ -409,6 +418,18 @@ def run_faction_lifecycle(
         (world_id, *sorted(TERMINAL_STATUSES)),
     ).fetchall()
     for fac in factions:
+        # Cooldown: skip factions that have been processed within the
+        # last MIN_OUTCOME_INTERVAL_TICKS. Prevents the same open
+        # faction from being re-rolled every tick (e.g. a radicalized
+        # faction staying in 'armed_conflict' would write one
+        # faction_radicalized event per tick otherwise).
+        # last_action=0 means "never processed" (e.g. just inserted
+        # by a test or just created by the formation path above) and
+        # is exempt from the cooldown -- a fresh faction should be
+        # allowed to roll its first outcome immediately.
+        last_action = int(fac["last_action_tick"] or 0)
+        if last_action > 0 and tick_number - last_action < MIN_OUTCOME_INTERVAL_TICKS:
+            continue
         influence = float(fac["influence"] or 0.0)
         score = float(fac["consequence_score"] or 0.0) + current_tick_pressure * 0.15 + influence * 0.02
         member_count = int(fac["member_count"] or 0)
