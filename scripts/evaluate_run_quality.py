@@ -60,9 +60,25 @@ def clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
 # Run-shape readers
 # ---------------------------------------------------------------------------
 
-def _factions_per_world(run_dir: Path) -> dict[str, int]:
-    """Return {world_id: faction_count} from each per-world DB's ``factions`` table."""
-    out: dict[str, int] = {}
+def _factions_per_world(run_dir: Path) -> dict[str, dict[str, int]]:
+    """Return ``{world_id: count}`` from each per-world DB, keyed by kind.
+
+    Returns a dict with two sub-dicts:
+      - ``active``: per-world count of rows in ``factions`` with
+        ``status='active'``.
+      - ``formed_events``: per-world count of ``faction_formed`` rows in
+        ``causal_events``.
+
+    A faction can be formed (``faction_formed`` event) and then resolved
+    to a terminal status (integrated / legalized / dissolved) on the
+    same tick -- so the canonical "did a faction emerge in this world?"
+    signal is the count of ``faction_formed`` events in
+    ``causal_events``, not the ``status='active'`` row count. Both
+    numbers are exposed so downstream gates can use whichever signal
+    matches their contract.
+    """
+    active: dict[str, int] = {}
+    formed_events: dict[str, int] = {}
     for db_path in sorted(Path(run_dir).glob("*.db")):
         if db_path.name == "federation.db":
             continue
@@ -76,11 +92,33 @@ def _factions_per_world(run_dir: Path) -> dict[str, int]:
             except sqlite3.OperationalError:
                 # No factions table at all → 0.
                 row = (0,)
-            out[world] = int(row[0]) if row else 0
+            active[world] = int(row[0]) if row else 0
+            try:
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM causal_events WHERE event_type='faction_formed'"
+                ).fetchone()
+            except sqlite3.OperationalError:
+                row = (0,)
+            formed_events[world] = int(row[0]) if row else 0
             conn.close()
         except sqlite3.Error:
-            out[world] = 0
-    return out
+            active[world] = 0
+            formed_events[world] = 0
+    return {"active": active, "formed_events": formed_events}
+
+
+def _factions_summary(factions_per_world: dict[str, dict[str, int]]) -> dict[str, int]:
+    """Aggregate active vs formed counts across worlds for the gate."""
+    active = factions_per_world.get("active", {})
+    formed = factions_per_world.get("formed_events", {})
+    worlds_active = sum(1 for n in active.values() if n > 0)
+    worlds_formed = sum(1 for n in formed.values() if n > 0)
+    return {
+        "worlds_with_active_factions": worlds_active,
+        "worlds_with_faction_formations": worlds_formed,
+        "total_active_factions": sum(active.values()),
+        "total_faction_formations": sum(formed.values()),
+    }
 
 
 def _population_summary(summary: dict[str, Any]) -> dict[str, Any]:
@@ -224,8 +262,9 @@ def evaluate_run(run_dir: str | Path) -> dict[str, Any]:
     # -----------------------------------------------------------------------
     pop_stats = _population_summary(summary)
     factions_per_world = _factions_per_world(Path(run_dir))
-    total_factions = sum(factions_per_world.values())
-    worlds_with_factions = sum(1 for n in factions_per_world.values() if n > 0)
+    factions_summary = _factions_summary(factions_per_world)
+    worlds_with_factions = factions_summary["worlds_with_active_factions"]
+    total_factions = factions_summary["total_active_factions"]
     metadata = _metadata_summary(summary)
     years = int(metadata.get("years") or 0)
     is_long_run = years >= LONG_RUN_YEARS
@@ -296,6 +335,8 @@ def evaluate_run(run_dir: str | Path) -> dict[str, Any]:
             "population_cv": (round(cv, 3) if cv is not None else None),
             "worlds_with_factions": worlds_with_factions,
             "total_factions": total_factions,
+            "worlds_with_faction_formations": factions_summary["worlds_with_faction_formations"],
+            "total_faction_formations": factions_summary["total_faction_formations"],
         },
         "metadata": metadata,
         "warnings": warnings,

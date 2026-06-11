@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import random
+import sqlite3
 import time
 import uuid
 
@@ -17,6 +18,20 @@ except Exception:
 
 GRIEVANCE_SIGNALS = {"labor_unrest", "repression_visibility", "migration_pressure", "economic_stress"}
 TERMINAL_STATUSES = {"dissolved", "integrated", "sovereign", "legalized", "governing_coalition", "exiled", "victorious"}
+
+#: How many recent ticks of meso pressure a faction needs to accumulate before
+#: formation can fire. Real social movements form from *sustained* grievance,
+#: not a single bad day. With ticks_per_year in [4, 12] this window covers
+#: roughly 1.3 to 4 years of recent history.
+CUMULATIVE_PRESSURE_WINDOW_TICKS = 16
+
+#: Cumulative pressure threshold for formation (sum of magnitudes across the
+#: recent window). 0.30 is calibrated so that a 16-tick window of
+#: 0.018-0.020 average pressure (~1 micro-event per tick of any grievance
+#: type) will cross it -- which is a realistic sustained-stress baseline
+#: for a long federation run.
+CUMULATIVE_PRESSURE_THRESHOLD = 0.30
+
 OUTCOME_KEYS = [
     "formed",
     "integrated",
@@ -57,6 +72,87 @@ def _ensure_extra_columns(db) -> None:
             db.execute(ddl)
         except Exception:
             pass
+
+
+def cumulative_pressure(
+    db,
+    *,
+    world_id: str,
+    current_tick: int,
+    window: int = CUMULATIVE_PRESSURE_WINDOW_TICKS,
+) -> float:
+    """Sum of grievance-signal magnitudes over the last ``window`` ticks.
+
+    Real social movements form from sustained grievance, not a single
+    bad day. The federation's per-tick meso-signal magnitudes are tiny
+    (a single ``migration_plan`` event contributes ~0.013), so reading
+    only the current tick makes the formation threshold
+    (``CUMULATIVE_PRESSURE_THRESHOLD``) effectively unreachable.
+
+    A rolling window of recent ticks captures the same dynamics the
+    gate would see in a multi-year sustained-stress scenario.
+
+    Returns a non-negative float. Old signals (outside the window) and
+    non-grievance signals (e.g. ``state_messaging``, ``rumor_velocity``)
+    are excluded.
+    """
+    if window <= 0:
+        return 0.0
+    floor_tick = max(0, int(current_tick) - window)
+    placeholders = ",".join("?" for _ in GRIEVANCE_SIGNALS)
+    try:
+        row = db.execute(
+            f"""
+            SELECT COALESCE(SUM(magnitude), 0.0)
+            FROM meso_signals
+            WHERE world_id=?
+              AND tick_number >= ?
+              AND tick_number <= ?
+              AND signal_type IN ({placeholders})
+            """,
+            (world_id, floor_tick, int(current_tick), *sorted(GRIEVANCE_SIGNALS)),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        # meso_signals table may not exist yet on a fresh world.
+        return 0.0
+    return float(row[0] or 0.0)
+
+
+def dominant_grievance(
+    db,
+    *,
+    world_id: str,
+    current_tick: int,
+    window: int = CUMULATIVE_PRESSURE_WINDOW_TICKS,
+) -> str | None:
+    """Return the grievance signal_type with the largest cumulative magnitude in the window.
+
+    Used by ``run_faction_lifecycle`` to pick the primary_grievance label
+    for a newly-formed faction. Returns ``None`` if there is no pressure
+    in the window.
+    """
+    if window <= 0:
+        return None
+    floor_tick = max(0, int(current_tick) - window)
+    placeholders = ",".join("?" for _ in GRIEVANCE_SIGNALS)
+    try:
+        row = db.execute(
+            f"""
+            SELECT signal_type, SUM(magnitude) AS mag
+            FROM meso_signals
+            WHERE world_id=?
+              AND tick_number >= ?
+              AND tick_number <= ?
+              AND signal_type IN ({placeholders})
+            GROUP BY signal_type
+            ORDER BY mag DESC
+            LIMIT 1
+            """,
+            (world_id, floor_tick, int(current_tick), *sorted(GRIEVANCE_SIGNALS)),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return None
+    return str(row[0]) if row else None
 
 
 def _weighted_choice(options: list[tuple[str, float]], rng: random.Random) -> str | None:
@@ -225,7 +321,17 @@ def run_faction_lifecycle(
         """,
         (world_id, int(tick_number)),
     ).fetchall()
-    total_pressure = sum(float(r["mag"] or 0.0) for r in pressure_rows)
+    # Current-tick pressure is preserved for consequence scoring (per-tick
+    # intensity) and for the influence update on existing factions.
+    current_tick_pressure = sum(float(r["mag"] or 0.0) for r in pressure_rows)
+    # Formation, however, is driven by sustained pressure over a recent
+    # window. Per-tick magnitudes are small (~0.013 per micro-event), so
+    # a single-tick threshold of 0.30 was effectively unreachable in
+    # realistic runs. The rolling-window sum restores the contract:
+    # "factions form from accumulated grievance, not a single bad tick."
+    cumulative = cumulative_pressure(
+        db, world_id=world_id, current_tick=int(tick_number)
+    )
 
     # Formation from accumulated pressure, not timer. Keep movements scarce.
     pop = db.execute("SELECT COUNT(*) FROM agents WHERE type='npc' AND state='active'").fetchone()[0]
@@ -240,10 +346,17 @@ def run_faction_lifecycle(
     ).fetchone()[0]
     max_open_factions = max(3, pop // 250)
     can_form = open_factions < max_open_factions and recent_formation == 0
-    if can_form and total_pressure > 0.30 and rng.random() < min(0.18, (total_pressure - 0.30) * 0.20):
-        grievance = max(pressure_rows, key=lambda r: float(r["mag"] or 0.0))["signal_type"]
+    if (
+        can_form
+        and cumulative > CUMULATIVE_PRESSURE_THRESHOLD
+        and rng.random() < min(0.18, (cumulative - CUMULATIVE_PRESSURE_THRESHOLD) * 0.20)
+    ):
+        grievance = (
+            dominant_grievance(db, world_id=world_id, current_tick=int(tick_number))
+            or "labor_unrest"
+        )
         faction_id = f"{world_id}:faction:{grievance}:{tick_number}:{uuid.uuid4().hex[:8]}"
-        members = max(3, int(total_pressure * 80))
+        members = max(3, int(cumulative * 80))
         db.execute(
             """
             INSERT INTO factions (faction_id, name, world_id, region, status, primary_grievance,
@@ -258,11 +371,11 @@ def run_faction_lifecycle(
                 grievance,
                 "state response and material concessions",
                 members,
-                min(1.0, total_pressure),
+                min(1.0, cumulative),
                 tick_number,
-                json.dumps({"source": "causal_lifecycle"}),
+                json.dumps({"source": "causal_lifecycle", "pressure_window": CUMULATIVE_PRESSURE_WINDOW_TICKS}),
                 time.time(),
-                total_pressure,
+                cumulative,
                 tick_number,
             ),
         )
@@ -274,7 +387,7 @@ def run_faction_lifecycle(
             event_type="faction_formed",
             scope="faction",
             target_ids=[faction_id],
-            magnitude=total_pressure,
+            magnitude=cumulative,
             valence=-0.35,
             payload={"faction_id": faction_id, "grievance": grievance, "members": members},
         )
@@ -286,7 +399,7 @@ def run_faction_lifecycle(
     ).fetchall()
     for fac in factions:
         influence = float(fac["influence"] or 0.0)
-        score = float(fac["consequence_score"] or 0.0) + total_pressure * 0.15 + influence * 0.02
+        score = float(fac["consequence_score"] or 0.0) + current_tick_pressure * 0.15 + influence * 0.02
         member_count = int(fac["member_count"] or 0)
         outcome = force_outcome or _choose_outcome(state, profile, fac, score, rng)
         if not outcome:
@@ -322,7 +435,7 @@ def run_faction_lifecycle(
             target_ids=[fac["faction_id"]],
             magnitude=magnitude,
             valence=OUTCOME_VALENCE.get(outcome, -0.2),
-            payload={"faction_id": fac["faction_id"], "members": member_count, "pressure": total_pressure, **payload_extra},
+            payload={"faction_id": fac["faction_id"], "members": member_count, "pressure": current_tick_pressure, **payload_extra},
         )
         # Phase 9: constructive outcomes can crystallize into durable institutions
         if outcome in {"legalized", "governing_coalition", "victorious", "integrated"}:
