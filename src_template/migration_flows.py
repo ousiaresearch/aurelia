@@ -29,6 +29,15 @@ MIGRATION_EFFECTS = {"refugee_outflow", "labor_outflow", "refugee_inflow", "labo
 # realistic mid-tick pressure surge can legitimately need.
 MAX_MIGRATION_EVENTS_PER_TICK = 8
 
+# Hard ceiling on the size of any single migration cohort. Without this,
+# _cohort_size used max(25, pop // 40) for its upper bound, so the cohort
+# itself scaled linearly with population. Combined with the effect cap
+# above this still produced a runaway: 8 effects x 489 cohort at pop=19k
+# = 3,900 immigrants per tick. A migration decision is a single act by
+# a single actor; it should not get bigger as the world grows. 25 is the
+# original floor before the pop-scaling term was added.
+MAX_MIGRATION_COHORT_SIZE = 25
+
 
 def _loads(raw) -> dict:
     try:
@@ -58,7 +67,7 @@ def _cohort_size(effect, state: dict, profile: dict, pop: int, *, direction: str
     if pressure <= 0.005:
         return 0
     raw = int(pop * min(0.025, pressure * 0.025))
-    return max(1, min(raw, max(25, pop // 40)))
+    return max(1, min(raw, MAX_MIGRATION_COHORT_SIZE))
 
 
 def _insert_cohort(db, *, cohort_id: str, tick_number: int, world_id: str, direction: str,

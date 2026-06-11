@@ -71,6 +71,50 @@ def test_per_tick_cap_is_bounded_absolute_constant():
     )
 
 
+def test_per_cohort_size_is_bounded_absolute_constant():
+    """The cohort size cap should also be a module-level constant.
+
+    _cohort_size previously used max(25, pop // 40) as its ceiling,
+    which scaled linearly with population. Combined with the effect cap
+    this still ran away (8 effects x 489 cohort at pop=19k = 3,900/tick).
+    """
+    assert hasattr(migration_flows, "MAX_MIGRATION_COHORT_SIZE"), (
+        "migration_flows must expose MAX_MIGRATION_COHORT_SIZE as a hard ceiling"
+    )
+    cap = migration_flows.MAX_MIGRATION_COHORT_SIZE
+    assert isinstance(cap, int) and 1 <= cap <= 100, (
+        "Cohort cap must be a small positive integer; got " + repr(cap)
+    )
+
+
+def test_cohort_size_does_not_grow_with_population():
+    """The cohort size returned by _cohort_size must NOT scale with population.
+
+    A migration decision is a single act by a single actor; it should
+    not get bigger as the world grows. Two worlds of different sizes
+    with identical state, profile, and effect must produce the same
+    cohort size.
+    """
+    effect = {"magnitude": 2.0, "effect_type": "refugee_inflow", "payload": "{}"}
+    state = {"border_openness": 0.5}
+    profile = {"migration": {"pull_attractiveness": 1.0, "border_friction": 0.5, "refugee_tolerance": 0.5}}
+
+    # Use populations large enough that raw cohort would exceed the cap,
+    # so the cap is the binding constraint on all three. This proves
+    # the cohort is capped, not that raw just happens to be small at
+    # small populations.
+    small = migration_flows._cohort_size(effect, state, profile, pop=2_000, direction="inflow")
+    large = migration_flows._cohort_size(effect, state, profile, pop=20_000, direction="inflow")
+    huge = migration_flows._cohort_size(effect, state, profile, pop=200_000, direction="inflow")
+
+    assert small == large == huge, (
+        "Cohort size grew with population: small=" + str(small) +
+        " large=" + str(large) + " huge=" + str(huge) + ". Feedback loop is back."
+    )
+    # And the cohort must be bounded by the cap.
+    assert small <= migration_flows.MAX_MIGRATION_COHORT_SIZE
+
+
 def test_runaway_immigration_is_bounded_over_long_run(tmp_path):
     """With repeated refugee_inflow effects over 60 ticks, per-tick
     immigration must never exceed the bounded ceiling (cap effects x
