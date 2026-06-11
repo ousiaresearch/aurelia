@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "engine_version": "aurelia-phase12",
+    "git_commit": "3a74628",
+    "years": 50,
+    "npc_count": 100,
+    "density_diversification": 0.0,
+    "ticks_per_year": 6,
+    "n_seeds": 5
+  },
+  "seeds": [
+    1001,
+    1002,
+    1003,
+    1004,
+    1005
+  ],
+  "d1_score": {
+    "mean": 0.85,
+    "stdev": 0.0,
+    "min": 0.85,
+    "max": 0.85
+  },
+  "causal_events": {
+    "mean": 61986.6,
+    "stdev": 1283.75,
+    "min": 59969,
+    "max": 63452
+  },
+  "causal_edges": {
+    "mean": 52236,
+    "stdev": 1307.53,
+    "min": 50356,
+    "max": 53437
+  },
+  "population_cv": {
+    "mean": 0.57,
+    "stdev": 0.26,
+    "min": 0.391,
+    "max": 1.022
+  },
+  "discoveries": {
+    "mean": 13.4,
+    "stdev": 3.65,
+    "min": 10,
+    "max": 19
+  },
+  "great_persons": {
+    "mean": 4.2,
+    "stdev": 1.92,
+    "min": 2,
+    "max": 7
+  },
+  "cross_world_movements": {
+    "mean": 1176.8,
+    "stdev": 48.56,
+    "min": 1102,
+    "max": 1214
+  },
+  "federation_richness": {
+    "mean": 1.0,
+    "min": 1.0
+  },
+  "per_run": [
+    {
+      "seed": 1001,
+      "wall_s": 25.7,
+      "d1": 0.85,
+      "events": 63452,
+      "edges": 53437,
+      "pop_cv": 0.583,
+      "discoveries": 15,
+      "great_persons": 4,
+      "warnings": [
+        "faction formation is absent or sparse (0/5 worlds have active factions; threshold 50%)"
+      ]
+    },
+    {
+      "seed": 1002,
+      "wall_s": 26.0,
+      "d1": 0.85,
+      "events": 62587,
+      "edges": 53377,
+      "pop_cv": 0.391,
+      "discoveries": 12,
+      "great_persons": 5,
+      "warnings": [
+        "faction formation is absent or sparse (0/5 worlds have active factions; threshold 50%)"
+      ]
+    },
+    {
+      "seed": 1003,
+      "wall_s": 28.2,
+      "d1": 0.85,
+      "events": 62041,
+      "edges": 52481,
+      "pop_cv": 0.457,
+      "discoveries": 19,
+      "great_persons": 7,
+      "warnings": [
+        "faction formation is absent or sparse (0/5 worlds have active factions; threshold 50%)"
+      ]
+    },
+    {
+      "seed": 1004,
+      "wall_s": 25.8,
+      "d1": 0.85,
+      "events": 59969,
+      "edges": 50356,
+      "pop_cv": 1.022,
+      "discoveries": 10,
+      "great_persons": 2,
+      "warnings": [
+        "faction formation is absent or sparse (0/5 worlds have active factions; threshold 50%)",
+        "population cross-world CV is high (cv=1.022 > 1.0)"
+      ]
+    },
+    {
+      "seed": 1005,
+      "wall_s": 27.2,
+      "d1": 0.85,
+      "events": 61884,
+      "edges": 51529,
+      "pop_cv": 0.401,
+      "discoveries": 11,
+      "great_persons": 3,
+      "warnings": [
+        "faction formation is absent or sparse (0/5 worlds have active factions; threshold 50%)"
+      ]
+    }
+  ]
+}

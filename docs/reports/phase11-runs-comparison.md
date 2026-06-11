@@ -70,3 +70,19 @@ differences are from the engine dynamics interacting differently once the
 loops no longer dominate. The diversification effect (CV reduction
 98.1%, stddev reduction 14.4) is the headline behavior and is preserved.
 
+## Multi-seed sweep (Phase 12)
+
+Five seeds at npc_count=100, years=50, density=0.0, ticks_per_year=6:
+
+| seed | D1 | events | edges | pop CV | discoveries | great persons |
+|---|---|---|---|---|---|---|
+| 1001 | 0.85 | 63,452 | 53,437 | 0.583 | 15 | 4 |
+| 1002 | 0.85 | 62,587 | 53,377 | 0.391 | 12 | 5 |
+| 1003 | 0.85 | 62,041 | 52,481 | 0.457 | 19 | 7 |
+| 1004 | 0.85 | 59,969 | 50,356 | 1.022 | 10 | 2 |
+| 1005 | 0.85 | 61,884 | 51,529 | 0.401 | 11 | 3 |
+
+Aggregate: mean events 61,987 ± 1,284 (2.1% stdev/mean), mean D1 0.85 (zero
+variance — all five seeds cleared the same gates). The full sweep
+report is at `docs/reports/phase12-seed-sweep-report.md`.
+
