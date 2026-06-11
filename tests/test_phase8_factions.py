@@ -93,6 +93,84 @@ def test_splinter_outcome_creates_child_faction(tmp_path):
     assert db.execute("SELECT COUNT(*) FROM causal_events WHERE event_type='faction_splintered'").fetchone()[0] == 1
 
 
+def test_splintered_parent_is_marked_terminal(tmp_path):
+    """A splintered parent must leave the open-factions set.
+
+    Pre-fix: the parent stayed in the open set, got re-rolled every tick,
+    could splinter again -- producing 2x open factions per tick.
+    Post-fix: the parent is marked status='dissolved' with
+    lifecycle_stage='splintered' for analytics. Only the child is open.
+    """
+    db = make_world(tmp_path, "verge")
+    insert_faction(db, "verge", "fac1", members=120, influence=0.95, score=1.2)
+    force_macro(db, "verge", 2, {"legitimacy": 0.20, "repression": 0.20, "war_pressure": 0.95, "gdp_proxy": 0.30, "public_health": 0.40})
+    force_pressure(db, "verge", 3, mag=8.0)
+    faction_lifecycle.run_faction_lifecycle(db, world_id="verge", tick_number=3, rng=random.Random(7), force_outcome="splintered")
+
+    parent = db.execute("SELECT status, lifecycle_stage FROM factions WHERE faction_id='fac1'").fetchone()
+    assert parent["status"] in faction_lifecycle.TERMINAL_STATUSES, (
+        "Splintered parent still open: status=" + str(parent["status"]) +
+        ". Open factions will double per tick."
+    )
+    assert parent["lifecycle_stage"] == "splintered", (
+        "lifecycle_stage should be 'splintered' for analytics; got " + str(parent["lifecycle_stage"])
+    )
+
+    # And: the parent should NOT be counted as open in subsequent ticks.
+    placeholders = ",".join("?" * len(faction_lifecycle.TERMINAL_STATUSES))
+    open_count = db.execute(
+        "SELECT COUNT(*) FROM factions WHERE world_id='verge' AND status NOT IN (" + placeholders + ")",
+        list(faction_lifecycle.TERMINAL_STATUSES),
+    ).fetchone()[0]
+    assert open_count == 1, "Expected exactly 1 open faction (the child), got " + str(open_count)
+
+
+def test_splintering_in_a_loop_does_not_explode_open_factions(tmp_path):
+    """Forcing the splinter outcome over 20 ticks must keep the
+    open-factions set bounded -- not let it double per tick.
+
+    Pre-fix: with force_outcome='splintered', open_factions grows
+    1, 2, 4, 8, 16, ... (uncapped for existing factions).
+    Post-fix: each splinter dissolves the parent and creates 1 child,
+    so the open set stays small. New formations can still add a few
+    rows over 20 ticks (formation cap is max(3, pop//250)=3), but
+    nothing exponential.
+    """
+    db = make_world(tmp_path, "verge", n=200)
+    insert_faction(db, "verge", "fac1", members=100, influence=0.9, score=1.0)
+    placeholders = ",".join("?" * len(faction_lifecycle.TERMINAL_STATUSES))
+    open_counts = []
+    # Hard cap on test runtime: if the bug returns and creates
+    # exponential factions, bail out at first tick where open > 8
+    # (which proves the bug is back without running for 20 ticks).
+    for tick in range(1, 21):
+        force_macro(db, "verge", tick, {"legitimacy": 0.20, "repression": 0.20, "war_pressure": 0.95, "gdp_proxy": 0.30, "public_health": 0.40})
+        force_pressure(db, "verge", tick, mag=8.0)
+        faction_lifecycle.run_faction_lifecycle(
+            db, world_id="verge", tick_number=tick,
+            rng=random.Random(7 + tick), force_outcome="splintered",
+        )
+        open_count = db.execute(
+            "SELECT COUNT(*) FROM factions WHERE world_id='verge' AND status NOT IN (" + placeholders + ")",
+            list(faction_lifecycle.TERMINAL_STATUSES),
+        ).fetchone()[0]
+        open_counts.append(open_count)
+        if open_count > 8:
+            # Bug returned -- fail fast with diagnostic data.
+            assert False, (
+                "Open factions exploded at tick " + str(tick) + ": " +
+                str(open_count) + " open. Trajectory: " + str(open_counts)
+            )
+
+    # Bound: open_factions should stay small (formation cap = 3 for
+    # n=200, plus one residual child from the last splinter). Pre-fix
+    # this would be 16, 32, 64+ within a handful of ticks.
+    assert max(open_counts) <= 4, (
+        "Open factions grew too large under repeated splintering: max=" +
+        str(max(open_counts)) + ". Trajectory: " + str(open_counts)
+    )
+
+
 def test_high_legitimacy_low_repression_produces_constructive_outcome(tmp_path):
     db = make_world(tmp_path, "mirithane")
     insert_faction(db, "mirithane", "fac1", members=80, influence=0.6, score=0.7)

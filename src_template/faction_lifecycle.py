@@ -277,6 +277,17 @@ def _apply_outcome(db, *, fac, world_id: str, tick_number: int, outcome: str, sc
                    (member_count, score + 0.05, tick_number, tick_number, fac["faction_id"]))
     elif outcome == "splintered":
         child_id, member_count, child_members = _create_splinter(db, fac=fac, world_id=world_id, tick_number=tick_number, member_count=member_count, score=score)
+        # Mark the parent as terminal: the original movement has dissolved
+        # into the child. Without this, the parent stays in the open set,
+        # gets re-rolled every tick, and can splinter again -- producing
+        # 2x open factions per tick (1 -> 2 -> 4 -> 8 -> ...).
+        # lifecycle_stage='splintered' preserves the "ended via splinter"
+        # semantic for downstream analytics; status='dissolved' removes
+        # the row from the open set queried at the top of the loop.
+        db.execute(
+            "UPDATE factions SET status='dissolved', lifecycle_stage='splintered', dissolved_tick=?, last_action_tick=? WHERE faction_id=?",
+            (tick_number, tick_number, fac["faction_id"]),
+        )
         payload_extra.update({"child_faction_id": child_id, "child_members": child_members})
     elif outcome == "radicalized":
         member_count = int(member_count * 1.08 + 2)
