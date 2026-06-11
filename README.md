@@ -333,9 +333,10 @@ If you want to inspect Aurelia rather than read about it:
 PYTHONPATH=. python3 examples/01_load_aurelia_hf_datasets.py
 PYTHONPATH=. python3 examples/02_reproduce_density_diversification.py
 PYTHONPATH=. python3 examples/03_trace_causal_chain.py
+PYTHONPATH=src_template python3 examples/04_run_counterfactual_branch.py
 ```
 
-All three work offline against `/tmp/hf-export/` (the local Parquet mirror) or fall back to `/tmp/aurelia-*` smoke runs when no export is present. The second reproduces the headline **99.1% cross-world population-CV reduction** when the density-diversification knob is on. The third walks a causal chain three hops upstream from a federation event. See `docs/AURELIA_RESEARCH_START_HERE.md` for the full path.
+All four work offline. The second reproduces the headline **99.1% cross-world population-CV reduction** when the density-diversification knob is on. The third walks a causal chain three hops upstream from a federation event. The fourth runs a paired-simulation counterfactual (same seed, density_diversification 0.0 vs 1.0) and prints a divergence report; see [`docs/AURELIA_COUNTERFACTUALS.md`](docs/AURELIA_COUNTERFACTUALS.md) for the full pattern. See [`docs/AURELIA_RESEARCH_START_HERE.md`](docs/AURELIA_RESEARCH_START_HERE.md) for the full path.
 
 ## HuggingFace datasets
 

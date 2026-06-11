@@ -22,12 +22,16 @@ PYTHONPATH=. python3 examples/02_reproduce_density_diversification.py
 
 # 3. Trace a causal chain from the federation graph
 PYTHONPATH=. python3 examples/03_trace_causal_chain.py
+
+# 4. Run a counterfactual branch (paired-simulation comparison)
+PYTHONPATH=src_template python3 examples/04_run_counterfactual_branch.py
 ```
 
 If `/tmp/hf-export` does not exist locally, the first example prints the
 HuggingFace download instructions; the second falls back to the canonical
 numbers from `docs/reports/phase11-runs-comparison.md`; the third exits
-cleanly with the same download instructions.
+cleanly with the same download instructions. The fourth example
+self-runs and needs no prior artifact (~90s wall time on an M3).
 
 ## The four datasets
 
@@ -60,6 +64,7 @@ opt into network access manually.
 | `01_load_aurelia_hf_datasets.py` | The four datasets exist, are partitioned by run and world, and have stable column schemas. |
 | `02_reproduce_density_diversification.py` | The published Phase 11 headline: turning on `density_diversification` reduces cross-world population CV from ~0.67 to ~0.006, a 99% reduction. |
 | `03_trace_causal_chain.py` | Federation causal edges are real, queryable, and have a useful starting structure (cultural diffusion fed by cross-world movement). |
+| `04_run_counterfactual_branch.py` | Same-seed paired runs with one knob changed produce a measurable divergence; see [`AURELIA_COUNTERFACTUALS.md`](AURELIA_COUNTERFACTUALS.md) for the full pattern. |
 
 ## Known limitations
 
@@ -80,6 +85,7 @@ opt into network access manually.
 
 ## Where to go next
 
+- **Counterfactuals** — same-seed paired runs and post-run ledger interventions: [`AURELIA_COUNTERFACTUALS.md`](AURELIA_COUNTERFACTUALS.md).
 - **Canon bridge** — which concept is in which code, table, dataset,
   and proof artifact: [`AURELIA_CANON_AND_DATA_GUIDE.md`](AURELIA_CANON_AND_DATA_GUIDE.md).
 - **Architecture** — runtime + data-plane overview: [`ARCHITECTURE.md`](ARCHITECTURE.md).
