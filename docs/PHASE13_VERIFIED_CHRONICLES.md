@@ -16,8 +16,9 @@ A verified chronicle card must include:
 - population, birth, death, and faction metrics when available
 - event evidence from `causal_events` or `causal_summary.json`
 - provenance status: `verified` or `partial`
+- a committed provenance manifest when the chronicle is published under `docs/reports/`
 
-The first implementation target is `scripts/render_verified_chronicles.py`, which emits deterministic Markdown from a run directory.
+The first implementation target is `scripts/render_verified_chronicles.py`, which emits deterministic Markdown and a compact JSON provenance manifest from a run directory.
 
 ## Why deterministic first
 
@@ -25,14 +26,16 @@ LLM prose can only be as trustworthy as the evidence scaffold beneath it. The fi
 
 - If the source DB exists and the summary exists, provenance is `verified`.
 - If evidence is missing, the card must be marked `partial` rather than padded with narrative.
-- The renderer exposes source paths in the output so an operator can trace the card back to the run artifact.
+- The renderer exposes source paths in the Markdown so an operator can trace the card back to the local run artifact.
+- The renderer can also write a committed `.provenance.json` manifest that embeds run metadata, card metrics, evidence event types, and source file names without host-local absolute paths. This keeps published reports auditable even after `/tmp` run directories are gone.
 
 ## Operator command
 
 ```bash
 PYTHONPATH=. python3 scripts/render_verified_chronicles.py \
   --run-dir /path/to/aurelia-run \
-  --output docs/reports/phase13-verified-chronicles.md
+  --output docs/reports/phase13-verified-chronicles.md \
+  --manifest-output docs/reports/phase13-verified-chronicles.provenance.json
 ```
 
 ## LLM layer rule
@@ -53,6 +56,7 @@ A Phase 13 chronicle artifact is publishable only if:
 - it names the source run;
 - it names the world and year;
 - it includes source summary and DB paths;
+- it links to a committed provenance manifest when published;
 - it exposes event evidence or explicitly marks the card partial;
 - it does not introduce named events, people, factions, or outcomes absent from the source evidence.
 

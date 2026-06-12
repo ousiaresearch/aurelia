@@ -1,0 +1,720 @@
+{
+  "cards": [
+    {
+      "evidence": {
+        "causal_highlights": [
+          {
+            "count": 1,
+            "event_type": "property_rights_shift",
+            "magnitude": 0.5174
+          },
+          {
+            "count": 1,
+            "event_type": "sovereignty_charter",
+            "magnitude": 0.5174
+          },
+          {
+            "count": 1,
+            "event_type": "reconciliation_process",
+            "magnitude": 0.45
+          },
+          {
+            "count": 1,
+            "event_type": "state_capacity_evolved",
+            "magnitude": 0.4
+          },
+          {
+            "count": 1,
+            "event_type": "civic_ritual_observed",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "goal_progress",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "npc_depth_signal",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "npc_dialogue_exchange",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "disease_ecology_pressure",
+            "magnitude": 0.3067
+          },
+          {
+            "count": 1,
+            "event_type": "education_pipeline_update",
+            "magnitude": 0.3039
+          },
+          {
+            "count": 1,
+            "event_type": "urbanization_shift",
+            "magnitude": 0.3014
+          },
+          {
+            "count": 1,
+            "event_type": "repression_type_selected",
+            "magnitude": 0.3005
+          },
+          {
+            "count": 1,
+            "event_type": "conflict_type_classified",
+            "magnitude": 0.0802
+          },
+          {
+            "count": 1,
+            "event_type": "security_stop",
+            "magnitude": 0.0607
+          },
+          {
+            "count": 1,
+            "event_type": "wage_dispute",
+            "magnitude": 0.0398
+          },
+          {
+            "count": 1,
+            "event_type": "work_failure",
+            "magnitude": 0.029
+          },
+          {
+            "count": 1,
+            "event_type": "caregiving",
+            "magnitude": 0.0221
+          },
+          {
+            "count": 1,
+            "event_type": "repression_visibility",
+            "magnitude": 0.0212
+          },
+          {
+            "count": 1,
+            "event_type": "work_success",
+            "magnitude": 0.0139
+          },
+          {
+            "count": 1,
+            "event_type": "labor_unrest",
+            "magnitude": 0.0119
+          }
+        ],
+        "tick_range": [
+          1,
+          1
+        ],
+        "top_event_types": [
+          "capital_formation",
+          "caregiving",
+          "civic_ritual_observed",
+          "conflict_type_classified",
+          "disease_ecology_pressure",
+          "economic_stress",
+          "education_pipeline_update",
+          "goal_progress"
+        ]
+      },
+      "metrics": {
+        "births": 0,
+        "deaths": 0,
+        "factions": 0,
+        "population": 10
+      },
+      "provenance_status": "verified",
+      "run_id": "aurelia-y1-tpy1-seed4102-2d0859d",
+      "source_files": {
+        "summary": "causal_summary.json",
+        "world_db": "arkos.db"
+      },
+      "title": "Year 1 \u2014 Arkos",
+      "world_id": "arkos",
+      "year": 1
+    },
+    {
+      "evidence": {
+        "causal_highlights": [
+          {
+            "count": 3,
+            "event_type": "work_success",
+            "magnitude": 0.038
+          },
+          {
+            "count": 1,
+            "event_type": "property_rights_shift",
+            "magnitude": 0.5639
+          },
+          {
+            "count": 1,
+            "event_type": "sovereignty_charter",
+            "magnitude": 0.5639
+          },
+          {
+            "count": 1,
+            "event_type": "reconciliation_process",
+            "magnitude": 0.45
+          },
+          {
+            "count": 1,
+            "event_type": "state_capacity_evolved",
+            "magnitude": 0.4
+          },
+          {
+            "count": 1,
+            "event_type": "civic_ritual_observed",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "goal_progress",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "npc_depth_signal",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "npc_dialogue_exchange",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "education_pipeline_update",
+            "magnitude": 0.3043
+          },
+          {
+            "count": 1,
+            "event_type": "urbanization_shift",
+            "magnitude": 0.3013
+          },
+          {
+            "count": 1,
+            "event_type": "disease_ecology_pressure",
+            "magnitude": 0.2709
+          },
+          {
+            "count": 1,
+            "event_type": "repression_type_selected",
+            "magnitude": 0.2
+          },
+          {
+            "count": 1,
+            "event_type": "caregiving",
+            "magnitude": 0.0258
+          },
+          {
+            "count": 1,
+            "event_type": "small_trade",
+            "magnitude": 0.0207
+          },
+          {
+            "count": 1,
+            "event_type": "conflict_type_classified",
+            "magnitude": 0.02
+          },
+          {
+            "count": 1,
+            "event_type": "capital_formation",
+            "magnitude": 0.006
+          },
+          {
+            "count": 1,
+            "event_type": "productive_confidence",
+            "magnitude": 0.0046
+          },
+          {
+            "count": 1,
+            "event_type": "social_solidarity",
+            "magnitude": 0.0039
+          },
+          {
+            "count": 1,
+            "event_type": "market_activity",
+            "magnitude": 0.0021
+          }
+        ],
+        "tick_range": [
+          1,
+          1
+        ],
+        "top_event_types": [
+          "work_success",
+          "capital_formation",
+          "caregiving",
+          "civic_ritual_observed",
+          "conflict_type_classified",
+          "disease_ecology_pressure",
+          "education_pipeline_update",
+          "goal_progress"
+        ]
+      },
+      "metrics": {
+        "births": 0,
+        "deaths": 0,
+        "factions": 0,
+        "population": 10
+      },
+      "provenance_status": "verified",
+      "run_id": "aurelia-y1-tpy1-seed4102-2d0859d",
+      "source_files": {
+        "summary": "causal_summary.json",
+        "world_db": "mirithane.db"
+      },
+      "title": "Year 1 \u2014 Mirithane",
+      "world_id": "mirithane",
+      "year": 1
+    },
+    {
+      "evidence": {
+        "causal_highlights": [
+          {
+            "count": 1,
+            "event_type": "property_rights_shift",
+            "magnitude": 0.6013
+          },
+          {
+            "count": 1,
+            "event_type": "sovereignty_charter",
+            "magnitude": 0.6013
+          },
+          {
+            "count": 1,
+            "event_type": "repression_type_selected",
+            "magnitude": 0.45
+          },
+          {
+            "count": 1,
+            "event_type": "state_capacity_evolved",
+            "magnitude": 0.4
+          },
+          {
+            "count": 1,
+            "event_type": "civic_ritual_observed",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "goal_progress",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "npc_depth_signal",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "npc_dialogue_exchange",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "disease_ecology_pressure",
+            "magnitude": 0.3212
+          },
+          {
+            "count": 1,
+            "event_type": "education_pipeline_update",
+            "magnitude": 0.3046
+          },
+          {
+            "count": 1,
+            "event_type": "urbanization_shift",
+            "magnitude": 0.3014
+          },
+          {
+            "count": 1,
+            "event_type": "wage_dispute",
+            "magnitude": 0.0348
+          },
+          {
+            "count": 1,
+            "event_type": "work_failure",
+            "magnitude": 0.0314
+          },
+          {
+            "count": 1,
+            "event_type": "caregiving",
+            "magnitude": 0.0249
+          },
+          {
+            "count": 1,
+            "event_type": "rumor_transmission",
+            "magnitude": 0.0199
+          },
+          {
+            "count": 1,
+            "event_type": "small_trade",
+            "magnitude": 0.0163
+          },
+          {
+            "count": 1,
+            "event_type": "labor_unrest",
+            "magnitude": 0.0104
+          },
+          {
+            "count": 1,
+            "event_type": "economic_stress",
+            "magnitude": 0.0057
+          },
+          {
+            "count": 1,
+            "event_type": "rumor_velocity",
+            "magnitude": 0.004
+          },
+          {
+            "count": 1,
+            "event_type": "social_solidarity",
+            "magnitude": 0.0037
+          }
+        ],
+        "tick_range": [
+          1,
+          1
+        ],
+        "top_event_types": [
+          "capital_formation",
+          "caregiving",
+          "civic_ritual_observed",
+          "conflict_type_classified",
+          "disease_ecology_pressure",
+          "economic_stress",
+          "education_pipeline_update",
+          "goal_progress"
+        ]
+      },
+      "metrics": {
+        "births": 0,
+        "deaths": 0,
+        "factions": 0,
+        "population": 10
+      },
+      "provenance_status": "verified",
+      "run_id": "aurelia-y1-tpy1-seed4102-2d0859d",
+      "source_files": {
+        "summary": "causal_summary.json",
+        "world_db": "solara.db"
+      },
+      "title": "Year 1 \u2014 Solara",
+      "world_id": "solara",
+      "year": 1
+    },
+    {
+      "evidence": {
+        "causal_highlights": [
+          {
+            "count": 2,
+            "event_type": "security_stop",
+            "magnitude": 0.1144
+          },
+          {
+            "count": 1,
+            "event_type": "property_rights_shift",
+            "magnitude": 0.5933
+          },
+          {
+            "count": 1,
+            "event_type": "sovereignty_charter",
+            "magnitude": 0.5933
+          },
+          {
+            "count": 1,
+            "event_type": "reconciliation_process",
+            "magnitude": 0.45
+          },
+          {
+            "count": 1,
+            "event_type": "state_capacity_evolved",
+            "magnitude": 0.4
+          },
+          {
+            "count": 1,
+            "event_type": "civic_ritual_observed",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "goal_progress",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "npc_depth_signal",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "npc_dialogue_exchange",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "education_pipeline_update",
+            "magnitude": 0.304
+          },
+          {
+            "count": 1,
+            "event_type": "urbanization_shift",
+            "magnitude": 0.3014
+          },
+          {
+            "count": 1,
+            "event_type": "repression_type_selected",
+            "magnitude": 0.3007
+          },
+          {
+            "count": 1,
+            "event_type": "disease_ecology_pressure",
+            "magnitude": 0.2975
+          },
+          {
+            "count": 1,
+            "event_type": "repression_visibility",
+            "magnitude": 0.04
+          },
+          {
+            "count": 1,
+            "event_type": "wage_dispute",
+            "magnitude": 0.0361
+          },
+          {
+            "count": 1,
+            "event_type": "caregiving",
+            "magnitude": 0.0298
+          },
+          {
+            "count": 1,
+            "event_type": "work_success",
+            "magnitude": 0.0165
+          },
+          {
+            "count": 1,
+            "event_type": "labor_unrest",
+            "magnitude": 0.0108
+          },
+          {
+            "count": 1,
+            "event_type": "social_solidarity",
+            "magnitude": 0.0045
+          },
+          {
+            "count": 1,
+            "event_type": "capital_formation",
+            "magnitude": 0.0023
+          }
+        ],
+        "tick_range": [
+          1,
+          1
+        ],
+        "top_event_types": [
+          "security_stop",
+          "capital_formation",
+          "caregiving",
+          "civic_ritual_observed",
+          "conflict_type_classified",
+          "disease_ecology_pressure",
+          "education_pipeline_update",
+          "goal_progress"
+        ]
+      },
+      "metrics": {
+        "births": 0,
+        "deaths": 0,
+        "factions": 0,
+        "population": 10
+      },
+      "provenance_status": "verified",
+      "run_id": "aurelia-y1-tpy1-seed4102-2d0859d",
+      "source_files": {
+        "summary": "causal_summary.json",
+        "world_db": "valdris.db"
+      },
+      "title": "Year 1 \u2014 Valdris",
+      "world_id": "valdris",
+      "year": 1
+    },
+    {
+      "evidence": {
+        "causal_highlights": [
+          {
+            "count": 1,
+            "event_type": "property_rights_shift",
+            "magnitude": 0.514
+          },
+          {
+            "count": 1,
+            "event_type": "sovereignty_charter",
+            "magnitude": 0.514
+          },
+          {
+            "count": 1,
+            "event_type": "reconciliation_process",
+            "magnitude": 0.45
+          },
+          {
+            "count": 1,
+            "event_type": "state_capacity_evolved",
+            "magnitude": 0.4
+          },
+          {
+            "count": 1,
+            "event_type": "civic_ritual_observed",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "goal_progress",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "npc_depth_signal",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "npc_dialogue_exchange",
+            "magnitude": 0.35
+          },
+          {
+            "count": 1,
+            "event_type": "education_pipeline_update",
+            "magnitude": 0.3039
+          },
+          {
+            "count": 1,
+            "event_type": "urbanization_shift",
+            "magnitude": 0.3014
+          },
+          {
+            "count": 1,
+            "event_type": "disease_ecology_pressure",
+            "magnitude": 0.2973
+          },
+          {
+            "count": 1,
+            "event_type": "repression_type_selected",
+            "magnitude": 0.1205
+          },
+          {
+            "count": 1,
+            "event_type": "security_stop",
+            "magnitude": 0.0544
+          },
+          {
+            "count": 1,
+            "event_type": "migration_plan",
+            "magnitude": 0.0295
+          },
+          {
+            "count": 1,
+            "event_type": "caregiving",
+            "magnitude": 0.0277
+          },
+          {
+            "count": 1,
+            "event_type": "small_trade",
+            "magnitude": 0.0247
+          },
+          {
+            "count": 1,
+            "event_type": "work_success",
+            "magnitude": 0.0202
+          },
+          {
+            "count": 1,
+            "event_type": "repression_visibility",
+            "magnitude": 0.019
+          },
+          {
+            "count": 1,
+            "event_type": "migration_pressure",
+            "magnitude": 0.0074
+          },
+          {
+            "count": 1,
+            "event_type": "social_solidarity",
+            "magnitude": 0.0042
+          }
+        ],
+        "tick_range": [
+          1,
+          1
+        ],
+        "top_event_types": [
+          "capital_formation",
+          "caregiving",
+          "civic_ritual_observed",
+          "conflict_type_classified",
+          "disease_ecology_pressure",
+          "education_pipeline_update",
+          "goal_progress",
+          "macro_state_update"
+        ]
+      },
+      "metrics": {
+        "births": 0,
+        "deaths": 0,
+        "factions": 0,
+        "population": 10
+      },
+      "provenance_status": "verified",
+      "run_id": "aurelia-y1-tpy1-seed4102-2d0859d",
+      "source_files": {
+        "summary": "causal_summary.json",
+        "world_db": "verge.db"
+      },
+      "title": "Year 1 \u2014 Verge",
+      "world_id": "verge",
+      "year": 1
+    }
+  ],
+  "schema": "aurelia.phase13.provenance.v1",
+  "source_run": {
+    "density_diversification": 1.0,
+    "engine_version": "aurelia-phase12",
+    "git_commit": "2d0859d",
+    "run_id": "aurelia-y1-tpy1-seed4102-2d0859d",
+    "seed": 4102,
+    "source_files": {
+      "summary": "causal_summary.json"
+    },
+    "ticks": 1,
+    "ticks_per_year": 1,
+    "worlds": {
+      "arkos": {
+        "deceased": 0,
+        "factions": 0,
+        "population": 10
+      },
+      "mirithane": {
+        "deceased": 0,
+        "factions": 0,
+        "population": 10
+      },
+      "solara": {
+        "deceased": 0,
+        "factions": 0,
+        "population": 10
+      },
+      "valdris": {
+        "deceased": 0,
+        "factions": 0,
+        "population": 10
+      },
+      "verge": {
+        "deceased": 0,
+        "factions": 0,
+        "population": 10
+      }
+    },
+    "years": 1
+  }
+}

@@ -2,6 +2,8 @@
 
 Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not freeform invented prose.
 
+Committed provenance manifest: [phase13-verified-chronicles.provenance.json](phase13-verified-chronicles.provenance.json)
+
 ## Year 1 — Arkos
 
 - Run: `aurelia-y1-tpy1-seed4102-2d0859d`
@@ -10,8 +12,8 @@ Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not
 - Births / deaths: 0 / 0
 - Factions: 0
 - Evidence event types: capital_formation, caregiving, civic_ritual_observed, conflict_type_classified, disease_ecology_pressure, economic_stress, education_pipeline_update, goal_progress
-- Source summary: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/causal_summary.json`
-- Source DB: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/arkos.db`
+- Source summary: `causal_summary.json`
+- Source DB: `arkos.db`
 
 ## Year 1 — Mirithane
 
@@ -21,8 +23,8 @@ Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not
 - Births / deaths: 0 / 0
 - Factions: 0
 - Evidence event types: work_success, capital_formation, caregiving, civic_ritual_observed, conflict_type_classified, disease_ecology_pressure, education_pipeline_update, goal_progress
-- Source summary: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/causal_summary.json`
-- Source DB: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/mirithane.db`
+- Source summary: `causal_summary.json`
+- Source DB: `mirithane.db`
 
 ## Year 1 — Solara
 
@@ -32,8 +34,8 @@ Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not
 - Births / deaths: 0 / 0
 - Factions: 0
 - Evidence event types: capital_formation, caregiving, civic_ritual_observed, conflict_type_classified, disease_ecology_pressure, economic_stress, education_pipeline_update, goal_progress
-- Source summary: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/causal_summary.json`
-- Source DB: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/solara.db`
+- Source summary: `causal_summary.json`
+- Source DB: `solara.db`
 
 ## Year 1 — Valdris
 
@@ -43,8 +45,8 @@ Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not
 - Births / deaths: 0 / 0
 - Factions: 0
 - Evidence event types: security_stop, capital_formation, caregiving, civic_ritual_observed, conflict_type_classified, disease_ecology_pressure, education_pipeline_update, goal_progress
-- Source summary: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/causal_summary.json`
-- Source DB: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/valdris.db`
+- Source summary: `causal_summary.json`
+- Source DB: `valdris.db`
 
 ## Year 1 — Verge
 
@@ -54,5 +56,5 @@ Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not
 - Births / deaths: 0 / 0
 - Factions: 0
 - Evidence event types: capital_formation, caregiving, civic_ritual_observed, conflict_type_classified, disease_ecology_pressure, education_pipeline_update, goal_progress, macro_state_update
-- Source summary: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/causal_summary.json`
-- Source DB: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/verge.db`
+- Source summary: `causal_summary.json`
+- Source DB: `verge.db`

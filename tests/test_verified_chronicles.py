@@ -145,13 +145,43 @@ def test_missing_world_db_marks_card_partial_but_keeps_summary_evidence(tmp_path
     assert "reconciliation_process" in cards[0]["evidence"]["top_event_types"]
 
 
-def test_cli_writes_verified_chronicle_markdown(tmp_path):
+def test_build_provenance_manifest_embeds_auditable_evidence_without_tmp_paths(tmp_path):
     run_dir = make_verified_run(tmp_path)
-    output = tmp_path / "chronicles.md"
     mod = load_script("render_verified_chronicles")
 
-    mod.main(["--run-dir", str(run_dir), "--output", str(output)])
+    manifest = mod.build_provenance_manifest(run_dir)
+    raw = json.dumps(manifest)
+
+    assert manifest["schema"] == "aurelia.phase13.provenance.v1"
+    assert manifest["source_run"]["run_id"] == "phase13-fixture"
+    assert manifest["source_run"]["seed"] == 4242
+    assert manifest["source_run"]["ticks_per_year"] == 3
+    assert manifest["source_run"]["source_files"]["summary"] == "causal_summary.json"
+    assert manifest["cards"][0]["source_files"]["world_db"] == "solara.db"
+    assert manifest["cards"][0]["metrics"]["population"] == 1
+    assert "reconciliation_process" in manifest["cards"][0]["evidence"]["top_event_types"]
+    assert str(tmp_path) not in raw
+
+
+def test_cli_writes_verified_chronicle_markdown_and_manifest(tmp_path):
+    run_dir = make_verified_run(tmp_path)
+    output = tmp_path / "chronicles.md"
+    manifest_output = tmp_path / "chronicles.provenance.json"
+    mod = load_script("render_verified_chronicles")
+
+    mod.main([
+        "--run-dir", str(run_dir),
+        "--output", str(output),
+        "--manifest-output", str(manifest_output),
+    ])
 
     text = output.read_text()
+    manifest = json.loads(manifest_output.read_text())
     assert "Aurelia Verified Chronicles" in text
     assert "Year 1 — Solara" in text
+    assert "Committed provenance manifest: [chronicles.provenance.json](chronicles.provenance.json)" in text
+    assert str(manifest_output) not in text
+    assert str(run_dir) not in text
+    assert "Source summary: `causal_summary.json`" in text
+    assert "Source DB: `solara.db`" in text
+    assert manifest["source_run"]["run_id"] == "phase13-fixture"
