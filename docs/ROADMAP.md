@@ -76,5 +76,6 @@ Status: active frontier. First target is a deterministic verified
 chronicle layer with provenance before any freeform LLM prose.
 
 - Chronicle/prose generation from verified run artifacts.
+- First implementation target: [`PHASE13_VERIFIED_CHRONICLES.md`](PHASE13_VERIFIED_CHRONICLES.md) and `scripts/render_verified_chronicles.py`.
 - Social-thread extract mode.
 - Public reports and media assets generated from real histories, not invented summaries.

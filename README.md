@@ -419,6 +419,7 @@ Coverage focuses on:
 - `docs/ARCHITECTURE.md` — runtime/data-plane architecture
 - `docs/DEMO.md` — reproducible quick demo and inspection flow
 - `docs/ROADMAP.md` — Phase 10–13 roadmap
+- [`docs/PHASE13_VERIFIED_CHRONICLES.md`](docs/PHASE13_VERIFIED_CHRONICLES.md) — Phase 13 contract for provenance-preserving narrative artifacts
 - `docs/SOCIAL_PROOF.md` — public positioning and proof kit
 - `docs/world-sociology.md` — sociological scaffolding behind the world types
 - `docs/diplomatic-matrix.md` — the diplomacy type matrix
@@ -444,6 +445,8 @@ The roadmap is the causal gap closure process. Each phase closes a specific clas
 - **Phase 9**: positive-sum dynamics (capital economy, culture, regime, institutions)
 - **Phase 10**: causal-gap closure — ecology, resources, inequality, infrastructure, demographics, education, urbanization, disease, state capacity, property rights, conflict type, path dependence, innovation, great persons, rituals, reconciliation, goals, peace treaties, sovereignty, cross-world NPC movement, cultural diffusion, foreign strategy, and causal graph edges
 - **Phase 11**: observatory and counterfactual proof layer — canonical release, Cloudflare causal ingestion, graph export, run reports, public dashboard, quality metrics, and paired counterfactual branches
+- **Phase 12**: calibrated production histories — engine stability, refreshed proof reports, counterfactual UX, and seed-sweep evidence
+- **Phase 13**: verified chronicle layer — provenance-preserving narrative artifacts from real run histories
 
 ## Citation
 
