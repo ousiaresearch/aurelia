@@ -50,6 +50,12 @@
     .metric { padding: 18px; border-radius: 18px; background: rgba(0,0,0,.18); border: 1px solid var(--line); }
     .metric .value { font: 800 30px ui-sans-serif, system-ui; letter-spacing: -.04em; }
     .metric .label { color: var(--muted); font: 700 11px ui-sans-serif, system-ui; text-transform: uppercase; letter-spacing: .12em; margin-top: 4px; }
+    .stability { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; margin: 0 0 22px; }
+    .claim { padding: 18px; border-radius: 18px; background: rgba(0,0,0,.18); border: 1px solid var(--line); }
+    .claim .value { font: 800 34px ui-sans-serif, system-ui; letter-spacing: -.04em; color: var(--gold); }
+    .claim .label { color: var(--muted); font: 700 11px ui-sans-serif, system-ui; text-transform: uppercase; letter-spacing: .12em; margin-top: 4px; }
+    .notes { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.55; }
+    .notes strong { color: var(--ink); }
     .grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 14px; }
     .world { padding: 16px; min-height: 150px; }
     .world h3 { margin: 0 0 10px; font-size: 22px; }
@@ -63,7 +69,7 @@
     .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold)); border-radius: inherit; }
     pre { white-space: pre-wrap; color: var(--muted); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: rgba(0,0,0,.22); border-radius: 14px; padding: 14px; border: 1px solid var(--line); max-height: 320px; overflow: auto; }
     .footer { color: var(--muted); font: 12px ui-sans-serif, system-ui; text-align: center; padding: 30px 0 50px; }
-    @media (max-width: 900px) { .hero, .sections { grid-template-columns: 1fr; } .grid, .metrics { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 900px) { .hero, .sections, .stability { grid-template-columns: 1fr; } .grid, .metrics { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 560px) { header, main { padding: 18px; } .grid, .metrics { grid-template-columns: 1fr; } .bar { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -73,7 +79,7 @@
       <section class="card">
         <div class="eyebrow">Aurelia Observatory</div>
         <h1>Five worlds, one causal archive.</h1>
-        <p>Aurelia is a live, agent-operated civilization simulation. Every migration, diffusion event, discovery, treaty, and macro pressure is stored as queryable state in Cloudflare.</p>
+        <p>Aurelia is a live, agent-operated civilization simulation. Every migration, diffusion event, discovery, treaty, and macro pressure is stored as queryable state in Cloudflare. This surface now reflects the post-fix 0.1.6 engine: loop-capped, seed-swept, and guarded by regression tests.</p>
         <div class="status"><span class="dot"></span><span id="status">connecting to Cloudflare…</span></div>
       </section>
       <aside class="card">
@@ -86,6 +92,26 @@
 
   <main>
     <section class="metrics" id="metrics"></section>
+
+    <section class="stability">
+      <div class="panel">
+        <h2>Post-fix engine stability</h2>
+        <div class="metrics" style="margin:0; grid-template-columns: repeat(3, minmax(0,1fr));">
+          <div class="claim"><div class="value">0.85</div><div class="label">D1 score, 5/5 seeds</div></div>
+          <div class="claim"><div class="value">98.1%</div><div class="label">population CV reduction</div></div>
+          <div class="claim"><div class="value">61,987 ± 1,284</div><div class="label">events across seed sweep</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Public surface notes</h2>
+        <ul class="notes">
+          <li><strong>CHANGELOG:</strong> <a href="../../CHANGELOG.md">0.1.6-phase12-engine-stability</a> documents four capped feedback loops and 166 green tests.</li>
+          <li><strong>Reports:</strong> <a href="../reports/phase11-runs-comparison.md">Phase 11 comparison</a> and <a href="../reports/phase12-seed-sweep-report.md">Phase 12 seed sweep</a> are the numeric canon.</li>
+          <li><strong>Cloudflare:</strong> this dashboard is a queryable observability plane; HF/local artifacts remain the complete archive for long runs. Current public query windows are capped: runs 500, yearly rows 1,000, causal/federation samples 500.</li>
+        </ul>
+      </div>
+    </section>
+
     <section class="grid" id="worlds"></section>
     <section class="sections">
       <div class="panel">
