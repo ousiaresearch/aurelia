@@ -171,7 +171,30 @@ def test_density_diversification_reports_reduction_above_98_percent(tmp_path, ca
 
 
 # ---------------------------------------------------------------------------
-# C4 — 03_trace_causal_chain
+# C4 — 05_run_density_diversification_grid
+# ---------------------------------------------------------------------------
+
+def test_density_grid_example_builds_three_by_two_plan():
+    mod = load_example("05_run_density_diversification_grid")
+    plan = mod.build_grid_plan([4101, 4102])
+    assert len(plan) == 6
+    assert [p.density for p in plan] == [0.0, 0.0, 0.5, 0.5, 1.0, 1.0]
+    assert {p.label for p in plan} == {"no-diversify", "mid-diversify", "full-diversify"}
+
+
+def test_density_grid_example_dry_run_prints_copy_paste_battery(capsys):
+    mod = load_example("05_run_density_diversification_grid")
+    rc = mod.main(["--dry-run", "--seeds", "4101", "4102"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "6 planned runs" in out
+    assert "no-diversify" in out
+    assert "mid-diversify" in out
+    assert "full-diversify" in out
+
+
+# ---------------------------------------------------------------------------
+# C5 — 03_trace_causal_chain
 # ---------------------------------------------------------------------------
 
 def test_trace_causal_chain_builds_parent_child_index():
@@ -217,6 +240,8 @@ def test_research_start_here_mentions_core_examples():
     assert "01_load_aurelia_hf_datasets" in text
     assert "02_reproduce_density_diversification" in text
     assert "03_trace_causal_chain" in text
+    assert "04_run_counterfactual_branch" in text
+    assert "05_run_density_diversification_grid" in text
     assert "AURELIA_CANON_AND_DATA_GUIDE" in text
 
 
@@ -233,6 +258,7 @@ def test_readme_links_both_start_here_pages():
     text = (ROOT / "README.md").read_text()
     assert "AURELIA_RESEARCH_START_HERE" in text
     assert "AURELIA_LORE_READERS_START_HERE" in text
+    assert "05_run_density_diversification_grid" in text
 
 
 def test_wiki_readme_anchors_canon_bridge():

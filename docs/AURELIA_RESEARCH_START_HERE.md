@@ -11,7 +11,7 @@ a federation clock; every event is recorded as a first-class `causal_event`
 row. Four HuggingFace datasets expose the same artifacts as a queryable
 research archive.
 
-## Three commands, in order
+## Five commands, in order
 
 ```bash
 # 1. Load and inspect all four datasets (rows, files, columns)
@@ -25,13 +25,17 @@ PYTHONPATH=. python3 examples/03_trace_causal_chain.py
 
 # 4. Run a counterfactual branch (paired-simulation comparison)
 PYTHONPATH=src_template python3 examples/04_run_counterfactual_branch.py
+
+# 5. Run the density-diversification grid (3 settings × 2 seeds)
+PYTHONPATH=. python3 examples/05_run_density_diversification_grid.py --dry-run
 ```
 
 If `/tmp/hf-export` does not exist locally, the first example prints the
 HuggingFace download instructions; the second falls back to the canonical
 numbers from `docs/reports/phase11-runs-comparison.md`; the third exits
-cleanly with the same download instructions. The fourth example
-self-runs and needs no prior artifact (~90s wall time on an M3).
+cleanly with the same download instructions. The fourth and fifth examples
+self-run and need no prior artifact. Use `--dry-run` on example 05 to preview
+the 6-run battery before spending simulation time.
 
 ## The four datasets
 
@@ -62,9 +66,10 @@ opt into network access manually.
 | Example | What it proves |
 |---|---|
 | `01_load_aurelia_hf_datasets.py` | The four datasets exist, are partitioned by run and world, and have stable column schemas. |
-| `02_reproduce_density_diversification.py` | The published Phase 11 headline: turning on `density_diversification` reduces cross-world population CV from ~0.67 to ~0.006, a 99% reduction. |
+| `02_reproduce_density_diversification.py` | The published Phase 11 headline: turning on `density_diversification` reduces cross-world population CV from 0.807 to 0.015, a 98.1% reduction. |
 | `03_trace_causal_chain.py` | Federation causal edges are real, queryable, and have a useful starting structure (cultural diffusion fed by cross-world movement). |
 | `04_run_counterfactual_branch.py` | Same-seed paired runs with one knob changed produce a measurable divergence; see [`AURELIA_COUNTERFACTUALS.md`](AURELIA_COUNTERFACTUALS.md) for the full pattern. |
+| `05_run_density_diversification_grid.py` | A copy-paste 3×2 simulation battery: no / mid / full diversification across two seeds, with JSON + Markdown reports. |
 
 ## Known limitations
 
