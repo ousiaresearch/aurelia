@@ -25,7 +25,8 @@ Phase 10 made dormant causal categories active at runtime:
 
 ## Phase 11 — Observatory and counterfactual proof layer
 
-Status: in progress.
+Status: closed. Public observability, proof tools, report rendering,
+quality gates, and counterfactual branches are shipped.
 
 Goal: make Aurelia undeniable as an observable causal system.
 
@@ -62,11 +63,17 @@ Goal: make Aurelia undeniable as an observable causal system.
 
 ## Phase 12 — Calibrated production histories
 
+Status: closed for the 0.1.6 engine-stability boundary; continuing
+calibration sweeps are future research work.
+
 - 50-year calibration gates before 200-year production runs.
 - Seed sweeps for richness/divergence.
 - Quality thresholds for conflict diversity, foreign strategy, institution formation, discovery cadence, movement, and causal edge density.
 
 ## Phase 13 — Narrative layer over verified history
+
+Status: active frontier. First target is a deterministic verified
+chronicle layer with provenance before any freeform LLM prose.
 
 - Chronicle/prose generation from verified run artifacts.
 - Social-thread extract mode.
