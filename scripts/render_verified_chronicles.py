@@ -128,6 +128,7 @@ def render_verified_chronicles_markdown(run_dir: str | Path) -> str:
             f"- Births / deaths: {card['metrics'].get('births')} / "
             f"{card['metrics'].get('deaths')}"
         )
+        lines.append(f"- Factions: {card['metrics'].get('factions')}")
         events = card["evidence"].get("top_event_types", [])
         lines.append(
             f"- Evidence event types: {', '.join(events) if events else 'none'}"

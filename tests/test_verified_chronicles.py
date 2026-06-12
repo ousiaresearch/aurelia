@@ -128,9 +128,21 @@ def test_render_verified_chronicle_markdown_keeps_evidence_visible(tmp_path):
     assert "# Aurelia Verified Chronicles" in markdown
     assert "## Year 1 — Solara" in markdown
     assert "Provenance: verified" in markdown
+    assert "Factions: 0" in markdown
     assert "reconciliation_process" in markdown
     assert "Source summary:" in markdown
     assert "Source DB:" in markdown
+
+
+def test_missing_world_db_marks_card_partial_but_keeps_summary_evidence(tmp_path):
+    run_dir = make_verified_run(tmp_path)
+    (run_dir / "solara.db").unlink()
+    mod = load_script("render_verified_chronicles")
+
+    cards = mod.build_verified_chronicle_cards(run_dir)
+
+    assert cards[0]["provenance_status"] == "partial"
+    assert "reconciliation_process" in cards[0]["evidence"]["top_event_types"]
 
 
 def test_cli_writes_verified_chronicle_markdown(tmp_path):

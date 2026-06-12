@@ -8,6 +8,7 @@ Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not
 - Provenance: verified
 - Population: 10
 - Births / deaths: 0 / 0
+- Factions: 0
 - Evidence event types: capital_formation, caregiving, civic_ritual_observed, conflict_type_classified, disease_ecology_pressure, economic_stress, education_pipeline_update, goal_progress
 - Source summary: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/causal_summary.json`
 - Source DB: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/arkos.db`
@@ -18,6 +19,7 @@ Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not
 - Provenance: verified
 - Population: 10
 - Births / deaths: 0 / 0
+- Factions: 0
 - Evidence event types: work_success, capital_formation, caregiving, civic_ritual_observed, conflict_type_classified, disease_ecology_pressure, education_pipeline_update, goal_progress
 - Source summary: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/causal_summary.json`
 - Source DB: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/mirithane.db`
@@ -28,6 +30,7 @@ Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not
 - Provenance: verified
 - Population: 10
 - Births / deaths: 0 / 0
+- Factions: 0
 - Evidence event types: capital_formation, caregiving, civic_ritual_observed, conflict_type_classified, disease_ecology_pressure, economic_stress, education_pipeline_update, goal_progress
 - Source summary: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/causal_summary.json`
 - Source DB: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/solara.db`
@@ -38,6 +41,7 @@ Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not
 - Provenance: verified
 - Population: 10
 - Births / deaths: 0 / 0
+- Factions: 0
 - Evidence event types: security_stop, capital_formation, caregiving, civic_ritual_observed, conflict_type_classified, disease_ecology_pressure, education_pipeline_update, goal_progress
 - Source summary: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/causal_summary.json`
 - Source DB: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/valdris.db`
@@ -48,6 +52,7 @@ Deterministic Phase 13 chronicle cards. These are evidence-backed summaries, not
 - Provenance: verified
 - Population: 10
 - Births / deaths: 0 / 0
+- Factions: 0
 - Evidence event types: capital_formation, caregiving, civic_ritual_observed, conflict_type_classified, disease_ecology_pressure, education_pipeline_update, goal_progress, macro_state_update
 - Source summary: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/causal_summary.json`
 - Source DB: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102/verge.db`
