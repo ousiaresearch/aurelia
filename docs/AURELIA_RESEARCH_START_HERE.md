@@ -11,7 +11,7 @@ a federation clock; every event is recorded as a first-class `causal_event`
 row. Four HuggingFace datasets expose the same artifacts as a queryable
 research archive.
 
-## Five commands, in order
+## Six commands, in order
 
 ```bash
 # 1. Load and inspect all four datasets (rows, files, columns)
@@ -28,6 +28,9 @@ PYTHONPATH=src_template python3 examples/04_run_counterfactual_branch.py
 
 # 5. Run the density-diversification grid (3 settings × 2 seeds)
 PYTHONPATH=. python3 examples/05_run_density_diversification_grid.py --dry-run
+
+# 6. Plan the Phase 13 post-run narrative chronicle batch
+PYTHONPATH=src_template python3 src_template/batch_chronicles.py --output /tmp/aurelia-run/output --years 200 --dry-run
 ```
 
 If `/tmp/hf-export` does not exist locally, the first example prints the
@@ -35,7 +38,10 @@ HuggingFace download instructions; the second falls back to the canonical
 numbers from `docs/reports/phase11-runs-comparison.md`; the third exits
 cleanly with the same download instructions. The fourth and fifth examples
 self-run and need no prior artifact. Use `--dry-run` on example 05 to preview
-the 6-run battery before spending simulation time.
+the 6-run battery before spending simulation time. The sixth command is a
+planning-only Phase 13 narrative pass; it does not load a model or require a
+GPU. See [`AURELIA_PHASE13_NARRATIVE.md`](AURELIA_PHASE13_NARRATIVE.md) for the
+full chronicle workflow.
 
 ## The four datasets
 
@@ -70,6 +76,7 @@ opt into network access manually.
 | `03_trace_causal_chain.py` | Federation causal edges are real, queryable, and have a useful starting structure (cultural diffusion fed by cross-world movement). |
 | `04_run_counterfactual_branch.py` | Same-seed paired runs with one knob changed produce a measurable divergence; see [`AURELIA_COUNTERFACTUALS.md`](AURELIA_COUNTERFACTUALS.md) for the full pattern. |
 | `05_run_density_diversification_grid.py` | A copy-paste 3×2 simulation battery: no / mid / full diversification across two seeds, with JSON + Markdown reports. |
+| `src_template/batch_chronicles.py --dry-run` | Phase 13 narrative planning: counts post-run yearly chronicles and computes local GPU worker fit without loading a model. |
 
 ## Known limitations
 

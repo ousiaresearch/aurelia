@@ -32,6 +32,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import defaultdict
 
 COUNTRIES = ["solara", "valdris", "mirithane", "arkos", "verge"]
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_PROMPT_PATH = REPO_ROOT / "prompts" / "chronicle_v1.txt"
 
 # ═══════════════════════════════════════════════════════════════════
 # PROSE PROMPTS (standalone — no imports from rich_narrative needed)
@@ -155,28 +157,60 @@ def format_year_events(events: list) -> str:
 
 
 def build_chronicle_messages(world_id: str, world_context: str, year_summary: str,
-                              year_number: int) -> list:
+                              year_number: int, prompt_path: str | Path | None = None) -> list:
     """Build the messages array for a single chronicle generation."""
+    world_name = world_id.title()
+    world_profile = WORLD_PROFILES.get(world_id, f"World: {world_id}")
     system = (
-        f"You are the narrator of the Aurelia Federation simulation: {world_id.title()}.\n\n"
-        f"{WORLD_PROFILES.get(world_id, '')}\n\n{SPECIES_CONTEXT}\n\n{VOICE}"
+        f"You are the narrator of the Aurelia Federation simulation: {world_name}.\n\n"
+        f"{world_profile}\n\n{SPECIES_CONTEXT}\n\n{VOICE}"
     )
-    prompt = (
-        f"This is the end of Year {year_number} in {world_id.title()}.\n\n"
-        f"Events of the year:\n{year_summary}\n\n"
-        f"Current state:\n{world_context}\n\n"
-        f"Write a chronicle entry for Year {year_number}. Structure:\n"
-        f"1. Header: 'Year {year_number} — {world_id.title()}'\n"
-        f"2. 1-2 paragraph overview of the year's major developments\n"
-        f"3. Notable individuals — name them, describe their actions\n"
-        f"4. The mood of the world as the year closes\n\n"
-        f"This should read like a history, not a report. Ground everything in sensory texture. "
-        f"Make it feel REAL."
+    template = load_chronicle_prompt_template(prompt_path)
+    prompt = template.format(
+        world_id=world_id,
+        world_name=world_name,
+        world_profile=world_profile,
+        species_context=SPECIES_CONTEXT,
+        voice=VOICE,
+        year_summary=year_summary,
+        world_context=world_context,
+        year_number=year_number,
     )
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": prompt},
     ]
+
+
+def load_chronicle_prompt_template(prompt_path: str | Path | None = None) -> str:
+    """Load the external chronicle prompt template.
+
+    Keeping the prompt in ``prompts/chronicle_v1.txt`` lets Phase 13 iterate on
+    narrative voice without burying prose constraints inside Python code.
+    """
+    path = Path(prompt_path) if prompt_path else DEFAULT_PROMPT_PATH
+    return path.read_text()
+
+
+def plan_gpu_workers(*, vram_gb: float, model_vram_gb: float, worlds: list[str], reserve_gb: float = 8.0) -> dict:
+    """Plan parallel llama.cpp workers for a local GPU budget.
+
+    Returns a pure data structure so orchestration can be checked in CI without
+    loading a model. Worker count is capped by both available VRAM and number of
+    worlds, with at least one worker when the model can fit after reserve.
+    """
+    usable = max(0.0, float(vram_gb) - float(reserve_gb))
+    by_vram = int(usable // float(model_vram_gb)) if model_vram_gb > 0 else 0
+    workers = max(0, min(len(worlds), by_vram))
+    return {
+        "vram_gb": float(vram_gb),
+        "reserve_gb": float(reserve_gb),
+        "model_vram_gb": float(model_vram_gb),
+        "worlds": list(worlds),
+        "workers": workers,
+        "estimated_vram_gb": workers * float(model_vram_gb),
+        "fits": workers > 0,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -200,6 +234,9 @@ def batch_generate(worlds: List[str], year_range: range, events_data: dict,
 
     total = len(worlds) * len(year_range)
     done = 0
+    written = 0
+    fallbacks = 0
+    skipped = 0
     t0 = time.time()
 
     for year_num in year_range:
@@ -207,6 +244,7 @@ def batch_generate(worlds: List[str], year_range: range, events_data: dict,
             # Skip if already generated
             chronicle_path = chronicles_dir / f"{world_id}_Y{year_num:04d}.txt"
             if chronicle_path.exists():
+                skipped += 1
                 done += 1
                 continue
 
@@ -232,6 +270,7 @@ def batch_generate(worlds: List[str], year_range: range, events_data: dict,
             if result:
                 with open(chronicle_path, "w") as f:
                     f.write(result)
+                written += 1
                 done += 1
 
                 if done % 10 == 0 or done == total:
@@ -244,10 +283,21 @@ def batch_generate(worlds: List[str], year_range: range, events_data: dict,
                 fallback = f"Year {year_num} — {world_id.title()}\n\n{summary}\n"
                 with open(chronicle_path, "w") as f:
                     f.write(fallback)
+                written += 1
+                fallbacks += 1
                 done += 1
                 print(f"  [{done}/{total}] {world_id} Y{year_num}: fallback")
 
-    print(f"  Complete: {done} chronicles in {time.time()-t0:.0f}s")
+    elapsed = time.time() - t0
+    print(f"  Complete: {done} chronicles in {elapsed:.0f}s")
+    return {
+        "planned": total,
+        "done": done,
+        "written": written,
+        "fallbacks": fallbacks,
+        "skipped": skipped,
+        "elapsed_s": round(elapsed, 2),
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -396,15 +446,47 @@ def grid_generate(worlds: List[str], year_range: range, events_data: dict,
     print(f"  Complete: {done} chronicles in {time.time()-t0:.0f}s")
 
 
+class LlamaChatAdapter:
+    """Normalize llama.cpp's ``create_chat_completion`` to ``client.chat``."""
+
+    def __init__(self, llama):
+        self.llama = llama
+
+    def chat(self, messages: list, *, temperature: float = 0.7, max_tokens: int = 800) -> str:
+        result = self.llama.create_chat_completion(
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return result["choices"][0]["message"]["content"].strip()
+
+
+def _resolve_year_range(args, events_data: dict, world_db_paths: dict[str, str]) -> range:
+    if args.years:
+        return range(1, args.years + 1)
+    if events_data:
+        max_year = max(int(y) for y in events_data.keys())
+        return range(1, max_year + 1)
+    if world_db_paths:
+        db_path = list(world_db_paths.values())[0]
+        db = sqlite3.connect(db_path)
+        db.row_factory = sqlite3.Row
+        wt = db.execute("SELECT year FROM world_time WHERE id=1").fetchone()
+        db.close()
+        max_year = wt["year"] if wt else 200
+        return range(1, max_year + 1)
+    return range(1, 201)
+
+
 # ═══════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════
 
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(
         description="Batch-generate Aurelia yearly chronicles from speed_run output"
     )
-    parser.add_argument("--model-path", required=True, help="Path to GGUF model file")
+    parser.add_argument("--model-path", default=None, help="Path to GGUF model file")
     parser.add_argument("--output", required=True, help="Path to speed_run output directory")
     parser.add_argument("--n-workers", type=int, default=1,
                        help="Parallel model instances (1-8). With 96GB VRAM: "
@@ -415,14 +497,25 @@ def main():
     parser.add_argument("--worlds", type=str, default="solara,valdris,mirithane,arkos,verge")
     parser.add_argument("--years", type=int, default=None,
                        help="Override years (default: detect from DB)")
-    args = parser.parse_args()
+    parser.add_argument("--dry-run", action="store_true",
+                       help="Print chronicle count + GPU worker plan without loading a model")
+    parser.add_argument("--vram-gb", type=float, default=96.0,
+                       help="GPU VRAM budget for dry-run planning")
+    parser.add_argument("--model-vram-gb", type=float, default=17.0,
+                       help="Estimated VRAM per model instance for dry-run planning")
+    parser.add_argument("--reserve-vram-gb", type=float, default=8.0,
+                       help="VRAM reserve left unused for driver/runtime overhead")
+    args = parser.parse_args(argv)
 
     output_dir = Path(args.output)
-    worlds = [w.strip() for w in args.worlds.split(",")]
+    worlds = [w.strip() for w in args.worlds.split(",") if w.strip()]
 
     if not output_dir.exists():
-        print(f"ERROR: Output dir not found: {output_dir}")
-        sys.exit(1)
+        if args.dry_run:
+            output_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            print(f"ERROR: Output dir not found: {output_dir}")
+            return 1
 
     # Load yearly events
     events_path = output_dir / "yearly_events.json"
@@ -433,7 +526,6 @@ def main():
         print(f"Loaded events: {sum(len(v) for v in events_data.values())} year buckets")
     else:
         print("No yearly_events.json — all years treated as quiet")
-        events_data = {}
 
     # Find world DBs
     world_db_paths = {}
@@ -441,37 +533,38 @@ def main():
         db_path = output_dir / f"{world_id}.db"
         if db_path.exists():
             world_db_paths[world_id] = str(db_path)
-        else:
+        elif not args.dry_run:
             print(f"WARNING: No DB for {world_id} at {db_path}")
 
-    # Detect year range
-    if args.years:
-        year_range = range(1, args.years + 1)
-    else:
-        # Detect from events or DB
-        if events_data:
-            max_year = max(int(y) for y in events_data.keys())
-            year_range = range(1, max_year + 1)
-        elif world_db_paths:
-            db_path = list(world_db_paths.values())[0]
-            db = sqlite3.connect(db_path)
-            db.row_factory = sqlite3.Row
-            wt = db.execute("SELECT year FROM world_time WHERE id=1").fetchone()
-            db.close()
-            max_year = wt["year"] if wt else 200
-            year_range = range(1, max_year + 1)
-        else:
-            year_range = range(1, 201)  # default
+    year_range = _resolve_year_range(args, events_data, world_db_paths)
+    total_chronicles = len(year_range) * len(worlds)
+    plan = plan_gpu_workers(
+        vram_gb=args.vram_gb,
+        model_vram_gb=args.model_vram_gb,
+        worlds=worlds,
+        reserve_gb=args.reserve_vram_gb,
+    )
 
     print("=" * 60)
     print("AURELIA BATCH CHRONICLES")
-    print(f"  Model: {args.model_path}")
-    print(f"  Workers: {args.n_workers} parallel")
+    print(f"  Model: {args.model_path or '(not loaded)'}")
+    print(f"  Workers: {args.n_workers} requested")
     print(f"  Worlds: {worlds}")
-    print(f"  Years: {year_range.start}-{year_range.stop - 1} ({len(year_range) * len(worlds)} chronicles)")
-    print(f"  VRAM: ~{args.n_workers * 7:.0f}-{args.n_workers * 17:.0f}GB (est)")
+    print(f"  Years: {year_range.start}-{year_range.stop - 1} ({total_chronicles} chronicles)")
     print(f"  Output: {output_dir}")
     print("=" * 60)
+
+    if args.dry_run:
+        print("DRY RUN")
+        print(f"  chronicles: {total_chronicles}")
+        print(f"  workers: {plan['workers']}")
+        print(f"  estimated_vram_gb: {plan['estimated_vram_gb']:.1f}")
+        print(f"  fits: {plan['fits']}")
+        return 0
+
+    if not args.model_path:
+        print("ERROR: --model-path is required unless --dry-run is set")
+        return 2
 
     if args.n_workers > 1:
         grid_generate(
@@ -483,13 +576,14 @@ def main():
         # Single-worker mode: load model once, sequential
         print("\n── Loading model ──")
         from llama_cpp import Llama
-        client = Llama(
+        raw_client = Llama(
             model_path=args.model_path,
             n_ctx=args.n_ctx,
             n_gpu_layers=-1,
             verbose=False,
         )
-        print(f"  Model loaded.")
+        client = LlamaChatAdapter(raw_client)
+        print("  Model loaded.")
 
         batch_generate(
             worlds, year_range, events_data, world_db_paths,
@@ -501,7 +595,8 @@ def main():
     if chronicle_files:
         total_chars = sum(f.stat().st_size for f in chronicle_files)
         print(f"  {len(chronicle_files)} files, {total_chars/1024:.0f}KB total")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

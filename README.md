@@ -335,9 +335,10 @@ PYTHONPATH=. python3 examples/02_reproduce_density_diversification.py
 PYTHONPATH=. python3 examples/03_trace_causal_chain.py
 PYTHONPATH=src_template python3 examples/04_run_counterfactual_branch.py
 PYTHONPATH=. python3 examples/05_run_density_diversification_grid.py --dry-run
+PYTHONPATH=src_template python3 src_template/batch_chronicles.py --output /tmp/aurelia-run/output --years 200 --dry-run
 ```
 
-All five work offline. The second reproduces the headline **98.1% cross-world population-CV reduction** when the density-diversification knob is on. The third walks a causal chain three hops upstream from a federation event. The fourth runs a paired-simulation counterfactual (same seed, density_diversification 0.0 vs 1.0) and prints a divergence report. The fifth previews or runs a 3×2 density-diversification grid with JSON + Markdown reports; see [`docs/AURELIA_COUNTERFACTUALS.md`](docs/AURELIA_COUNTERFACTUALS.md) for the full counterfactual pattern. See [`docs/AURELIA_RESEARCH_START_HERE.md`](docs/AURELIA_RESEARCH_START_HERE.md) for the full path.
+All five research examples work offline. The second reproduces the headline **98.1% cross-world population-CV reduction** when the density-diversification knob is on. The third walks a causal chain three hops upstream from a federation event. The fourth runs a paired-simulation counterfactual (same seed, density_diversification 0.0 vs 1.0) and prints a divergence report. The fifth previews or runs a 3×2 density-diversification grid with JSON + Markdown reports. The Phase 13 narrative command plans the post-run yearly chronicle batch without loading a model; see [`docs/AURELIA_PHASE13_NARRATIVE.md`](docs/AURELIA_PHASE13_NARRATIVE.md). See [`docs/AURELIA_COUNTERFACTUALS.md`](docs/AURELIA_COUNTERFACTUALS.md) for the full counterfactual pattern. See [`docs/AURELIA_RESEARCH_START_HERE.md`](docs/AURELIA_RESEARCH_START_HERE.md) for the full path.
 
 ## HuggingFace datasets
 
