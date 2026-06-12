@@ -14,22 +14,22 @@ Snapshot after executing the Phase 13 verified chronicle layer plan on branch `p
   - `110da8e docs(aurelia): define phase 13 verified chronicle contract`
   - `38ba544 docs(aurelia): link phase 13 chronicle frontier`
   - `91a3918 docs(aurelia): publish first verified chronicle artifact`
-  - post-review fix: renderer Markdown now includes faction counts; provenance partial-path behavior is tested; README/Observatory counts are 170.
+  - post-review fix: renderer Markdown now includes faction counts; provenance partial-path behavior is tested; README/Observatory counts are 171.
 - **Release tag:** `v0.1.6-phase12-engine-stability` exists locally.
-- **Tests:** `PYTHONPATH=. pytest tests/ -q` exits 0; collection is 170 tests across 31 files.
+- **Tests:** `PYTHONPATH=. pytest tests/ -q` exits 0; collection is 171 tests across 31 files.
 
 ## 2. What changed
 
 ### Truth surface closed
 
-- README now reports the current 170-test count instead of the stale 90-test count.
+- README now reports the current 171-test count instead of the stale 90-test count.
 - `docs/ROADMAP.md` marks Phase 11 closed, Phase 12 closed for the 0.1.6 engine-stability boundary, and Phase 13 active.
 - `v0.1.6-phase12-engine-stability` was created as an annotated local tag.
 
 ### Observatory proof surface refreshed
 
 - `docs/observatory/index.html` now has a static 0.1.6 proof panel.
-- The panel names the post-fix engine boundary, 170 passing tests, 5-seed 50y sweep, counterfactual branch, and D1 caveat.
+- The panel names the post-fix engine boundary, 171 passing tests, 5-seed 50y sweep, counterfactual branch, and D1 caveat.
 - `tests/test_observatory_static.py` guards the proof links.
 
 ### Verified chronicle renderer shipped
