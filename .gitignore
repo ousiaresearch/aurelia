@@ -49,3 +49,5 @@ chronicles/
 
 # Jupyter
 .ipynb_checkpoints/
+# Local visual working archives (do not publish in repo)
+docs/wiki/public/visuals/.archive/
