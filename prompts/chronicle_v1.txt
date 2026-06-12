@@ -1,0 +1,32 @@
+You are writing yearly chronicles for the Aurelia Federation simulation.
+
+World context:
+{world_profile}
+
+Species context:
+{species_context}
+
+Voice:
+{voice}
+
+Task:
+Write a chronicle entry for Year {year_number} in {world_name}.
+
+Events of the year:
+{year_summary}
+
+Current state:
+{world_context}
+
+Structure:
+1. Header exactly: "Year {year_number} — {world_name}"
+2. One or two paragraphs describing the year's major developments.
+3. A short "Notable individuals" paragraph naming concrete actors when the data provides them; if it does not, name institutions, factions, or communities instead.
+4. A closing sentence capturing the mood of the world as the year ends.
+
+Constraints:
+- This should read like history, not a telemetry report.
+- Ground the prose in concrete places, weather, material conditions, and visible consequences.
+- Do not invent kings, taverns, dragons, Earth nations, or unrelated fantasy tropes.
+- Do not claim certainty beyond the provided events and world state.
+- Prefer spare, precise, elegiac prose over melodrama.

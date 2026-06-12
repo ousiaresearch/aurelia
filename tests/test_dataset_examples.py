@@ -242,6 +242,8 @@ def test_research_start_here_mentions_core_examples():
     assert "03_trace_causal_chain" in text
     assert "04_run_counterfactual_branch" in text
     assert "05_run_density_diversification_grid" in text
+    assert "batch_chronicles.py" in text
+    assert "AURELIA_PHASE13_NARRATIVE" in text
     assert "AURELIA_CANON_AND_DATA_GUIDE" in text
 
 
@@ -259,6 +261,7 @@ def test_readme_links_both_start_here_pages():
     assert "AURELIA_RESEARCH_START_HERE" in text
     assert "AURELIA_LORE_READERS_START_HERE" in text
     assert "05_run_density_diversification_grid" in text
+    assert "AURELIA_PHASE13_NARRATIVE" in text
 
 
 def test_wiki_readme_anchors_canon_bridge():
