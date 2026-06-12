@@ -57,6 +57,9 @@
     .world .year { color: var(--gold); font: 700 12px ui-sans-serif, system-ui; text-transform: uppercase; letter-spacing: .12em; }
     .sections { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 22px; }
     .panel { padding: 20px; overflow: hidden; }
+    .proof-panel { margin-bottom: 22px; }
+    .proof-panel ul { color: var(--muted); line-height: 1.6; }
+    .proof-panel strong { color: var(--ink); }
     .bars { display: grid; gap: 10px; }
     .bar { display: grid; grid-template-columns: 150px 1fr 72px; gap: 10px; align-items: center; font: 700 13px ui-sans-serif, system-ui; color: var(--muted); }
     .bar-track { height: 10px; border-radius: 99px; background: rgba(0,0,0,.3); overflow: hidden; }
@@ -85,6 +88,18 @@
   </header>
 
   <main>
+    <section class="panel proof-panel">
+      <div class="eyebrow">0.1.6 post-fix engine</div>
+      <h2>Stable causal histories, counterfactual branches, seed-sweep evidence.</h2>
+      <p>The current public proof surface is the 0.1.6 Phase 12 engine-stability boundary: feedback loops capped, reports refreshed, counterfactual demo shipped, and a five-seed sweep completed.</p>
+      <ul>
+        <li><strong>Tests:</strong> 171 passing tests.</li>
+        <li><strong>Seed sweep:</strong> 5 seeds at 50y, D1 quality 0.85 for all five.</li>
+        <li><strong>Counterfactual:</strong> same-seed density_diversification 0.0 vs 1.0 branch with measurable divergence.</li>
+        <li><strong>D1 caveat:</strong> Cloudflare is the public observability plane; local/HF artifacts remain the complete research archive for long runs.</li>
+      </ul>
+      <p><a href="../reports/phase12-seed-sweep-report.md">Seed sweep report</a> · <a href="../AURELIA_COUNTERFACTUALS.md">Counterfactual guide</a> · <a href="../PROJECT_STATUS_2026-06-12.md">Project status</a></p>
+    </section>
     <section class="metrics" id="metrics"></section>
     <section class="grid" id="worlds"></section>
     <section class="sections">
