@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -109,7 +110,71 @@ def build_verified_chronicle_cards(run_dir: str | Path) -> list[dict[str, Any]]:
     return cards
 
 
-def render_verified_chronicles_markdown(run_dir: str | Path) -> str:
+def _summary_metadata(summary: dict[str, Any], run_dir: Path) -> dict[str, Any]:
+    return {
+        "run_id": summary.get("run_id") or run_dir.name,
+        "seed": summary.get("seed"),
+        "engine_version": summary.get("engine_version"),
+        "git_commit": summary.get("git_commit"),
+        "density_diversification": summary.get("density_diversification"),
+        "years": summary.get("years"),
+        "ticks": summary.get("ticks"),
+        "ticks_per_year": summary.get("ticks_per_year"),
+        "worlds": summary.get("worlds", {}),
+        "source_files": {"summary": "causal_summary.json"},
+    }
+
+
+def build_provenance_manifest(run_dir: str | Path) -> dict[str, Any]:
+    """Build a durable provenance manifest without host-local absolute paths."""
+    run_dir = Path(run_dir)
+    summary = _load_summary(run_dir)
+    cards = build_verified_chronicle_cards(run_dir)
+
+    manifest_cards = []
+    for card in cards:
+        world_db = Path(card["source_paths"]["world_db"])
+        manifest_cards.append(
+            {
+                "run_id": card["run_id"],
+                "world_id": card["world_id"],
+                "year": card["year"],
+                "title": card["title"],
+                "metrics": card["metrics"],
+                "evidence": card["evidence"],
+                "provenance_status": card["provenance_status"],
+                "source_files": {
+                    "summary": "causal_summary.json",
+                    "world_db": world_db.name,
+                },
+            }
+        )
+
+    return {
+        "schema": "aurelia.phase13.provenance.v1",
+        "source_run": _summary_metadata(summary, run_dir),
+        "cards": manifest_cards,
+    }
+
+
+def _manifest_link(manifest_path: str | Path, output_path: str | Path | None = None) -> str:
+    manifest = Path(manifest_path)
+    label = manifest.name
+    if output_path:
+        target = os.path.relpath(manifest, start=Path(output_path).parent)
+    elif manifest.is_absolute():
+        target = manifest.name
+    else:
+        target = str(manifest)
+    return f"[{label}]({target})"
+
+
+def render_verified_chronicles_markdown(
+    run_dir: str | Path,
+    *,
+    manifest_path: str | Path | None = None,
+    output_path: str | Path | None = None,
+) -> str:
     """Render verified chronicle cards as auditable Markdown."""
     cards = build_verified_chronicle_cards(run_dir)
     lines = ["# Aurelia Verified Chronicles", ""]
@@ -117,6 +182,9 @@ def render_verified_chronicles_markdown(run_dir: str | Path) -> str:
         "Deterministic Phase 13 chronicle cards. These are evidence-backed "
         "summaries, not freeform invented prose."
     )
+    if manifest_path:
+        lines.append("")
+        lines.append(f"Committed provenance manifest: {_manifest_link(manifest_path, output_path)}")
     lines.append("")
     for card in cards:
         lines.append(f"## Year {card['year']} — {card['world_id'].title()}")
@@ -133,8 +201,10 @@ def render_verified_chronicles_markdown(run_dir: str | Path) -> str:
         lines.append(
             f"- Evidence event types: {', '.join(events) if events else 'none'}"
         )
-        lines.append(f"- Source summary: `{card['source_paths']['summary']}`")
-        lines.append(f"- Source DB: `{card['source_paths']['world_db']}`")
+        source_summary = "causal_summary.json" if manifest_path else card["source_paths"]["summary"]
+        source_db = Path(card["source_paths"]["world_db"]).name if manifest_path else card["source_paths"]["world_db"]
+        lines.append(f"- Source summary: `{source_summary}`")
+        lines.append(f"- Source DB: `{source_db}`")
         lines.append("")
     return "\n".join(lines)
 
@@ -143,15 +213,25 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--manifest-output", type=Path)
     args = parser.parse_args(argv)
 
-    text = render_verified_chronicles_markdown(args.run_dir)
+    text = render_verified_chronicles_markdown(
+        args.run_dir,
+        manifest_path=args.manifest_output,
+        output_path=args.output,
+    )
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(text)
         print(f"wrote {args.output}")
     else:
         print(text)
+    if args.manifest_output:
+        args.manifest_output.parent.mkdir(parents=True, exist_ok=True)
+        manifest = build_provenance_manifest(args.run_dir)
+        args.manifest_output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+        print(f"wrote {args.manifest_output}")
 
 
 if __name__ == "__main__":

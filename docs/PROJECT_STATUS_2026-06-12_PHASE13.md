@@ -14,22 +14,22 @@ Snapshot after executing the Phase 13 verified chronicle layer plan on branch `p
   - `110da8e docs(aurelia): define phase 13 verified chronicle contract`
   - `38ba544 docs(aurelia): link phase 13 chronicle frontier`
   - `91a3918 docs(aurelia): publish first verified chronicle artifact`
-  - post-review fix: renderer Markdown now includes faction counts; provenance partial-path behavior is tested; README/Observatory counts are 171.
+  - post-review fix: renderer Markdown now includes faction counts; provenance partial-path behavior is tested; README/Observatory counts are 172.
 - **Release tag:** `v0.1.6-phase12-engine-stability` exists locally.
-- **Tests:** `PYTHONPATH=. pytest tests/ -q` exits 0; collection is 171 tests across 31 files.
+- **Tests:** `PYTHONPATH=. pytest tests/ -q` exits 0; collection is 172 tests across 31 files.
 
 ## 2. What changed
 
 ### Truth surface closed
 
-- README now reports the current 171-test count instead of the stale 90-test count.
+- README now reports the current 172-test count instead of the stale 90-test count.
 - `docs/ROADMAP.md` marks Phase 11 closed, Phase 12 closed for the 0.1.6 engine-stability boundary, and Phase 13 active.
 - `v0.1.6-phase12-engine-stability` was created as an annotated local tag.
 
 ### Observatory proof surface refreshed
 
 - `docs/observatory/index.html` now has a static 0.1.6 proof panel.
-- The panel names the post-fix engine boundary, 171 passing tests, 5-seed 50y sweep, counterfactual branch, and D1 caveat.
+- The panel names the post-fix engine boundary, 172 passing tests, 5-seed 50y sweep, counterfactual branch, and D1 caveat.
 - `tests/test_observatory_static.py` guards the proof links.
 
 ### Verified chronicle renderer shipped
@@ -50,13 +50,15 @@ Snapshot after executing the Phase 13 verified chronicle layer plan on branch `p
 ### First artifact published
 
 - New artifact: `docs/reports/phase13-verified-chronicles.md`.
+- New durable provenance manifest: `docs/reports/phase13-verified-chronicles.provenance.json`.
 - Source run: `/tmp/aurelia-density-grid-smoke/full-diversify-seed4102`.
 - It renders verified chronicle cards for Arkos, Mirithane, Solara, Valdris, and Verge.
 - Each card includes source summary and source DB paths.
+- The committed manifest embeds run metadata, world metrics, event evidence, and source file names without host-local absolute paths.
 
 ## 3. Remaining caveats
 
-- The first chronicle artifact cites a `/tmp` run source. It is real local run data, but not a durable committed run archive. Future chronicle artifacts should either cite HF/local committed metadata or copy a compact provenance manifest into `docs/reports/`.
+- The first chronicle artifact still cites the original `/tmp` run source for operator traceability, but the committed `.provenance.json` manifest now preserves compact durable evidence without depending on that path.
 - The renderer is intentionally deterministic and minimal. It does not yet produce literary prose.
 - `src_template/batch_chronicles.py` remains the future LLM layer, not yet integrated with the verified-card scaffold.
 - The branch is ready to push and/or merge after review.
@@ -65,6 +67,5 @@ Snapshot after executing the Phase 13 verified chronicle layer plan on branch `p
 
 1. Push branch `phase13-verified-chronicles` and tag `v0.1.6-phase12-engine-stability`.
 2. Merge/PR into `main` after review.
-3. Add a provenance manifest mode so Phase 13 artifacts do not depend on ephemeral `/tmp` paths.
-4. Build the LLM chronicle layer over deterministic cards, preserving event evidence in every generated prose output.
-5. Expand into the counterfactual gallery and larger calibration sweep.
+3. Build the LLM chronicle layer over deterministic cards, preserving event evidence in every generated prose output.
+4. Expand into the counterfactual gallery and larger calibration sweep.
