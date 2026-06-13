@@ -185,3 +185,72 @@ def test_cli_writes_verified_chronicle_markdown_and_manifest(tmp_path):
     assert "Source summary: `causal_summary.json`" in text
     assert "Source DB: `solara.db`" in text
     assert manifest["source_run"]["run_id"] == "phase13-fixture"
+
+
+def test_llm_prompt_packet_carries_evidence_lock_without_invention(tmp_path):
+    run_dir = make_verified_run(tmp_path)
+    mod = load_script("render_verified_chronicles")
+    card = mod.build_verified_chronicle_cards(run_dir)[0]
+
+    packet = mod.build_llm_chronicle_prompt_packet(card)
+    serialized = json.dumps(packet)
+
+    assert packet["schema"] == "aurelia.phase13.llm_prompt.v1"
+    assert packet["card_ref"] == {"run_id": "phase13-fixture", "world_id": "solara", "year": 1}
+    assert "Do not invent" in packet["messages"][0]["content"]
+    assert "reconciliation_process" in serialized
+    assert "food_security_decline" in serialized
+    assert "population" in serialized
+    assert "solara.db" in serialized
+    assert str(tmp_path) not in serialized
+
+
+def test_llm_chronicle_draft_preserves_required_evidence(tmp_path):
+    run_dir = make_verified_run(tmp_path)
+    mod = load_script("render_verified_chronicles")
+    card = mod.build_verified_chronicle_cards(run_dir)[0]
+
+    draft = mod.render_grounded_llm_chronicle_draft(card)
+
+    assert "## Year 1 — Solara" in draft
+    assert "Run: `phase13-fixture`" in draft
+    assert "Provenance: verified" in draft
+    assert "reconciliation_process" in draft
+    assert "food_security_decline" in draft
+    assert "Population: 1" in draft
+    assert mod.validate_llm_chronicle_draft(draft, card)["valid"] is True
+
+
+def test_invalid_llm_chronicle_draft_reports_missing_evidence(tmp_path):
+    run_dir = make_verified_run(tmp_path)
+    mod = load_script("render_verified_chronicles")
+    card = mod.build_verified_chronicle_cards(run_dir)[0]
+
+    validation = mod.validate_llm_chronicle_draft("Year 1 was dramatic but unsourced.", card)
+
+    assert validation["valid"] is False
+    assert "reconciliation_process" in validation["missing_evidence"]
+
+
+def test_cli_writes_llm_chronicles_and_prompt_packets(tmp_path):
+    run_dir = make_verified_run(tmp_path)
+    output = tmp_path / "verified.md"
+    llm_output = tmp_path / "llm.md"
+    prompt_output = tmp_path / "prompts.jsonl"
+    mod = load_script("render_verified_chronicles")
+
+    mod.main([
+        "--run-dir", str(run_dir),
+        "--output", str(output),
+        "--llm-output", str(llm_output),
+        "--prompt-output", str(prompt_output),
+    ])
+
+    llm_text = llm_output.read_text()
+    prompt_lines = prompt_output.read_text().splitlines()
+    assert "# Aurelia LLM Chronicle Drafts" in llm_text
+    assert "Evidence lock: passed" in llm_text
+    assert "reconciliation_process" in llm_text
+    assert len(prompt_lines) == 1
+    assert json.loads(prompt_lines[0])["card_ref"]["world_id"] == "solara"
+    assert str(run_dir) not in llm_text

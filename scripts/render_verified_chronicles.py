@@ -157,6 +157,137 @@ def build_provenance_manifest(run_dir: str | Path) -> dict[str, Any]:
     }
 
 
+def _portable_card_payload(card: dict[str, Any]) -> dict[str, Any]:
+    world_db = Path(card["source_paths"]["world_db"])
+    return {
+        "run_id": card["run_id"],
+        "world_id": card["world_id"],
+        "year": card["year"],
+        "title": card["title"],
+        "metrics": card["metrics"],
+        "evidence": card["evidence"],
+        "provenance_status": card["provenance_status"],
+        "source_files": {
+            "summary": "causal_summary.json",
+            "world_db": world_db.name,
+        },
+    }
+
+
+def build_llm_chronicle_prompt_packet(card: dict[str, Any]) -> dict[str, Any]:
+    """Build an evidence-locked LLM prompt packet for one verified card."""
+    payload = _portable_card_payload(card)
+    system = (
+        "You are the Aurelia chronicle narrator. Do not invent named events, "
+        "people, factions, outcomes, dates, places, or causal relationships. "
+        "Every narrative sentence must be grounded in the supplied verified "
+        "card. If evidence is thin, say so plainly. Preserve the evidence "
+        "ledger in the final answer."
+    )
+    user = (
+        "Write a short civilization chronicle from this verified card. "
+        "Use literary prose only after carrying the run id, provenance, metrics, "
+        "and evidence event types.\n\n"
+        f"Verified card JSON:\n{json.dumps(payload, indent=2, sort_keys=True)}"
+    )
+    return {
+        "schema": "aurelia.phase13.llm_prompt.v1",
+        "card_ref": {
+            "run_id": card["run_id"],
+            "world_id": card["world_id"],
+            "year": card["year"],
+        },
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+    }
+
+
+def _required_evidence_terms(card: dict[str, Any]) -> list[str]:
+    terms = list(card.get("evidence", {}).get("top_event_types", []))
+    for highlight in card.get("evidence", {}).get("causal_highlights", []):
+        event_type = highlight.get("event_type")
+        if event_type and event_type not in terms:
+            terms.append(event_type)
+    return terms
+
+
+def validate_llm_chronicle_draft(text: str, card: dict[str, Any]) -> dict[str, Any]:
+    """Validate that a prose draft carries required card evidence."""
+    required = _required_evidence_terms(card)
+    missing_evidence = [term for term in required if term not in text]
+    missing_metadata = []
+    for term in [str(card["run_id"]), card["provenance_status"], str(card["metrics"].get("population"))]:
+        if term not in text:
+            missing_metadata.append(term)
+    return {
+        "valid": not missing_evidence and not missing_metadata,
+        "missing_evidence": missing_evidence,
+        "missing_metadata": missing_metadata,
+    }
+
+
+def render_grounded_llm_chronicle_draft(card: dict[str, Any]) -> str:
+    """Render the offline, evidence-preserving draft an LLM must improve from."""
+    world = card["world_id"].title()
+    metrics = card["metrics"]
+    events = _required_evidence_terms(card)
+    event_text = ", ".join(events) if events else "no recorded event evidence"
+    validation_status = "passed" if events else "partial"
+    lines = [
+        f"## Year {card['year']} — {world}",
+        "",
+        f"- Run: `{card['run_id']}`",
+        f"- Provenance: {card['provenance_status']}",
+        f"- Evidence lock: {validation_status}",
+        f"- Population: {metrics.get('population')}",
+        f"- Births / deaths: {metrics.get('births')} / {metrics.get('deaths')}",
+        f"- Factions: {metrics.get('factions')}",
+        f"- Evidence carried: {event_text}",
+        "",
+        "Chronicle draft:",
+        (
+            f"In Year {card['year']}, {world}'s record remains bounded by the "
+            f"verified card for run {card['run_id']}. The population closed at "
+            f"{metrics.get('population')}, with {metrics.get('births')} births "
+            f"and {metrics.get('deaths')} deaths. The evidence ledger names "
+            f"{event_text}; no additional named events or actors are introduced."
+        ),
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def render_llm_chronicles_markdown(run_dir: str | Path) -> str:
+    """Render LLM-ready chronicle drafts that preserve verified evidence."""
+    cards = build_verified_chronicle_cards(run_dir)
+    lines = [
+        "# Aurelia LLM Chronicle Drafts",
+        "",
+        "Phase 13 prose layer scaffold. These drafts are intentionally bounded "
+        "by verified chronicle cards and their evidence ledgers.",
+        "",
+    ]
+    for card in cards:
+        draft = render_grounded_llm_chronicle_draft(card)
+        validation = validate_llm_chronicle_draft(draft, card)
+        lines.append(draft)
+        lines.append(f"Validation: {'passed' if validation['valid'] else 'failed'}")
+        if not validation["valid"]:
+            lines.append(f"Missing evidence: {', '.join(validation['missing_evidence'])}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def write_llm_prompt_packets(run_dir: str | Path, output_path: str | Path) -> None:
+    cards = build_verified_chronicle_cards(run_dir)
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    packets = [build_llm_chronicle_prompt_packet(card) for card in cards]
+    output_path.write_text("\n".join(json.dumps(packet, sort_keys=True) for packet in packets) + "\n")
+
+
 def _manifest_link(manifest_path: str | Path, output_path: str | Path | None = None) -> str:
     manifest = Path(manifest_path)
     label = manifest.name
@@ -214,6 +345,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--manifest-output", type=Path)
+    parser.add_argument("--llm-output", type=Path)
+    parser.add_argument("--prompt-output", type=Path)
     args = parser.parse_args(argv)
 
     text = render_verified_chronicles_markdown(
@@ -232,6 +365,13 @@ def main(argv: list[str] | None = None) -> None:
         manifest = build_provenance_manifest(args.run_dir)
         args.manifest_output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
         print(f"wrote {args.manifest_output}")
+    if args.llm_output:
+        args.llm_output.parent.mkdir(parents=True, exist_ok=True)
+        args.llm_output.write_text(render_llm_chronicles_markdown(args.run_dir))
+        print(f"wrote {args.llm_output}")
+    if args.prompt_output:
+        write_llm_prompt_packets(args.run_dir, args.prompt_output)
+        print(f"wrote {args.prompt_output}")
 
 
 if __name__ == "__main__":

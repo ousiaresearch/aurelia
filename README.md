@@ -172,7 +172,7 @@ pip install -U pip pytest
 
 # Run the test suite
 PYTHONPATH=. pytest tests/ -q
-# 172 passed
+# 176 passed
 ```
 
 ## Running a simulation
@@ -400,7 +400,7 @@ Uploading requires a write token; the full procedure is in
 
 ```bash
 PYTHONPATH=. pytest tests/ -q
-# 172 passed
+# 176 passed
 ```
 
 Coverage focuses on:
